@@ -7,6 +7,7 @@ from collections import defaultdict
 from backend.core.security import get_current_faculty, require_role
 from backend.app.database import get_db
 from backend.app.models import *
+from backend.app.schemas import LectureLogCreate
 
 from datetime import datetime, timedelta
 
@@ -35,6 +36,12 @@ def faculty_timetable(faculty=Depends(get_current_faculty), db: Session = Depend
         subj = db.query(Subject).filter(Subject.id == s.subject_id).first()
         result.append({"day": s.day, "hour": s.hour, "subject": subj.name if subj else "?", "room": s.room, "section": s.section})
     return {"timetable": result}
+
+@router.get("/my-subjects")
+def get_my_subjects(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    codes = [s.strip() for s in (faculty.subjects_teaching or "").split(",") if s.strip()]
+    subjects = db.query(Subject).filter(Subject.code.in_(codes)).all()
+    return {"subjects": [{"id": s.id, "name": s.name, "code": s.code} for s in subjects]}
 
 class AttendanceMarkRequest(BaseModel):
     subject_id: int
@@ -291,4 +298,41 @@ def check_plagiarism(assignment_id: int, faculty=Depends(get_current_faculty), d
         batch.append({'student_id': s.student_id, 'student_name': student.full_name if student else '?', 'text': s.submission_text or ''})
     results = plagiarism_detector.batch_compare(batch)
     return {'assignment_id': assignment_id, 'suspicious_pairs': results}
+
+@router.post("/lecture-logs")
+def create_lecture_log(data: LectureLogCreate, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    verify_subject_ownership(faculty, data.subject_id, db)
+    log = LectureLog(
+        faculty_id=faculty.id,
+        institution_id=faculty.institution_id,
+        subject_id=data.subject_id,
+        date=data.date,
+        hour=data.hour,
+        topic_covered=data.topic_covered,
+        methodology=data.methodology,
+        remarks=data.remarks
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return {"message": "Lecture log recorded", "id": log.id}
+
+@router.get("/lecture-logs")
+def get_faculty_lecture_logs(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    logs = db.query(LectureLog).filter(LectureLog.faculty_id == faculty.id).order_by(LectureLog.date.desc(), LectureLog.hour.desc()).all()
+    result = []
+    for l in logs:
+        subj = db.query(Subject).filter(Subject.id == l.subject_id).first()
+        result.append({
+            "id": l.id,
+            "subject": subj.name if subj else "?",
+            "code": subj.code if subj else "?",
+            "date": l.date,
+            "hour": l.hour,
+            "topic_covered": l.topic_covered,
+            "methodology": l.methodology,
+            "remarks": l.remarks,
+            "created_at": l.created_at
+        })
+    return {"logs": result}
 

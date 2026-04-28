@@ -32,6 +32,7 @@ const FeesPage = lazy(() => import("./pages/FeesPage"));
 const LibraryPage = lazy(() => import("./pages/LibraryPage"));
 const PlacementPage = lazy(() => import('./pages/PlacementPage'));
 const SettingsPage  = lazy(() => import('./pages/SettingsPage'));
+const LectureLogPage = lazy(() => import("./pages/LectureLogPage"));
 
 // ── Hub Pages (v4 category landing) ─────────────────────────────────────────
 const AcademicsHub = lazy(() => import("./pages/hubs/AcademicsHub"));
@@ -45,10 +46,13 @@ const FacultyAttendance = lazy(() => import("./pages/faculty/FacultyAttendance")
 const FacultyMarks = lazy(() => import("./pages/faculty/FacultyMarks"));
 const FacultyAmendments = lazy(() => import("./pages/faculty/FacultyAmendments"));
 const FacultyLeaves = lazy(() => import("./pages/faculty/FacultyLeaves"));
+const FacultyLectureLog = lazy(() => import("./pages/faculty/FacultyLectureLog"));
+const FacultyAssignments = lazy(() => import("./pages/faculty/FacultyAssignments"));
 
 // ── Admin Pages (lazy) ──────────────────────────────────────────────────────
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminStudents = lazy(() => import("./pages/admin/AdminStudents"));
+const AdminFaculty = lazy(() => import("./pages/admin/AdminFaculty"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminAudit = lazy(() => import("./pages/admin/AdminAudit"));
 
@@ -83,6 +87,7 @@ function getContextPage(pathname) {
   if (pathname.startsWith("/calendar")) return "calendar";
   if (pathname.startsWith("/leave")) return "leave";
   if (pathname.startsWith("/timetable")) return "timetable";
+  if (pathname.startsWith("/lecture-logs")) return "lecture_logs";
   if (pathname.startsWith("/analytics")) return "analytics";
   if (pathname.startsWith("/campus-wall")) return "campus_wall";
   if (pathname.startsWith("/hub")) return "hub";
@@ -95,6 +100,7 @@ function getContextPage(pathname) {
   if (pathname.startsWith("/faculty/marks")) return "faculty_marks";
   if (pathname.startsWith("/faculty/amendments")) return "faculty_amendments";
   if (pathname.startsWith("/faculty/leaves")) return "faculty_leaves";
+  if (pathname.startsWith("/faculty/lecture-logs")) return "faculty_lecture_logs";
   if (pathname.startsWith("/faculty")) return "faculty";
   if (pathname.startsWith("/leaderboard")) return "leaderboard";
   if (pathname.startsWith("/lost-found")) return "lost_found";
@@ -137,6 +143,7 @@ export default function App() {
           <Route path="/calendar" element={<ProtectedRoute allowedRoles={["student"]}><CalendarPage /></ProtectedRoute>} />
           <Route path="/leave" element={<ProtectedRoute allowedRoles={["student"]}><LeavePage /></ProtectedRoute>} />
           <Route path="/timetable" element={<ProtectedRoute allowedRoles={["student", "faculty", "hod"]}><TimetablePage /></ProtectedRoute>} />
+          <Route path="/lecture-logs" element={<ProtectedRoute allowedRoles={["student"]}><LectureLogPage /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute allowedRoles={["student"]}><AnalyticsPage /></ProtectedRoute>} />
           <Route path="/campus-wall" element={<ProtectedRoute allowedRoles={["student"]}><AnonChatPage /></ProtectedRoute>} />
           <Route path="/hub" element={<ProtectedRoute allowedRoles={["student"]}><FeaturesPage /></ProtectedRoute>} />
@@ -164,10 +171,13 @@ export default function App() {
           <Route path="/faculty/marks" element={<ProtectedRoute allowedRoles={["faculty", "hod"]}><FacultyMarks /></ProtectedRoute>} />
           <Route path="/faculty/amendments" element={<ProtectedRoute allowedRoles={["hod"]}><FacultyAmendments /></ProtectedRoute>} />
           <Route path="/faculty/leaves" element={<ProtectedRoute allowedRoles={["faculty", "hod"]}><FacultyLeaves /></ProtectedRoute>} />
+          <Route path="/faculty/lecture-logs" element={<ProtectedRoute allowedRoles={["faculty", "hod"]}><FacultyLectureLog /></ProtectedRoute>} />
+          <Route path="/faculty/assignments" element={<ProtectedRoute allowedRoles={["faculty", "hod"]}><FacultyAssignments /></ProtectedRoute>} />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute allowedRoles={["admin"]}><AdminStudents /></ProtectedRoute>} />
+          <Route path="/admin/faculty" element={<ProtectedRoute allowedRoles={["admin"]}><AdminFaculty /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAudit /></ProtectedRoute>} />
 

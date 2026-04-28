@@ -625,6 +625,26 @@ export async function createFacultyAssignment(data) {
   return response.data;
 }
 
+export async function checkPlagiarism(assignmentId) {
+  const response = await api.post(`/faculty-portal/assignments/check-plagiarism/${assignmentId}`);
+  return response.data;
+}
+
+export async function fetchFacultyLectureLogs() {
+  const response = await api.get("/faculty-portal/lecture-logs");
+  return response.data;
+}
+
+export async function createLectureLog(data) {
+  const response = await api.post("/faculty-portal/lecture-logs", data);
+  return response.data;
+}
+
+export async function fetchMySubjects() {
+  const response = await api.get("/faculty-portal/my-subjects");
+  return response.data;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // ADMIN PANEL APIs
 // ══════════════════════════════════════════════════════════════════════════════
@@ -679,3 +699,4 @@ export async function fetchMoodAnalytics(batchYear = null, section = null) {
 }
 
 export default api;
+export const fetchStudentLectureLogs = () => api.get('/academic/lecture-logs/my-logs').then(res => res.data);

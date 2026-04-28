@@ -6,6 +6,7 @@ from backend.api.routes.features import (
     timetable_router, exam_router, syllabus_router, notes_router, assignment_router
 )
 from backend.api.routes.extended_routes import courses_router
+from backend.api.routes.lecture_logs import router as lecture_logs_router
 
 router = APIRouter(prefix="/academic", tags=["Academic Domain"])
 
@@ -18,3 +19,4 @@ router.include_router(syllabus_router, tags=["Syllabus"])
 router.include_router(notes_router, tags=["Notes"])
 router.include_router(assignment_router, tags=["Assignment"])
 router.include_router(courses_router, tags=["Courses"])
+router.include_router(lecture_logs_router, tags=["Lecture Logs"])

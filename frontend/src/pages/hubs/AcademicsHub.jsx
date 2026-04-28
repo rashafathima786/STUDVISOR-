@@ -153,6 +153,25 @@ export default function AcademicsHub() {
           </div>
         </Link>
 
+        {/* Lecture Logs */}
+        <Link to="/lecture-logs" className="bento-tile">
+          <div className="hub-tile-header">
+            <div className="hub-tile-icon-wrap bg-info/10">📓</div>
+            <div className="hub-tile-title">
+              <span className="hub-tile-label text-lg">Lecture Logs</span>
+              <span className="hub-tile-desc text-info/80 font-bold uppercase tracking-widest text-[10px]">Session Topics</span>
+            </div>
+          </div>
+          <div className="hub-tile-preview mt-4">
+             <div className="mini-status-list space-y-2">
+              <div className="mini-status-item flex items-center gap-3">
+                <div className="mini-dot active shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                <span className="text-sm font-semibold text-on-surface">Browse Session Data</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+
       </div>
     </ErpLayout>
   )

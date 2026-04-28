@@ -4,7 +4,8 @@ import ErpLayout from '../../components/ErpLayout'
 import SkeletonLoader from '../../components/SkeletonLoader'
 import EmptyState from '../../components/EmptyState'
 import { useToast } from '../../stores/toastStore'
-import { FileSearch, Check, X } from 'lucide-react'
+import { FileSearch, Check, X, ArrowRight, User, Book, Calendar, Info } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function FacultyAmendments() {
   const [amendments, setAmendments] = useState([])
@@ -36,35 +37,102 @@ export default function FacultyAmendments() {
   }
 
   return (
-    <ErpLayout title="Amendment Requests" subtitle="Review attendance amendment requests">
-      <div className="card">
-        <h3 className="section-title"><FileSearch size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />Pending Amendments</h3>
-        {loading ? <SkeletonLoader variant="table-row" count={5} /> : amendments.length === 0 ? (
-          <EmptyState title="No pending amendments" description="All requests processed." />
-        ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead><tr><th>Faculty</th><th>Subject</th><th>Date</th><th>Old</th><th>New</th><th>Reason</th><th>Actions</th></tr></thead>
-              <tbody>
-                {amendments.map((a) => (
-                  <tr key={a.id}>
-                    <td style={{ fontWeight: 600 }}>{a.faculty}</td>
-                    <td>{a.subject}</td><td>{a.date}</td>
-                    <td><span className={`attendance-toggle-btn att-${a.old_status}`}>{a.old_status}</span></td>
-                    <td><span className={`attendance-toggle-btn att-${a.new_status}`}>{a.new_status}</span></td>
-                    <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.reason}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button className="icon-btn-success" onClick={() => handleAction(a.id, true)} disabled={processing === a.id} aria-label="Approve"><Check size={15} /></button>
-                        <button className="icon-btn-danger" onClick={() => handleAction(a.id, false)} disabled={processing === a.id} aria-label="Reject"><X size={15} /></button>
-                      </div>
-                    </td>
-                  </tr>
+    <ErpLayout title="Data Integrity Hub" subtitle="Audit and authorize attendance record amendments">
+      
+      <div className="mb-8">
+         <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white/30 mb-6 flex items-center gap-2">
+            <FileSearch size={14} /> Rectification Queue ({amendments.length})
+         </h3>
+
+         {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               <SkeletonLoader variant="card" count={3} />
+            </div>
+         ) : amendments.length === 0 ? (
+            <EmptyState 
+              title="Registry Synced" 
+              description="No pending attendance amendments detected in the system." 
+              icon={<Check size={48} className="text-success/20" />}
+            />
+         ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <AnimatePresence>
+                {amendments.map((a, idx) => (
+                  <motion.div
+                    key={a.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="card glass-panel p-6 border-white/5 bg-white/[0.02] flex flex-col group relative"
+                  >
+                    <div className="flex items-center gap-4 mb-6">
+                       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                          <User size={18} />
+                       </div>
+                       <div className="flex-1">
+                          <h4 className="text-sm font-bold text-white leading-tight">{a.faculty}</h4>
+                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Amendment Request</span>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4 mb-8 flex-1">
+                       <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                          <div className="flex flex-col items-center">
+                             <span className="text-[8px] font-bold text-white/20 uppercase mb-1 tracking-widest">Original</span>
+                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${a.old_status === 'P' ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>
+                                {a.old_status}
+                             </div>
+                          </div>
+                          <ArrowRight size={16} className="text-white/10" />
+                          <div className="flex flex-col items-center">
+                             <span className="text-[8px] font-bold text-white/20 uppercase mb-1 tracking-widest">Amended</span>
+                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${a.new_status === 'P' ? 'bg-success text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-error text-white shadow-[0_0_15px_rgba(239,68,68,0.3)]'}`}>
+                                {a.new_status}
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="space-y-3 px-1">
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-white/60">
+                             <Book size={12} className="text-primary" />
+                             <span>{a.subject}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-white/60">
+                             <Calendar size={12} className="text-secondary" />
+                             <span>{a.date}</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-white/5 text-[10px] text-white/40 leading-relaxed italic border border-white/5">
+                             "{a.reason || 'No reason provided'}"
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                       <button 
+                        className="flex-1 h-10 rounded-xl bg-white/5 border border-white/5 text-white/40 text-[10px] font-bold uppercase tracking-widest hover:bg-error/10 hover:text-error hover:border-error/20 transition-all disabled:opacity-50"
+                        onClick={() => handleAction(a.id, false)}
+                        disabled={processing === a.id}
+                       >
+                          Reject
+                       </button>
+                       <button 
+                        className="flex-1 h-10 rounded-xl bg-primary text-white text-[10px] font-bold uppercase tracking-widest hover:scale-105 active:scale-95 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+                        onClick={() => handleAction(a.id, true)}
+                        disabled={processing === a.id}
+                       >
+                          Approve
+                       </button>
+                    </div>
+
+                    <div className="absolute top-4 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <button className="text-white/10 hover:text-white"><Info size={14} /></button>
+                    </div>
+                  </motion.div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </AnimatePresence>
+            </div>
+         )}
       </div>
     </ErpLayout>
   )

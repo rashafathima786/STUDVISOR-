@@ -8,7 +8,11 @@ import {
   MessageSquare, 
   Settings, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Users,
+  Cpu,
+  History,
+  FileText
 } from 'lucide-react';
 import useAuthStore from '../stores/authStore';
 import useUIStore from '../stores/uiStore';
@@ -24,13 +28,18 @@ const navData = {
   ],
   faculty: [
     { to: '/faculty/dashboard', icon: <LayoutDashboard size={18} />, label: 'NEXUS' },
-    { to: '/faculty/classes',   icon: <GraduationCap size={18} />,   label: 'LECTURES' },
-    { to: '/faculty/analytics', icon: <Activity size={18} />,        label: 'INTELLIGENCE' },
+    { to: '/faculty/attendance', icon: <Activity size={18} />,        label: 'ROSTER' },
+    { to: '/faculty/marks',      icon: <ShieldCheck size={18} />,     label: 'ACADEMIA' },
+    { to: '/faculty/lecture-logs', icon: <GraduationCap size={18} />, label: 'DIARY' },
+    { to: '/faculty/assignments',  icon: <FileText size={18} />,      label: 'ASSESS' },
+    { to: '/faculty/leaves',     icon: <MessageSquare size={18} />,   label: 'REQUESTS' },
   ],
   admin: [
     { to: '/admin/dashboard', icon: <ShieldCheck size={18} />,     label: 'COMMAND' },
-    { to: '/admin/manage',    icon: <Settings size={18} />,        label: 'LOGISTICS' },
-    { to: '/admin/analytics', icon: <Activity size={18} />,        label: 'OPERATIONAL' },
+    { to: '/admin/students',  icon: <Users size={18} />,           label: 'STUDENTS' },
+    { to: '/admin/faculty',   icon: <Cpu size={18} />,             label: 'FACULTY' },
+    { to: '/admin/analytics', icon: <Activity size={18} />,        label: 'INTEL' },
+    { to: '/admin/audit',     icon: <History size={18} />,         label: 'AUDIT' },
   ]
 };
 

@@ -194,6 +194,25 @@ class ExamSchedule(Base):
     semester = Column(Integer, nullable=True)
 
 
+class LectureLog(Base):
+    __tablename__ = "lecture_logs"
+    institution_id = Column(String, nullable=False, default="default", index=True)
+
+    id = Column(Integer, primary_key=True, index=True)
+    faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    date = Column(String, nullable=False)  # YYYY-MM-DD
+    hour = Column(Integer, nullable=False)
+    topic_covered = Column(Text, nullable=False)
+    methodology = Column(String, nullable=True, default="Lecture") # Lecture, PPT, Demo
+    remarks = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_lecture_subject_date", "subject_id", "date"),
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # ASSIGNMENTS & SUBMISSIONS
 # ═══════════════════════════════════════════════════════════════════════════════

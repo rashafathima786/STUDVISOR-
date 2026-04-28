@@ -138,6 +138,29 @@ class AssignmentCreate(BaseModel):
     max_marks: float = 100
 
 
+# ─── LECTURE LOGS ────────────────────────────────────────────────────────────
+
+class LectureLogCreate(BaseModel):
+    subject_id: int
+    date: str
+    hour: int = Field(..., ge=1, le=8)
+    topic_covered: str = Field(..., min_length=5)
+    methodology: str = "Lecture"
+    remarks: Optional[str] = None
+
+class LectureLogResponse(BaseModel):
+    id: int
+    subject: str
+    code: str
+    faculty: str
+    date: str
+    hour: int
+    topic_covered: str
+    methodology: str
+    remarks: Optional[str] = None
+    created_at: datetime
+
+
 # ─── PLACEMENT ───────────────────────────────────────────────────────────────
 
 class PlacementDriveCreate(BaseModel):
