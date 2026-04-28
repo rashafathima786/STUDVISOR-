@@ -1,0 +1,34 @@
+# ─── Core ────────────────────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic[email]
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt<4.0.0
+python-multipart
+
+# ─── Database ────────────────────────────────────────────────────────────────
+psycopg2-binary
+alembic
+
+# ─── Security & Middleware ───────────────────────────────────────────────────
+slowapi
+python-dotenv
+
+# ─── AI / RAG Stack ─────────────────────────────────────────────────────────
+langchain
+langchain-community
+langchain-huggingface
+langchain-ollama
+faiss-cpu
+sentence-transformers
+spacy
+pypdf
+
+# ─── Testing ────────────────────────────────────────────────────────────────
+pytest
+pytest-asyncio
+httpx
+ruff
