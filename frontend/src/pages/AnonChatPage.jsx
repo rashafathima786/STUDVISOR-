@@ -176,7 +176,7 @@ export default function AnonChatPage() {
               </div>
             ) : (
               posts.map((post, idx) => {
-                const isOutgoing = (post.id % 3) === 0
+                const isOutgoing = post.is_mine
                 const reacts = post.reactions || {}
                 
                 return (

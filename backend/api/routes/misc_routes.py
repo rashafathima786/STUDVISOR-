@@ -45,14 +45,42 @@ class AnonPostCreate(BaseModel):
     category: str = "general"
 
 @anon_chat_router.get("/posts")
-def list_posts(db: Session = Depends(get_db)):
-    posts = db.query(AnonPost).filter(AnonPost.moderated == False).order_by(AnonPost.created_at.desc()).limit(50).all()
+def list_posts(
+    category: str = None, 
+    sort: str = "recent", 
+    student = Depends(get_current_student),
+    db: Session = Depends(get_db)
+):
+    from backend.services.anonymity_service import compute_anon_id
+    current_hash = compute_anon_id(student.id)
+    
+    query = db.query(AnonPost).filter(AnonPost.moderated == False)
+    
+    if category and category != "all":
+        query = query.filter(AnonPost.category.ilike(category))
+    
+    if sort == "recent":
+        query = query.order_by(AnonPost.created_at.desc())
+    else:
+        # Default fallback
+        query = query.order_by(AnonPost.created_at.desc())
+        
+    posts = query.limit(50).all()
     result = []
     for p in posts:
         reactions = db.query(AnonReaction).filter(AnonReaction.post_id == p.id).all()
         reaction_counts = defaultdict(int)
         for r in reactions: reaction_counts[r.reaction_type] += 1
-        result.append({"id": p.id, "content": p.content, "category": p.category, "reactions": dict(reaction_counts), "date": str(p.created_at)})
+        
+        result.append({
+            "id": p.id, 
+            "content": p.content, 
+            "category": p.category, 
+            "reactions": dict(reaction_counts), 
+            "date": str(p.created_at),
+            "is_mine": p.session_hash == current_hash,
+            "censored_content": p.censored_content
+        })
     return {"posts": result}
 
 @anon_chat_router.post("/posts")
@@ -114,9 +142,14 @@ def react(pid: int, data: ReactionCreate, student=Depends(get_current_student), 
 def flag(pid: int, db: Session = Depends(get_db)):
     post = db.query(AnonPost).filter(AnonPost.id == pid).first()
     if not post:
-        return {"message": "Post not found"}, 404
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    if post.flagged_count is None:
+        post.flagged_count = 0
+        
     post.flagged_count += 1
     if post.flagged_count > 5:
         post.moderated = True
     db.commit()
-    return {"message": "Post flagged"}
+    return {"message": "Post flagged", "flagged_count": post.flagged_count}
