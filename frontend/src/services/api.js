@@ -170,29 +170,29 @@ export async function applyLeaveRequest(data) {
 // ── CHAT ────────────────────────────────────────────────────────────────────
 
 export async function fetchChatHistory() {
-  const response = await api.get("/chat-history");
-  return response.data;
+  const response = await api.get("/campus/chat/history");
+  return response.data.messages || [];
 }
 
 export async function clearChatHistory() {
-  const response = await api.delete("/chat-history");
+  const response = await api.delete("/campus/chat/history");
   return response.data;
 }
 
-export async function sendChatMessage(message, contextPage = "dashboard") {
-  const response = await api.post("/chat", { message, context_page: contextPage });
+export async function sendChatMessage(query, contextPage = "dashboard") {
+  const response = await api.post("/campus/chat", { query, context_page: contextPage });
   return response.data;
 }
 
-export async function streamChatMessage(message, handlers = {}) {
+export async function streamChatMessage(query, handlers = {}) {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+  const response = await fetch(`${API_BASE_URL}/campus/chat/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ message, context_page: handlers.contextPage || "dashboard" }),
+    body: JSON.stringify({ query, context_page: handlers.contextPage || "dashboard" }),
   });
 
   if (!response.ok || !response.body) {
@@ -221,8 +221,9 @@ export async function streamChatMessage(message, handlers = {}) {
       }
 
       if (event.type === "chunk") {
-        finalText += event.data;
-        handlers.onChunk?.(event.data, finalText);
+        const chunk = typeof event.data === 'string' ? event.data : event.data.token;
+        finalText += chunk;
+        handlers.onChunk?.(chunk, finalText);
       }
 
       if (event.type === "done") {

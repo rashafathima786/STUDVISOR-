@@ -28,7 +28,7 @@ def chat(data: ChatInput, student=Depends(get_current_student), db: Session = De
     db.add(ChatHistory(student_id=student.id, query=data.query, response=response,
                        context_page=data.context_page))
     db.commit()
-    return {"response": response, "emotion": detect_emotion(data.query)}
+    return {"reply": response, "emotion": detect_emotion(data.query)}
 
 
 @router.post("/stream")

@@ -31,6 +31,7 @@ INTENT_PATTERNS = {
     "help": r"\b(help|what can you do|capabilities|commands)\b",
     "thank": r"\b(thank|thanks|thx|appreciate)\b",
     "frustrated": r"\b(cant understand|hate|give up|impossible|stressed|overwhelmed|too hard|failing)\b",
+    "missed_today": r"\b(missed today|absent today|classes.*miss.*today|what did i miss)\b",
 }
 
 
@@ -109,7 +110,24 @@ def handle_attendance_overall(db: Session, student: Student) -> str:
 | **Percentage** | **{pct}%** |
 
 {status}"""
-
+def handle_missed_today(db: Session, student: Student) -> str:
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+    records = db.query(Attendance).filter(
+        Attendance.student_id == student.id,
+        Attendance.date == today,
+        Attendance.status == "A"
+    ).all()
+    
+    if not records:
+        return "You haven't missed any classes today! Keep up the good work. 🏆"
+    
+    lines = ["🚩 **Classes Missed Today**\n"]
+    for r in records:
+        subj = db.query(Subject).filter(Subject.id == r.subject_id).first()
+        lines.append(f"- **{subj.name if subj else '?'}** ({r.slot or 'TBA'})")
+    
+    return "\n".join(lines)
 
 def handle_attendance_subject(db: Session, student: Student) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
@@ -369,6 +387,7 @@ def process_chat(db: Session, student: Student, message: str) -> str:
         "leave_status": lambda: handle_leave_status(db, student),
         "exam_schedule": lambda: handle_exam_schedule(db, student),
         "thank": lambda: handle_thank(student),
+        "missed_today": lambda: handle_missed_today(db, student),
     }
 
     if intent in handlers:
