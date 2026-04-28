@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fetchEvents, rsvpEvent } from '../services/api';
-import Header from '../components/Header';
-import { CalendarDays, MapPin, Users, CheckCircle } from 'lucide-react';
+import ErpLayout from '../components/ErpLayout';
+import { CalendarDays, MapPin, Users, CheckCircle, ChevronRight, Filter, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function EventsPage() {
   const [events, setEvents] = useState([]);
@@ -31,89 +32,153 @@ export default function EventsPage() {
     }
   };
 
-  return (
-    <div className="page-container">
-      <Header title="Campus Events" subtitle="Discover and RSVP to upcoming events" />
+  const getCategoryStyles = (category) => {
+    switch(category?.toLowerCase()) {
+      case 'workshop': return "bg-primary/10 text-primary border-primary/20";
+      case 'seminar': return "bg-secondary/10 text-secondary border-secondary/20";
+      case 'sports': return "bg-tertiary/10 text-tertiary border-tertiary/20";
+      case 'cultural': return "bg-accent/10 text-accent border-accent/20";
+      default: return "bg-white/5 text-white/60 border-white/10";
+    }
+  };
 
-      <div className="card" style={{ marginTop: '20px' }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-          <CalendarDays size={24} color="var(--primary-color)" /> Upcoming Events
-        </h2>
+  return (
+    <ErpLayout 
+      title="Campus Events" 
+      subtitle="Discover, Participate & Connect with Upcoming Campus Activities"
+    >
+      <div className="max-w-6xl mx-auto space-y-8 pb-20">
+        
+        {/* Actions Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+             <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20">
+               <CalendarDays size={24} className="text-primary" />
+             </div>
+             <h2 className="text-2xl font-bold text-white tracking-tight">Upcoming Schedule</h2>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-on-surface-variant/60 hover:bg-white/10 transition-colors">
+              <Filter size={14} /> Filter
+            </button>
+            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all">
+              <Plus size={16} /> Suggest Event
+            </button>
+          </div>
+        </div>
 
         {loading ? (
-          <p>Loading events...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-96 glass-panel rounded-3xl animate-pulse" />
+            ))}
+          </div>
         ) : events.length === 0 ? (
-          <p>No upcoming events scheduled right now.</p>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="py-32 glass-panel rounded-[40px] flex flex-col items-center justify-center text-center px-6"
+          >
+            <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/10">
+              <CalendarDays size={40} className="text-white/10" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">No Events Found</h3>
+            <p className="text-on-surface-variant/40 max-w-sm text-sm">
+              The campus calendar is quiet at the moment. Keep an eye out for future workshops and seminars.
+            </p>
+          </motion.div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            {events.map((evt) => {
-              const isRsvped = evt.user_rsvped; // Assumes backend sends this flag
-              const eventDate = new Date(evt.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {events.map((evt, index) => {
+                const isRsvped = evt.user_rsvped;
+                const eventDate = new Date(evt.date).toLocaleDateString(undefined, { 
+                  weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                });
+                const catStyles = getCategoryStyles(evt.category);
 
-              return (
-                <div key={evt.id} style={{ border: '1px solid var(--border-color)', borderRadius: '16px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  {evt.image_url ? (
-                    <img src={evt.image_url} alt={evt.title} style={{ width: '100%', height: '140px', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100px', backgroundColor: 'var(--primary-color)', opacity: 0.1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CalendarDays size={40} color="var(--primary-color)" />
-                    </div>
-                  )}
-                  
-                  <div style={{ padding: '20px', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                      <h3 style={{ fontSize: '1.25rem', margin: 0 }}>{evt.title}</h3>
-                      <span className="pill-badge" style={{ backgroundColor: 'var(--bg-secondary)', whiteSpace: 'nowrap' }}>{evt.category || 'General'}</span>
-                    </div>
-                    
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '16px', flexGrow: 1 }}>
-                      {evt.description}
-                    </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CalendarDays size={16} /> {eventDate}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <MapPin size={16} /> {evt.location || 'TBA'}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Users size={16} /> {evt.rsvp_count || 0} Attending
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={() => !isRsvped && handleRsvp(evt.id)}
-                      disabled={isRsvped}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        backgroundColor: isRsvped ? 'var(--bg-secondary)' : 'var(--primary-color)',
-                        color: isRsvped ? 'var(--text-color)' : 'white',
-                        fontWeight: 'bold',
-                        cursor: isRsvped ? 'default' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        transition: 'opacity 0.2s'
-                      }}
-                    >
-                      {isRsvped ? (
-                        <><CheckCircle size={18} color="green" /> RSVP Confirmed</>
+                return (
+                  <motion.div
+                    key={evt.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                    whileHover={{ y: -6 }}
+                    className="group flex flex-col glass-panel rounded-3xl overflow-hidden border border-white/5 hover:border-primary/30 transition-all duration-300"
+                  >
+                    {/* Event Banner */}
+                    <div className="relative h-44 overflow-hidden">
+                      {evt.image_url ? (
+                        <img 
+                          src={evt.image_url} 
+                          alt={evt.title} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        />
                       ) : (
-                        'RSVP Now'
+                        <div className="w-full h-full bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
+                          <CalendarDays size={48} className="text-white/10" />
+                        </div>
                       )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <div className="absolute top-4 left-4">
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${catStyles}`}>
+                          {evt.category || 'General'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6 flex flex-col flex-grow space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-white leading-tight group-hover:text-primary transition-colors">
+                          {evt.title}
+                        </h3>
+                        <p className="text-sm text-on-surface-variant/50 line-clamp-2 leading-relaxed">
+                          {evt.description}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2.5 py-4 border-y border-white/5">
+                        <div className="flex items-center gap-3 text-xs font-medium text-on-surface-variant/60">
+                          <CalendarDays size={14} className="text-primary/60" /> 
+                          <span>{eventDate}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs font-medium text-on-surface-variant/60">
+                          <MapPin size={14} className="text-primary/60" /> 
+                          <span className="truncate">{evt.location || 'Campus Auditorium'}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs font-medium text-on-surface-variant/60">
+                          <Users size={14} className="text-primary/60" /> 
+                          <span>{evt.rsvp_count || 0} Attending</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button 
+                          onClick={() => !isRsvped && handleRsvp(evt.id)}
+                          disabled={isRsvped}
+                          className={`
+                            w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300
+                            ${isRsvped 
+                              ? 'bg-tertiary/10 text-tertiary border border-tertiary/20 cursor-default' 
+                              : 'bg-primary text-white hover:shadow-lg hover:shadow-primary/20 active:scale-95 cursor-pointer'}
+                          `}
+                        >
+                          {isRsvped ? (
+                            <><CheckCircle size={14} /> RSVP Confirmed</>
+                          ) : (
+                            <><ChevronRight size={14} /> RSVP Now</>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         )}
       </div>
-    </div>
+    </ErpLayout>
   );
 }

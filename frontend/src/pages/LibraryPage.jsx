@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react'
 import ErpLayout from '../components/ErpLayout'
-import { BookOpen, Search, BookMarked, Clock, AlertTriangle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  BookOpen, 
+  Search, 
+  BookMarked, 
+  Clock, 
+  AlertTriangle, 
+  Library, 
+  CheckCircle2, 
+  XCircle,
+  Hash,
+  User,
+  MapPin,
+  ArrowRight,
+  Zap
+} from 'lucide-react'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -31,99 +46,240 @@ export default function LibraryPage() {
   }
 
   const issueBook = async (bookId) => {
-    const res = await fetch(`${API}/library/issue/${bookId}`, { method: 'POST', headers })
-    const data = await res.json()
-    alert(data.message || data.detail)
+    try {
+      const res = await fetch(`${API}/library/issue/${bookId}`, { method: 'POST', headers })
+      const data = await res.json()
+      alert(data.message || data.detail)
+    } catch (err) {
+      alert("Protocol Error: Transaction failed.")
+    }
   }
 
   if (loading) return (
-    <div className="page-loader"><div className="loader-card"><h2>Studvisor</h2><p>Loading Library...</p></div></div>
+    <div className="bg-surface min-h-screen flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center">
+            <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin mb-4" />
+            <p className="text-on-surface-variant uppercase tracking-widest text-xs font-bold">Accessing Repository...</p>
+        </div>
+    </div>
   )
 
   return (
-    <ErpLayout title="Library Management" subtitle="Search, borrow, and manage your reading">
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        {['catalog', 'my-books'].map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '8px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600,
-            backgroundColor: tab === t ? 'var(--primary-color)' : 'var(--bg-secondary, #0f1424)',
-            color: tab === t ? 'white' : 'var(--text-secondary)',
-          }}>
-            {t === 'catalog' ? '📚 Browse Catalog' : '📖 My Books'}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'catalog' && (
-        <div className="card">
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary, #0f1424)' }}>
-              <Search size={18} color="var(--text-secondary)" />
-              <input
-                type="text" value={query} onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && searchBooks()}
-                placeholder="Search by title or author..."
-                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '0.95rem' }}
-              />
+    <ErpLayout title="Resource Repository" subtitle="Centralized access to academic literature and technical documentation">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        
+        {/* Header Navigation */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-primary/10 rounded-2xl">
+              <Library className="text-primary" size={32} />
             </div>
-            <button onClick={searchBooks} style={{ padding: '8px 20px', borderRadius: '8px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Search</button>
+            <div>
+              <h2 className="text-3xl font-black text-white tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Knowledge Core</h2>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Status: Online</p>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-            {books.map(b => (
-              <div key={b.id} style={{ padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary, #0f1424)' }}>
-                <h4 style={{ margin: '0 0 4px' }}>{b.title}</h4>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 8px' }}>{b.author}</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
-                  <span style={{ color: b.available_copies > 0 ? '#22c55e' : '#ef4444' }}>
-                    {b.available_copies > 0 ? `${b.available_copies} available` : 'Not available'}
-                  </span>
-                  {b.available_copies > 0 && (
-                    <button onClick={() => issueBook(b.id)} style={{ padding: '4px 12px', borderRadius: '6px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', fontSize: '0.8rem', cursor: 'pointer' }}>
-                      Borrow
-                    </button>
-                  )}
-                </div>
-                {b.shelf_location && <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '6px' }}>📍 {b.shelf_location}</p>}
-              </div>
+          <div className="flex items-center gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/5 shadow-2xl">
+            {['catalog', 'my-books'].map(t => (
+              <button 
+                key={t} 
+                onClick={() => setTab(t)}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  tab === t 
+                    ? 'bg-primary text-white shadow-lg' 
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {t === 'catalog' ? 'Global Catalog' : 'Personal Stack'}
+              </button>
             ))}
-            {books.length === 0 && <p style={{ color: 'var(--text-secondary)', padding: '20px' }}>No books found.</p>}
           </div>
         </div>
-      )}
 
-      {tab === 'my-books' && (
-        <div className="card">
-          <h3 className="section-title"><BookMarked size={18} style={{ display: 'inline', verticalAlign: '-3px', marginRight: '6px' }} /> Currently Issued</h3>
-          {myBooks.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', padding: '20px', textAlign: 'center' }}>No books currently issued.</p>
+        {/* Content Section */}
+        <AnimatePresence mode="wait">
+          {tab === 'catalog' ? (
+            <motion.div 
+              key="catalog"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              {/* Search Interface */}
+              <div className="glass-panel rounded-[32px] p-4 flex gap-4 border border-white/5 shadow-2xl">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20" size={20} />
+                  <input 
+                    type="text" 
+                    value={query} 
+                    onChange={e => setQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && searchBooks()}
+                    placeholder="Search by title, author, or ISBN identifier..."
+                    className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm text-white font-medium outline-none focus:border-primary/40 focus:bg-white/[0.08] transition-all placeholder:text-white/10"
+                  />
+                </div>
+                <button 
+                  onClick={searchBooks}
+                  className="px-10 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                >
+                  Query Hub
+                </button>
+              </div>
+
+              {/* Catalog Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {books.map((b, idx) => (
+                  <motion.div 
+                    key={b.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="group relative glass-panel rounded-[32px] p-6 border border-white/5 hover:border-primary/30 transition-all flex flex-col"
+                  >
+                    <div className="flex justify-between items-start mb-6">
+                       <div className="p-3 bg-white/5 rounded-2xl text-white/40 group-hover:text-primary transition-colors">
+                         <BookOpen size={24} />
+                       </div>
+                       <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
+                         b.available_copies > 0 
+                           ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/5' 
+                           : 'border-red-500/20 text-red-400 bg-red-500/5'
+                       }`}>
+                         {b.available_copies > 0 ? `${b.available_copies} available` : 'DEPLETED'}
+                       </span>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-white mb-2 tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{b.title}</h3>
+                    
+                    <div className="flex items-center gap-2 mb-6">
+                      <User size={12} className="text-white/20" />
+                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{b.author}</span>
+                    </div>
+
+                    <div className="space-y-3 pt-6 border-t border-white/5">
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/20">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={12} />
+                          <span>{b.shelf_location || 'Archive Sector'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Hash size={12} />
+                          <span>ID-{b.id.toString().padStart(4, '0')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {b.available_copies > 0 && (
+                      <button 
+                        onClick={() => issueBook(b.id)}
+                        className="mt-6 w-full py-4 rounded-2xl bg-white/5 hover:bg-primary text-white font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn shadow-lg"
+                      >
+                        Initiate Borrowing
+                        <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                      </button>
+                    )}
+                  </motion.div>
+                ))}
+                {books.length === 0 && (
+                  <div className="col-span-full py-20 text-center opacity-20 italic">No resources found in the global index.</div>
+                )}
+              </div>
+            </motion.div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                <thead><tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ padding: '10px 12px', textAlign: 'left' }}>Title</th>
-                  <th style={{ padding: '10px 12px' }}>Issued</th>
-                  <th style={{ padding: '10px 12px' }}>Due</th>
-                  <th style={{ padding: '10px 12px' }}>Status</th>
-                  <th style={{ padding: '10px 12px' }}>Fine</th>
-                </tr></thead>
-                <tbody>
-                  {myBooks.map(b => (
-                    <tr key={b.issue_id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{b.title}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>{b.issue_date}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>{b.due_date}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', color: b.status === 'Overdue' ? '#ef4444' : '#22c55e' }}>{b.status}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', color: b.fine > 0 ? '#ef4444' : 'inherit' }}>₹{b.fine}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <motion.div 
+              key="my-books"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                 <div className="p-3 bg-emerald-500/10 rounded-2xl">
+                   <BookMarked className="text-emerald-400" size={24} />
+                 </div>
+                 <h2 className="text-xl font-bold text-white tracking-tight">Active Allocations</h2>
+              </div>
+
+              <div className="glass-panel rounded-[40px] overflow-hidden border border-white/5 shadow-2xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-white/[0.02]">
+                        <th className="px-10 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Resource Title</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Allocation Date</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Deadline</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Status</th>
+                        <th className="px-10 py-6 text-right text-[10px] font-black text-white/30 uppercase tracking-widest">Penalty</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {myBooks.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="px-10 py-32 text-center">
+                            <p className="text-white/20 text-sm font-bold uppercase tracking-widest italic">Personal stack is currently empty</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        myBooks.map((b, idx) => (
+                          <motion.tr 
+                            key={b.issue_id || idx}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="hover:bg-white/[0.03] transition-colors group"
+                          >
+                            <td className="px-10 py-8">
+                               <div className="flex flex-col">
+                                 <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight">{b.title}</span>
+                                 <span className="text-[10px] text-white/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Original</span>
+                               </div>
+                            </td>
+                            <td className="px-6 py-8 text-center">
+                               <span className="text-xs font-bold text-white/60">{b.issue_date}</span>
+                            </td>
+                            <td className="px-6 py-8 text-center">
+                               <div className="flex items-center justify-center gap-2">
+                                 <Clock size={12} className="text-white/20" />
+                                 <span className="text-xs font-black text-white tracking-tighter">{b.due_date}</span>
+                               </div>
+                            </td>
+                            <td className="px-6 py-8">
+                              <div className="flex justify-center">
+                                <span className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${
+                                  b.status === 'Overdue' 
+                                    ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                }`}>
+                                  {b.status === 'Overdue' ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                                  {b.status}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-10 py-8 text-right">
+                               <span className={`text-lg font-black tracking-tighter ${b.fine > 0 ? 'text-red-400' : 'text-white/20'}`}>
+                                 ₹{b.fine}
+                               </span>
+                            </td>
+                          </motion.tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Action Note */}
+              <div className="flex items-center gap-4 px-8 py-6 bg-white/5 rounded-[32px] border border-white/5">
+                 <Zap className="text-primary/60" size={20} />
+                 <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Ensure all returns are synchronized before the deadline to avoid penalty accumulation.</p>
+              </div>
+            </motion.div>
           )}
-        </div>
-      )}
+        </AnimatePresence>
+
+      </div>
     </ErpLayout>
   )
 }
-
