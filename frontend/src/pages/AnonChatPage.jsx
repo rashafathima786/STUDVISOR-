@@ -17,7 +17,8 @@ import {
   Lock,
   ChevronRight,
   Zap,
-  ShieldAlert
+  ShieldAlert,
+  Plus
 } from 'lucide-react'
 
 export default function AnonChatPage() {
