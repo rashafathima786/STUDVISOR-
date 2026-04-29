@@ -110,7 +110,8 @@ async def create_post(data: AnonPostCreate, student=Depends(get_current_student)
     db.refresh(post)
 
     # ── AI ENSEMBLE ASSISTANT TRIGGER ───────────────────────────────────────
-    if data.category in ["Questions", "General"]:
+    # Trigger AI response for all institutional zones (Academic, General, Clubs, Lounge)
+    if data.category in ["Academic", "General", "Clubs", "Lounge"]:
         try:
             # 1. Get DB Context for this student (Personal + Campus)
             from backend.app.models import Attendance, ExamSchedule, Announcement, Subject
@@ -157,7 +158,8 @@ async def create_post(data: AnonPostCreate, student=Depends(get_current_student)
             )
 
             # 2. Call Ensemble Chat (Gemini Draft -> Groq Refine)
-            ai_response = await ai_service.ensemble_chat(data.content, db_context)
+            ai_response_obj = await ai_service.ensemble_chat(data.content, db_context, data.category)
+            ai_response = ai_response_obj.get("text", "") if isinstance(ai_response_obj, dict) else ai_response_obj
             
             ai_post = AnonPost(
                 session_hash="NEXUS_AI_BOT",

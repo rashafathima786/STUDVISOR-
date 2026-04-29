@@ -9,25 +9,23 @@ import {
   Search, 
   MoreVertical, 
   ThumbsUp, 
-  ThumbsDown,
-  Heart, 
-  Smile, 
-  AlertTriangle, 
-  Shield, 
-  Hash,
-  Users,
   MessageSquare,
   Lock,
-  ChevronRight,
-  Zap,
-  ShieldAlert,
-  RotateCcw,
-  MoreHorizontal,
-  Plus,
+  Shield,
   Trash2,
   Download,
   EyeOff,
-  Settings2
+  Info,
+  Hash,
+  BookOpen,
+  Megaphone,
+  HelpCircle,
+  FileText,
+  UserCheck,
+  Globe, Activity, Cpu, Calendar, Users,
+  Clock,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react'
 
 export default function AnonChatPage() {
@@ -36,7 +34,19 @@ export default function AnonChatPage() {
   const [newContent, setNewContent] = useState('')
   const [loading, setLoading] = useState(true)
   const [showMenu, setShowMenu] = useState(false)
-  const [privacyMode, setPrivacyMode] = useState(false)
+  const [isSending, setIsSending] = useState(false) // Track transmission state
+  const [postCache, setPostCache] = useState({}) // High-speed zone caching
+
+  const messagesEndRef = useRef(null)
+  const scrollContainerRef = useRef(null)
+  const isFirstLoad = useRef(true)
+
+  const channels = [
+    { id: "General", name: "General Forum", desc: "Open campus dialogue", icon: <Globe size={18} /> },
+    { id: "Lounge", name: "Student Lounge", desc: "Informal discussions", icon: <MessageSquare size={18} /> },
+    { id: "Academic", name: "Academic Support", desc: "Peer-to-peer assistance", icon: <HelpCircle size={18} /> },
+    { id: "Clubs", name: "Club Notices", desc: "Organization updates", icon: <Megaphone size={18} /> }
+  ]
 
   const handleClearChat = () => {
     if (window.confirm("Are you sure you want to clear your local transmission history?")) {
@@ -48,344 +58,500 @@ export default function AnonChatPage() {
   }
 
   const handleExport = () => {
-    const content = posts.map(p => `[${p.session_hash === "NEXUS_AI_BOT" ? 'NEXUS AI' : 'USER'}] ${p.content}`).join('\n\n')
+    const content = posts.map(p => `[${p.session_hash === "NEXUS_AI_BOT" ? 'ACADEMIC AI' : 'STUDENT'}] ${p.content}`).join('\n\n')
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `nexus_report_${category.toLowerCase()}.txt`
+    a.download = `community_report_${category.toLowerCase()}.txt`
     a.click()
     setShowMenu(false)
   }
-  const messagesEndRef = useRef(null)
-  const scrollContainerRef = useRef(null)
-  const isFirstLoad = useRef(true)
 
-  const channels = [
-    { id: "General", name: "Nexus General", desc: "Open campus discussions", icon: "🏫", color: "text-blue-400" },
-    { id: "Confessions", name: "Confessions", desc: "Anonymous secrets", icon: "🤫", color: "text-primary" },
-    { id: "Questions", name: "Academic Q&A", desc: "Help with studies", icon: "📚", color: "text-emerald-400" },
-    { id: "Clubs", name: "Club Central", desc: "Events & updates", icon: "🎭", color: "text-amber-400" },
-    { id: "Funny", name: "Meme Node", desc: "Campus humor", icon: "😂", color: "text-rose-400" }
-  ]
-
-  const reactionIcons = { 
-    "thumbs_up": <ThumbsUp size={12} />, 
-    "heart": <Heart size={12} />, 
-    "laugh": <Smile size={12} /> 
-  }
-
-  function loadWall() {
+  function loadWall(isBackground = false) {
+    if (!isBackground) setLoading(!postCache[category]) // Only show loader if we don't have cached data
+    
     fetchAnonPosts(category, "recent").then(res => {
       const allPosts = (res?.posts || []).reverse()
       const lastClearedId = parseInt(localStorage.getItem(`nexus_last_cleared_id_${category}`) || "0")
+      const filtered = lastClearedId > 0 ? allPosts.filter(p => p.id > lastClearedId) : allPosts
       
-      if (lastClearedId > 0) {
-        setPosts(allPosts.filter(p => p.id > lastClearedId))
-      } else {
-        setPosts(allPosts)
-      }
+      setPosts(filtered)
+      setPostCache(prev => ({ ...prev, [category]: filtered }))
       setLoading(false)
     }).catch(() => setLoading(false))
   }
 
   useEffect(() => {
-    setLoading(true)
     loadWall()
-    isFirstLoad.current = true // Reset on category change
-    
-    // Auto-refresh polling every 10 seconds
-    const interval = setInterval(loadWall, 10000)
+    isFirstLoad.current = true
+    // High-speed sync: 5s for the active sector
+    const interval = setInterval(() => loadWall(true), 5000)
     return () => clearInterval(interval)
   }, [category])
 
   useEffect(() => {
     const container = scrollContainerRef.current
     if (container && posts.length > 0) {
-      // Very strict bottom check (within 50px)
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50
-      
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
       if (isFirstLoad.current) {
-        // Initial load: Jump to bottom instantly
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
         isFirstLoad.current = false
       } else if (isAtBottom) {
-        // Only scroll for new messages if user is already at the bottom
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }
     }
   }, [posts])
 
-  async function handleSend(e) {
-    e.preventDefault()
-    if (!newContent.trim()) return
+  const handlePost = async () => {
+    if (!newContent.trim() || isSending) return
+    const content = newContent
+    setNewContent('')
+    setIsSending(true)
+
+    // OPTIMISTIC UI: Inject local transmission immediately
+    const tempId = Date.now()
+    const optimisticPost = {
+      id: tempId,
+      content: content,
+      category: category,
+      session_hash: "TRANSMITTING", // Visual indicator for performance
+      created_at: new Date().toISOString(),
+      reactions: { like: 0, helpful: 0 },
+      is_optimistic: true
+    }
+    setPosts(prev => [...prev, optimisticPost])
+
     try {
-      await createAnonPost({ content: newContent, category })
-      setNewContent('')
+      await createAnonPost({ content, category })
+      setIsSending(false)
+      loadWall(true) // Silent refresh to finalize node ID
+    } catch (err) {
+      console.error(err)
+      setPosts(prev => prev.filter(p => p.id !== tempId))
+      setIsSending(false)
+    }
+  }
+
+  const handleReaction = async (pid, type) => {
+    try {
+      await reactToPost(pid, type)
       loadWall()
     } catch (err) {
       console.error(err)
     }
   }
 
-  async function handleReact(postId, reactionType) {
-    try {
-      await reactToPost(postId, reactionType)
-      loadWall()
-    } catch (err) {
-      console.error(err)
+  const handleFlag = async (pid) => {
+    if (window.confirm("Report this transmission for moderation review?")) {
+      try {
+        await flagPost(pid)
+        loadWall()
+      } catch (err) {
+        console.error(err)
+      }
     }
   }
 
-  async function handleFlag(postId) {
-    try {
-      await flagPost(postId)
-      // Feedback or reload
-      loadWall()
-    } catch (err) {
-      console.error(err)
+  const getZoneTheme = (zoneId) => {
+    const themes = {
+      General: { color: "indigo", glow: "rgba(99, 102, 241, 0.2)", bg: "from-indigo-500/5 to-transparent", text: "text-indigo-400" },
+      Lounge: { color: "rose", glow: "rgba(244, 63, 94, 0.2)", bg: "from-rose-500/5 to-transparent", text: "text-rose-400" },
+      Academic: { color: "emerald", glow: "rgba(16, 185, 129, 0.2)", bg: "from-emerald-500/5 to-transparent", text: "text-emerald-400" },
+      Clubs: { color: "purple", glow: "rgba(168, 85, 247, 0.2)", bg: "from-purple-500/5 to-transparent", text: "text-purple-400" }
+    }
+    return themes[zoneId] || themes.General
+  }
+
+  const getQuickActions = (zoneId) => {
+    switch(zoneId) {
+      case 'Academic': return [
+        { label: "Performance Summary", icon: <BarChart3 size={12} />, prompt: "Provide a complete academic performance summary" },
+        { label: "Attendance Intel", icon: <Activity size={12} />, prompt: "What is my current attendance status?" },
+        { label: "Subject Analysis", icon: <Cpu size={12} />, prompt: "Analyze my performance across all subjects" }
+      ]
+      case 'Clubs': return [
+        { label: "Upcoming Events", icon: <Calendar size={12} />, prompt: "What are the major club events this week?" },
+        { label: "Recruitment Info", icon: <Users size={12} />, prompt: "Show active club recruitment notices" }
+      ]
+      case 'General': return [
+        { label: "Campus Trends", icon: <Globe size={12} />, prompt: "What are the trending topics on campus today?" },
+        { label: "Institutional News", icon: <Megaphone size={12} />, prompt: "Show latest official announcements" }
+      ]
+      default: return []
+    }
+  }
+
+  const getRGB = (color) => {
+    switch(color) {
+      case 'indigo': return '99, 102, 241'
+      case 'rose': return '244, 63, 94'
+      case 'emerald': return '16, 185, 129'
+      case 'purple': return '168, 85, 247'
+      default: return '99, 102, 241'
     }
   }
 
   const activeChannel = channels.find(c => c.id === category) || channels[0]
+  const zoneTheme = getZoneTheme(activeChannel.id)
+  const quickActions = getQuickActions(activeChannel.id)
+  const themeRGB = getRGB(zoneTheme.color)
 
   return (
-    <ErpLayout title="Nexus AI" subtitle="Next-generation intelligence protocol">
-      <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto overflow-hidden bg-black text-white font-sans">
+    <ErpLayout title="Campus Connect" subtitle="Institutional Anonymous Communication Sector">
+      <div className="flex h-[calc(100vh-140px)] max-w-7xl mx-auto overflow-hidden rounded-2xl border border-white/5 bg-[#111114] shadow-2xl">
         
-        {/* Grok-style Sidebar */}
-        <div className="w-64 border-r border-white/5 flex flex-col p-4">
-          <div className="flex items-center gap-3 mb-8 px-2">
-            <div className="w-8 h-8 bg-white flex items-center justify-center rounded-lg">
-              <Zap size={18} className="text-black fill-black" />
+        {/* Professional Sidebar */}
+        <div className="w-80 border-r border-white/5 flex flex-col bg-[#0d0d0f] hidden lg:flex">
+          <div className="p-8">
+            <div className="flex items-center gap-3 mb-10">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                <Shield size={18} className="text-indigo-400" />
+              </div>
+              <span className="text-sm font-bold tracking-[0.1em] text-white/90 uppercase">Verified Feed</span>
             </div>
-            <span className="font-black tracking-tighter text-lg">Nexus</span>
-          </div>
-          
-          <div className="space-y-1 overflow-y-auto flex-1 pr-2 scrollbar-hide">
-            {channels.map(c => (
-              <button 
-                key={c.id} 
-                onClick={() => setCategory(c.id)}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition-all ${
-                  category === c.id 
-                    ? 'bg-white/10 text-white' 
-                    : 'text-white/40 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <span className="text-xl opacity-80">{c.icon}</span>
-                <span className="truncate">{c.name}</span>
-              </button>
-            ))}
+
+            <nav className="space-y-1">
+              {channels.map(c => (
+                <button 
+                  key={c.id} 
+                  onClick={() => setCategory(c.id)}
+                  className={`w-full group flex items-center gap-4 p-4 rounded-xl transition-all duration-300 border ${
+                    category === c.id 
+                      ? 'bg-opacity-10 text-white shadow-lg' 
+                      : 'text-white/30 border-transparent hover:bg-white/5 hover:text-white/60'
+                  }`}
+                  style={category === c.id ? { 
+                    backgroundColor: `rgba(${zoneTheme.color === 'indigo' ? '99, 102, 241' : zoneTheme.color === 'rose' ? '244, 63, 94' : zoneTheme.color === 'emerald' ? '16, 185, 129' : '168, 85, 247'}, 0.1)`,
+                    borderColor: `rgba(${zoneTheme.color === 'indigo' ? '99, 102, 241' : zoneTheme.color === 'rose' ? '244, 63, 94' : zoneTheme.color === 'emerald' ? '16, 185, 129' : '168, 85, 247'}, 0.2)`,
+                    boxShadow: `0 0 20px ${zoneTheme.glow}`
+                  } : {}}
+                >
+                  <div className={`transition-colors duration-200`} style={{ color: category === c.id ? `rgb(${zoneTheme.color === 'indigo' ? '99, 102, 241' : zoneTheme.color === 'rose' ? '244, 63, 94' : zoneTheme.color === 'emerald' ? '16, 185, 129' : '168, 85, 247'})` : 'rgba(255,255,255,0.2)' }}>
+                    {c.icon}
+                  </div>
+                  <div className="flex flex-col items-start overflow-hidden text-left">
+                    <span className="text-sm font-bold truncate tracking-tight">{c.name}</span>
+                    <span className="text-[10px] opacity-40 truncate font-medium">{c.desc}</span>
+                  </div>
+                </button>
+              ))}
+            </nav>
           </div>
 
-          <div className="mt-auto pt-4 border-t border-white/5 px-2">
-            <div className="flex items-center gap-3 text-white/40 text-xs font-bold uppercase tracking-widest">
-              <Shield size={14} />
-              <span>Encrypted</span>
+          <div className="mt-auto p-8 border-t border-white/5">
+            <div className="flex items-center gap-3 text-white/20">
+              <Info size={14} />
+              <p className="text-[10px] font-bold uppercase tracking-widest">Privacy Protected</p>
             </div>
           </div>
         </div>
 
-        {/* Chat Interface */}
-        <div className="flex-1 flex flex-col relative">
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col bg-[#111114] relative">
           
-          {/* Header */}
-          <div className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl sticky top-0 z-20">
-            <div className="flex items-center gap-6">
+          <header className={`h-20 border-b border-white/5 flex items-center justify-between px-6 md:px-10 bg-gradient-to-r ${zoneTheme.bg} backdrop-blur-md sticky top-0 z-30 w-full`}>
+            <div className="flex items-center gap-4">
               <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-1">{activeChannel.name}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest">System Synchronized</span>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-base font-bold text-white/90">{activeChannel.name}</h3>
+                  <span className="w-1 h-1 rounded-full bg-white/10" />
+                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] hidden sm:block">{activeChannel.desc}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className={`w-1.5 h-1.5 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse`} />
+                  <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Encryption Level: Institutional</span>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-6 relative">
-              <Search size={20} className="text-white/20 cursor-pointer hover:text-white transition-all" />
+            <div className="flex items-center gap-5">
               <div className="relative">
-                <MoreVertical 
-                  size={20} 
-                  className={`cursor-pointer transition-all ${showMenu ? 'text-white' : 'text-white/20 hover:text-white'}`}
+                <button 
                   onClick={() => setShowMenu(!showMenu)}
-                />
+                  className={`p-2 rounded-lg transition-all duration-200 ${showMenu ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                >
+                  <MoreVertical size={20} />
+                </button>
                 
-                {showMenu && (
-                  <>
-                    <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
-                    <div className="absolute right-0 mt-4 w-64 bg-[#161618] border border-white/5 rounded-2xl shadow-2xl p-2 z-40 backdrop-blur-2xl">
-                      <div className="px-4 py-3 mb-2 border-b border-white/5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Protocol Actions</p>
-                      </div>
-                      
-                      <button 
-                        onClick={handleClearChat}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                <AnimatePresence>
+                  {showMenu && (
+                    <>
+                      <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} 
+                      />
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute right-0 mt-3 w-60 bg-[#1a1a1e] border border-white/5 rounded-xl shadow-2xl p-2 z-50"
                       >
-                        <Trash2 size={16} /> Clear History
-                      </button>
-                      
-                      <button 
-                        onClick={handleExport}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                      >
-                        <Download size={16} /> Export Academic Report
-                      </button>
-
-                      <button 
-                        onClick={() => { setPrivacyMode(!privacyMode); setShowMenu(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                      >
-                        <EyeOff size={16} /> {privacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
-                      </button>
-
-                      <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all">
-                        <Settings2 size={16} /> Ensemble Config
-                      </button>
-                    </div>
-                  </>
-                )}
+                        <div className="px-4 py-2 border-b border-white/5 mb-1">
+                          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20">Options</p>
+                        </div>
+                        <button onClick={handleExport} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+                          <Download size={14} /> Export Transcript
+                        </button>
+                        <button onClick={handleClearChat} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all">
+                          <Trash2 size={14} /> Clear Local View
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
-          </div>
+          </header>
 
-          {/* Messages Feed */}
-          <div 
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto px-8 md:px-24 py-12 space-y-12 scrollbar-hide"
-          >
-            {loading ? (
-              <div className="flex flex-col items-center justify-center h-full gap-4">
-                <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-                <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Decrypting Stream...</p>
-              </div>
-            ) : posts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center opacity-20">
-                <MessageSquare size={48} className="mb-4" />
-                <p className="text-sm font-bold uppercase tracking-widest italic">No Transmission Detected</p>
-              </div>
-            ) : (
-              posts.map((post, idx) => {
-                const isOutgoing = post.is_mine;
-                const reacts = post.reactions || {};
-                // Enhanced detection: check hash OR if it looks like an AI report
-                const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### 🟢");
-                return (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    key={post.id} 
-                    className={`flex flex-col ${isOutgoing ? 'items-end' : 'items-start'}`}
-                  >
-                    <div className={`max-w-[85%] w-full ${isOutgoing ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}>
-                      
-                      {/* User Message (Grok Style) */}
-                      {isOutgoing && (
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="bg-[#1d1d1f] text-white/90 px-5 py-3 rounded-2xl text-base md:text-lg font-medium shadow-sm">
-                            {(post.content || "").replace(/\\n/g, '\n')}
-                          </div>
-                          <div className="flex items-center gap-3 opacity-20 hover:opacity-100 transition-all mr-1">
-                             <div className="cursor-pointer hover:text-white"><Send size={12} className="rotate-[-45deg] opacity-50" /></div>
-                             <div className="cursor-pointer hover:text-white"><Plus size={12} className="opacity-50" /></div>
-                          </div>
+          {/* Feed */}
+          <div className="flex-1 overflow-y-auto px-4 md:px-12 py-8 scrollbar-hide bg-[#09090b]/50" ref={scrollContainerRef}>
+            <AnimatePresence mode="popLayout">
+              {posts.length > 0 ? (
+                posts.map((post, idx) => {
+                  const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### 🟢");
+                  return (
+                    <motion.div 
+                      key={post.id || idx}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+                      className="mb-8"
+                    >
+                      <div className="flex items-center justify-between mb-3 px-2">
+                        <div className="flex items-center gap-3">
+                           <div className={`w-2 h-2 rounded-full ${isAI ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-indigo-500/60 shadow-[0_0_8px_rgba(99,102,241,0.3)]'} animate-pulse`} />
+                           <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
+                             {isAI ? 'Verified Intelligence' : 'Verified Node'}
+                           </span>
                         </div>
-                      )}
+                        <div className="flex items-center gap-2 opacity-30">
+                          <Clock size={12} className="text-white" />
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                            {new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
 
-                      {/* AI Content (Academic Report Style) */}
+                      {/* AI Content */}
                       {isAI && (
-                        <div className="w-full bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-2xl">
-                          <div className="flex items-center gap-3 mb-8 opacity-60">
-                             <div className="p-2 bg-white/10 rounded-lg">
-                               <Zap size={16} className="text-white fill-white" />
-                             </div>
-                             <div className="flex flex-col">
-                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Nexus Intelligence</span>
-                               <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Protocol v4.1 Active</span>
-                             </div>
-                          </div>
-
-                          <div className="text-white">
-                            <div className="prose prose-invert prose-p:leading-8 prose-p:mb-8 max-w-none 
-                                prose-headings:text-white/40 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-[0.3em] prose-headings:text-[10px] prose-headings:mb-6
-                                prose-strong:text-white prose-strong:font-bold
-                                prose-ul:list-disc prose-ul:pl-4 prose-li:mb-2">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
-                              </ReactMarkdown>
+                        <div className="w-full relative">
+                          {(post.content.includes("STATUS") || post.content.includes("CGPA")) ? (
+                            <div className="bg-[#0f0f12] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                              <div className="bg-indigo-600/10 px-8 py-5 border-b border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                   <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                                     <UserCheck size={16} className="text-indigo-400" />
+                                   </div>
+                                   <div>
+                                     <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-white/90">Institutional Performance Report</h4>
+                                     <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Verified by Nexus Intelligence</p>
+                                   </div>
+                                </div>
+                                <div className="px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+                                  Standing: Distinguished
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
+                                <div className="bg-[#0f0f12] p-8 flex flex-col items-center justify-center border-r border-white/5">
+                                   <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Attendance</span>
+                                   <div className="flex items-baseline gap-1">
+                                     <span className="text-3xl font-black text-white tracking-tighter">
+                                       {post.content.match(/Att\s+([\d.]+)%/)?.[1] || "77.8"}
+                                     </span>
+                                     <span className="text-sm font-bold text-white/40">%</span>
+                                   </div>
+                                </div>
+                                <div className="bg-[#0f0f12] p-8 flex flex-col items-center justify-center">
+                                   <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Academic Standing</span>
+                                   <div className="flex items-baseline gap-1">
+                                     <span className="text-3xl font-black text-indigo-400 tracking-tighter">
+                                       {post.content.match(/CGPA\s+([\d.]+)/)?.[1] || "8.82"}
+                                     </span>
+                                     <span className="text-sm font-bold text-white/40">GPA</span>
+                                   </div>
+                                </div>
+                              </div>
+                              <div className="p-8">
+                                <div className="flex items-center gap-2 mb-6">
+                                  <TrendingUp size={14} className="text-white/20" />
+                                  <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Priority Action Items</span>
+                                </div>
+                                <div className="space-y-3">
+                                  {post.content.split("ACTION:")[1]?.split("*").filter(i => i.trim()).map((item, i) => (
+                                    <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 group hover:bg-white/[0.04] transition-all">
+                                      <div className="w-2 h-2 rounded-full bg-indigo-500/40 group-hover:bg-indigo-400 transition-colors" />
+                                      <span className="text-sm font-bold text-white/70 group-hover:text-white transition-colors">{item.trim()}</span>
+                                    </div>
+                                  )) || (
+                                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest text-center py-4 italic">No pending directives</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="px-8 py-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+                                <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Protocol: Direct Synchronous Analysis</span>
+                                <button className="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors">Download PDF Report</button>
+                              </div>
                             </div>
-                          </div>
-
-                          {/* Grok Action Row for AI */}
-                          <div className="flex items-center gap-6 mt-10 text-white/20 border-t border-white/5 pt-6">
-                            <div className="flex items-center gap-5">
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><Search size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><Send size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><ThumbsUp size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><ThumbsDown size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><RotateCcw size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><MoreHorizontal size={18} /></div>
+                          ) : (
+                            <div className="bg-[#161619] border border-white/10 rounded-2xl p-8 md:p-12 shadow-xl">
+                              <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-6">
+                                <div className="flex items-center gap-4">
+                                   <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-center">
+                                     <Shield size={20} className="text-emerald-400" />
+                                   </div>
+                                   <div className="flex flex-col">
+                                     <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/90">Verified Intelligence Record</span>
+                                     <span className="text-[9px] font-medium text-white/30 uppercase tracking-widest">Official Campus Insight • Protocol 4.2</span>
+                                   </div>
+                                </div>
+                              </div>
+                              <div className="text-white/80">
+                                <div className="prose prose-invert prose-p:leading-relaxed prose-p:mb-5 max-w-none 
+                                    prose-headings:text-indigo-400 prose-headings:font-bold prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-xs prose-headings:mb-4
+                                    prose-strong:text-white prose-strong:font-bold
+                                    prose-ul:list-disc prose-ul:pl-5 prose-li:mb-2 text-[15px]">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
                             </div>
-                            <span className="text-[9px] font-black tracking-[0.2em] uppercase ml-auto opacity-30">
-                              Secure Node Verification · {new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
+                          )}
                         </div>
                       )}
 
-                      {/* Other User Nodes */}
-                      {!isOutgoing && !isAI && (
-                        <div className="flex flex-col items-start gap-3">
-                          <div className="bg-[#161618]/50 text-white/60 px-5 py-3 rounded-2xl text-base font-medium italic border border-white/5">
-                            {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
-                          </div>
-                          <div className="flex items-center gap-3 text-[9px] font-black text-white/10 uppercase tracking-[0.2em] ml-2">
-                            <span>{`NODE-${post.id.toString().padStart(4, '0')}`}</span>
-                            <span className="w-1 h-1 rounded-full bg-white/10" />
-                            <span>{new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {/* Peer Message */}
+                      {!isAI && (
+                        <div className="group relative">
+                          <div className={`border rounded-2xl p-6 transition-all ${post.is_mine || post.is_optimistic ? 'bg-indigo-600/10 border-indigo-500/30 ml-auto max-w-[85%]' : 'bg-[#111114] border-white/5 max-w-[85%]'}`}>
+                            {post.is_optimistic && (
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Transmitting to Grid...</span>
+                              </div>
+                            )}
+                            <div className={`text-white/70 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium ${post.is_optimistic ? 'opacity-40' : ''}`}>
+                              {post.censored_content || post.content}
+                            </div>
+                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.02]">
+                              <div className="flex items-center gap-6">
+                                <button 
+                                  onClick={() => handleReaction(post.id, 'like')}
+                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest 
+                                    ${post.reaction_count > 0 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-white/20 hover:text-white'}`}
+                                >
+                                  <ThumbsUp size={12} />
+                                  <span>{post.reaction_count || 0} Nodes Agree</span>
+                                </button>
+                                <button className="flex items-center gap-2 text-white/20 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">
+                                  <MessageSquare size={12} />
+                                  <span>{post.reply_count || 0} Responses</span>
+                                </button>
+                              </div>
+                              <button 
+                                onClick={() => handleFlag(post.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-white/10 hover:text-rose-500"
+                              >
+                                <EyeOff size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
-
-                    </div>
-                  </motion.div>
-                )
-              })
-            )}
+                    </motion.div>
+                  )
+                })
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center py-32 opacity-10 space-y-6">
+                   <div className="w-24 h-24 rounded-full border-2 border-dashed border-white flex items-center justify-center">
+                     <Hash size={40} />
+                   </div>
+                   <div className="text-center">
+                     <h3 className="text-lg font-black uppercase tracking-[0.4em] text-white">Quiet Sector</h3>
+                     <p className="text-[10px] font-bold uppercase tracking-widest mt-2">No transmissions detected in {category}</p>
+                   </div>
+                </div>
+              )}
+            </AnimatePresence>
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Interface */}
-          <div className="p-6 bg-white/[0.02] border-t border-white/5">
-            <form className="relative flex items-center gap-4" onSubmit={handleSend}>
-              <div className="flex-1 relative">
-                <input 
-                  type="text" 
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-4 pl-6 pr-14 text-sm text-white font-medium outline-none focus:border-primary/40 focus:bg-white/[0.08] transition-all placeholder:text-white/10"
-                  placeholder="Initiate anonymous broadcast..." 
-                  value={newContent}
-                  onChange={e => setNewContent(e.target.value)}
-                  disabled={loading}
-                />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-white/20">
-                   <Lock size={14} />
-                   <span className="text-[9px] font-black uppercase tracking-widest">TLS 1.3</span>
+          {/* Input Area */}
+          <div className="p-6 md:p-10 border-t border-white/5 bg-[#0d0d0f] z-20">
+            <div className="max-w-4xl mx-auto">
+               
+               {/* Quick Commands Bar */}
+               {quickActions.length > 0 && (
+                <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
+                  <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] whitespace-nowrap mr-2">Quick Commands:</span>
+                  {quickActions.map((action, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setNewContent(action.prompt)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all whitespace-nowrap group"
+                    >
+                      <span className={`${zoneTheme.text} group-hover:scale-110 transition-transform`}>{action.icon}</span>
+                      <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">{action.label}</span>
+                    </button>
+                  ))}
                 </div>
-              </div>
-              <button 
-                type="submit" 
-                disabled={!newContent.trim() || loading}
-                className="w-14 h-14 rounded-lg bg-primary text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all"
-              >
-                <Send size={20} />
-              </button>
-            </form>
-            <div className="mt-4 flex justify-center">
-               <p className="text-[9px] font-bold text-white/10 uppercase tracking-[0.4em]">Campus Integrity Protocol v4.1 · End-to-End Encrypted</p>
+               )}
+
+               <div className="relative group">
+                  <div className="absolute inset-0 blur-2xl opacity-0 group-focus-within:opacity-30 transition-opacity rounded-full" 
+                       style={{ backgroundColor: `rgba(${themeRGB}, 0.2)` }} />
+                  <div className="relative flex flex-col bg-[#161619] border border-white/10 rounded-2xl overflow-hidden transition-all shadow-2xl focus-within:border-opacity-50"
+                       style={{ borderColor: `rgba(${themeRGB}, 0.2)` }}>
+                    <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.02]">
+                       <div className="flex items-center gap-2">
+                         <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: `rgb(${themeRGB})` }} />
+                         <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em]">Institutional Node Active</span>
+                       </div>
+                       <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Channel: {category}</span>
+                    </div>
+                    <textarea 
+                      value={newContent}
+                      onChange={(e) => setNewContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handlePost();
+                        }
+                      }}
+                      placeholder={`Draft transmission to ${category}...`}
+                      className="w-full bg-transparent p-6 text-[15px] text-white placeholder-white/10 focus:outline-none resize-none min-h-[100px] font-medium leading-relaxed"
+                    />
+                    <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-white/[0.01]">
+                       <div className="flex items-center gap-4 opacity-30 hover:opacity-100 transition-opacity">
+                         <button className="text-white/40 hover:text-white"><Hash size={16} /></button>
+                         <button className="text-white/40 hover:text-white"><Shield size={16} /></button>
+                         <button className="text-white/40 hover:text-white"><Clock size={16} /></button>
+                       </div>
+                       <button 
+                        onClick={handlePost}
+                        disabled={!newContent.trim()}
+                        className={`group flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all
+                          ${newContent.trim() 
+                            ? 'text-white shadow-lg' 
+                            : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
+                        style={newContent.trim() ? {
+                          backgroundColor: `rgb(${themeRGB})`,
+                          boxShadow: `0 4px 20px rgba(${themeRGB}, 0.3)`
+                        } : {}}
+                       >
+                         <span className="text-[10px] font-black uppercase tracking-[0.2em]">Transmit</span>
+                         <Send size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                       </button>
+                    </div>
+                  </div>
+               </div>
+               <p className="mt-6 text-center text-[9px] font-bold text-white/10 uppercase tracking-[0.2em]">
+                 All transmissions are encrypted and moderated. Do not share sensitive institutional credentials.
+               </p>
             </div>
           </div>
-
         </div>
       </div>
     </ErpLayout>

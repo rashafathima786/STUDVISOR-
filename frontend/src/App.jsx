@@ -56,6 +56,7 @@ const AdminStudents = lazy(() => import("./pages/admin/AdminStudents"));
 const AdminFaculty = lazy(() => import("./pages/admin/AdminFaculty"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminAudit = lazy(() => import("./pages/admin/AdminAudit"));
+const ModelRegistryPage = lazy(() => import("./pages/ModelRegistryPage"));
 
 // ── Suspense Fallback ───────────────────────────────────────────────────────
 function PageLoader() {
@@ -183,6 +184,7 @@ export default function App() {
           <Route path="/admin/faculty" element={<ProtectedRoute allowedRoles={["admin"]}><AdminFaculty /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAudit /></ProtectedRoute>} />
+          <Route path="/admin/ai-core" element={<ProtectedRoute allowedRoles={["admin"]}><ModelRegistryPage /></ProtectedRoute>} />
 
           {/* Fallbacks */}
           <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} replace />} />
