@@ -1,1 +1,0 @@
-import{j as s}from"./index-Fz5GWQEC.js";function i({title:a,value:r,subtitle:c}){return s.jsxs("div",{className:"card info-card",children:[s.jsx("p",{className:"info-card-title",children:a}),s.jsx("h2",{className:"info-card-value",children:r}),s.jsx("p",{className:"info-card-subtitle",children:c})]})}export{i as I};

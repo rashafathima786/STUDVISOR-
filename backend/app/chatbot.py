@@ -14,23 +14,26 @@ from backend.services.gpa_service import gpa_service, percentage_to_grade
 # ─── INTENT DETECTION ───────────────────────────────────────────────────────
 
 INTENT_PATTERNS = {
-    "greeting": r"\b(hi|hello|hey|good morning|good evening)\b",
-    "attendance_overall": r"\b(overall attendance|total attendance|my attendance|attendance percentage)\b",
-    "attendance_subject": r"\b(subject.?wise|per subject|each subject|individual subject)\b",
-    "bunk_check": r"\b(how many.*(miss|bunk|skip)|can i (miss|bunk|skip)|safe to bunk)\b",
-    "reach_75": r"\b(reach 75|get to 75|need.*attend.*75|recover attendance|classes needed)\b",
-    "marks": r"\b(my marks|show marks|what are my marks|internal marks|cia marks)\b",
-    "cgpa": r"\b(cgpa|cumulative|overall gpa|my gpa)\b",
-    "sgpa": r"\b(sgpa|semester gpa|this semester gpa)\b",
-    "best_subject": r"\b(best subject|strongest|highest marks|top subject)\b",
-    "weakest_subject": r"\b(weakest|worst subject|lowest marks|struggling)\b",
-    "eligibility": r"\b(eligib|can i write exam|allowed to write|exam eligibility)\b",
-    "profile": r"\b(my profile|who am i|my details|about me|my info)\b",
-    "leave_status": r"\b(leave status|my leaves|pending leave|leave request)\b",
-    "exam_schedule": r"\b(exam schedule|upcoming exam|next exam|when.*exam)\b",
-    "help": r"\b(help|what can you do|capabilities|commands)\b",
-    "thank": r"\b(thank|thanks|thx|appreciate)\b",
-    "frustrated": r"\b(cant understand|hate|give up|impossible|stressed|overwhelmed|too hard|failing)\b",
+    "greeting": r"\b(hi|hello|hey|good morning|good evening|greetings)\b",
+    "attendance_subject": r"\b(subject.?wise|per subject|each subject|individual subject|attendance in each)\b",
+    "attendance_recovery": r"\b(low attendance|how many classes to attend|lowest attendance|attendance recovery|less attendance|poor attendance|lowest)\b|which subject.*(low|less).*attendance",
+    "bunk_check": r"\b(how many.*(miss|bunk|skip)|can i (miss|bunk|skip)|safe to bunk|bunk safety)\b",
+    "reach_75": r"\b(reach 75|get to 75|need.*attend.*75|recover attendance|classes needed|reach target)\b",
+    "attendance_overall": r"\b(attendance|overall attendance|total attendance|my attendance|attendance percentage|attendance summary)\b",
+    "cgpa": r"\b(cgpa|cumulative|overall gpa|my gpa|total gpa)\b",
+    "sgpa": r"\b(sgpa|semester gpa|this semester gpa|current gpa)\b",
+    "best_subject": r"\b(best subject|strongest|highest marks|top subject|favorite subject)\b",
+    "weakest_subject": r"\b(weakest|worst subject|lowest marks|struggling|hardest subject)\b",
+    "marks": r"\b(marks|my marks|show marks|what are my marks|internal marks|cia marks|my results|show results)\b",
+    "eligibility": r"(eligib|can i write exam|allowed to write|exam eligibility|hall ticket)",
+    "holiday": r"\b(holiday|calendar|vacation|off day|working day)\b",
+    "profile": r"\b(profile|my profile|who am i|my details|about me|my info|personal info)\b",
+    "leave_status": r"\b(leave status|my leaves|pending leave|leave request|od status)\b",
+    "od_help": r"\b(od assistance|missing od|classes missed without od|od leave check|uncovered absence|applied od yet|apply.*od)\b",
+    "exam_schedule": r"\b(exam schedule|upcoming exam|next exam|when.*exam|exam dates)\b",
+    "help": r"\b(help|what can you do|capabilities|commands|what do you do)\b",
+    "thank": r"\b(thank|thanks|thx|appreciate|great job|good bot)\b",
+    "frustrated": r"\b(cant understand|hate|give up|impossible|stressed|overwhelmed|too hard|failing|stupid bot)\b",
     "missed_today": r"\b(missed today|absent today|classes.*miss.*today|what did i miss)\b",
 }
 
@@ -70,26 +73,19 @@ def detect_emotion(message: str) -> str:
 # ─── RESPONSE GENERATORS ────────────────────────────────────────────────────
 
 def handle_greeting(student: Student) -> str:
-    return f"Hey {student.full_name}! 👋 I'm Studvisor AI, your campus assistant. Ask me about attendance, marks, CGPA, exams, leave status, or anything academic!"
+    return f"- **IDENTITY**: Nexus AI Protocol Active.\n- **TARGET**: {student.full_name}.\n- **STATUS**: Awaiting academic query."
 
 
 def handle_help() -> str:
-    return """Here's what I can help you with:
-
-📊 **Attendance** — "What is my attendance?", "Subject-wise attendance", "Can I bunk today?"
-📈 **Marks & GPA** — "Show my marks", "What is my CGPA?", "Best/weakest subject"
-📝 **Exams** — "Upcoming exams", "Am I eligible to write exams?"
-📋 **Leave** — "My leave status"
-👤 **Profile** — "Show my profile"
-🔮 **AI Features** — "How many classes to reach 75%?", "Safe to bunk?"
-
-Just ask naturally — I understand conversational queries!"""
+    return """- **CAPABILITIES**: Attendance, Recovery, OD/Leave, Marks, CGPA, Exams, Profile.
+- **USAGE**: Ask naturally about any academic metric.
+- **EXAMPLE**: "What is my CGPA?" or "Attendance in Math"."""
 
 
 def handle_attendance_overall(db: Session, student: Student) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     if not records:
-        return "No attendance records found yet. Your faculty may not have started marking attendance."
+        return "- **ATTENDANCE**: Data Unavailable."
 
     total = len(records)
     present = sum(1 for r in records if r.status == "P")
@@ -97,19 +93,12 @@ def handle_attendance_overall(db: Session, student: Student) -> str:
     dl = total - present - absent
     pct = round(present / total * 100, 1)
 
-    status = "✅ You're in great shape!" if pct >= 85 else "⚠️ Watch out — you're getting close to the threshold." if pct >= 75 else "🚨 CRITICAL — You're below the 75% eligibility threshold!"
+    status = "STABLE" if pct >= 85 else "WARNING" if pct >= 75 else "CRITICAL"
 
-    return f"""📊 **Overall Attendance Summary**
-
-| Metric | Value |
-|--------|-------|
-| Total Classes | {total} |
-| Present | {present} |
-| Absent | {absent} |
-| Duty Leave | {dl} |
-| **Percentage** | **{pct}%** |
-
-{status}"""
+    return f"""- **ATTENDANCE**: {pct}% ({present}/{total} sessions).
+- **DETAILS**: Absent: {absent}, Duty Leave: {dl}.
+- **STATUS**: {status}.
+- **ACTION**: {"No action required." if pct >= 75 else "Initialize Recovery Plan."}"""
 def handle_missed_today(db: Session, student: Student) -> str:
     from datetime import datetime
     today = datetime.now().strftime("%Y-%m-%d")
@@ -120,19 +109,19 @@ def handle_missed_today(db: Session, student: Student) -> str:
     ).all()
     
     if not records:
-        return "You haven't missed any classes today! Keep up the good work. 🏆"
+        return "- **MISSED TODAY**: None. Attendance record spotless."
     
-    lines = ["🚩 **Classes Missed Today**\n"]
+    missed = []
     for r in records:
         subj = db.query(Subject).filter(Subject.id == r.subject_id).first()
-        lines.append(f"- **{subj.name if subj else '?'}** ({r.slot or 'TBA'})")
+        missed.append(f"{subj.name if subj else '?'}(Slot {r.slot or 'TBA'})")
     
-    return "\n".join(lines)
+    return f"- **MISSED TODAY**: {', '.join(missed)}."
 
 def handle_attendance_subject(db: Session, student: Student) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     if not records:
-        return "No attendance records found."
+        return "- **ATTENDANCE**: No records found."
 
     data = defaultdict(lambda: {"total": 0, "present": 0})
     for r in records:
@@ -140,12 +129,12 @@ def handle_attendance_subject(db: Session, student: Student) -> str:
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
-    lines = ["📚 **Subject-wise Attendance**\n", "| Subject | Present | Total | Percentage | Status |", "|---------|---------|-------|------------|--------|"]
+    lines = []
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 0
-        status = "✅" if pct >= 75 else "🚨"
-        lines.append(f"| {subj.name if subj else '?'} | {d['present']} | {d['total']} | {pct}% | {status} |")
+        status = "OK" if pct >= 75 else "LOW"
+        lines.append(f"- **{subj.name if subj else '?'}**: {pct}% ({status})")
 
     return "\n".join(lines)
 
@@ -153,7 +142,7 @@ def handle_attendance_subject(db: Session, student: Student) -> str:
 def handle_bunk_check(db: Session, student: Student) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     if not records:
-        return "Not enough attendance data to calculate."
+        return "- **BUNK CHECK**: Insufficient Data."
 
     data = defaultdict(lambda: {"total": 0, "present": 0})
     for r in records:
@@ -161,63 +150,82 @@ def handle_bunk_check(db: Session, student: Student) -> str:
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
-    lines = ["🎯 **Bunk Safety Analysis**\n"]
+    lines = []
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         p, t = d["present"], d["total"]
         buffer = 0
         while (p) / (t + buffer + 1) * 100 >= 75 and buffer < 50:
             buffer += 1
-
-        if buffer >= 3:
-            lines.append(f"✅ **{subj.name if subj else '?'}** — You can miss **{buffer}** more classes safely")
-        elif buffer > 0:
-            lines.append(f"⚠️ **{subj.name if subj else '?'}** — Only **{buffer}** class(es) of buffer remaining")
-        else:
-            lines.append(f"🚫 **{subj.name if subj else '?'}** — Cannot miss ANY more classes!")
+        
+        status = "SAFE" if buffer >= 3 else "WARN" if buffer > 0 else "CRIT"
+        lines.append(f"- **{subj.name if subj else '?'}**: {buffer} classes ({status})")
 
     return "\n".join(lines)
 
 
 def handle_reach_75(db: Session, student: Student) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
+    if not records:
+        return "- **RECOVERY**: Insufficient Data."
+
     data = defaultdict(lambda: {"total": 0, "present": 0})
     for r in records:
         data[r.subject_id]["total"] += 1
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
-    lines = ["📈 **Recovery Plan to Reach 75%**\n"]
+    lines = []
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         p, t = d["present"], d["total"]
         pct = round(p / t * 100, 1) if t > 0 else 100
-
-        if pct >= 75:
-            lines.append(f"✅ **{subj.name if subj else '?'}** — Already at {pct}%, no recovery needed")
-        else:
+        
+        if pct < 75:
             needed = 0
             while (p + needed) / (t + needed) * 100 < 75 and needed < 200:
                 needed += 1
-            if needed < 200:
-                lines.append(f"⚠️ **{subj.name if subj else '?'}** ({pct}%) — Attend next **{needed}** consecutive classes")
-            else:
-                lines.append(f"🚨 **{subj.name if subj else '?'}** ({pct}%) — Recovery not feasible with regular classes. Apply for OD/Medical.")
+            lines.append(f"- **{subj.name if subj else '?'}**: {pct}% -> Need {needed} classes.")
+        else:
+            lines.append(f"- **{subj.name if subj else '?'}**: {pct}% (Target Met).")
 
     return "\n".join(lines)
 
 
-def handle_marks(db: Session, student: Student) -> str:
-    marks = db.query(Mark).filter(Mark.student_id == student.id).order_by(Mark.semester, Mark.subject_id).all()
-    if not marks:
-        return "No marks found yet. Results may not be published."
+def handle_od_help(db: Session, student: Student) -> str:
+    absences = db.query(Attendance).filter(Attendance.student_id == student.id, Attendance.status == "A").all()
+    if not absences:
+        return "- **OD CHECK**: 0 Absences. Action: None."
+    
+    od_leaves = db.query(LeaveRequest).filter(LeaveRequest.student_id == student.id, LeaveRequest.leave_type == "OD", LeaveRequest.status.contains("Approved")).all()
+    uncovered = []
+    for a in absences:
+        if not any(l.from_date <= a.date <= l.to_date for l in od_leaves):
+            uncovered.append(a)
+            
+    if not uncovered:
+        return "- **OD CHECK**: All absences covered. Status: OK."
+    
+    lines = ["- **UNCOVERED ABSENCES**:"]
+    uncovered.sort(key=lambda x: x.date, reverse=True)
+    for a in uncovered:
+        subj = db.query(Subject).filter(Subject.id == a.subject_id).first()
+        lines.append(f"  - {a.date}: {subj.name if subj else '?'}(Hour {a.hour})")
+            
+    return "\n".join(lines)
 
-    lines = ["📝 **Your Academic Marks**\n", "| Subject | Assessment | Obtained | Max | % | Grade |", "|---------|------------|----------|-----|---|-------|"]
+
+def handle_marks(db: Session, student: Student) -> str:
+    marks = db.query(Mark).filter(Mark.student_id == student.id).all()
+    if not marks:
+        return "- **MARKS**: Data Unavailable."
+
+    lines = []
     for m in marks:
         subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
         pct = round(m.marks_obtained / m.max_marks * 100, 1) if m.max_marks > 0 else 0
         grade = percentage_to_grade(pct)
-        lines.append(f"| {subj.name if subj else '?'} | {m.assessment_type} | {m.marks_obtained} | {m.max_marks} | {pct}% | {grade['letter']} |")
+        lines.append(f"- **{subj.name if subj else '?'}**({m.assessment_type}): {m.marks_obtained}/{m.max_marks} ({pct}%) -> {grade['letter']}")
 
     return "\n".join(lines)
 
@@ -225,11 +233,11 @@ def handle_marks(db: Session, student: Student) -> str:
 def handle_cgpa(db: Session, student: Student) -> str:
     result = gpa_service.get_cgpa(db, student.id)
     if not result["semesters"]:
-        return "No marks data available for CGPA calculation."
+        return "- **CGPA**: Data Unavailable."
 
-    lines = [f"🎓 **Your CGPA: {result['cgpa']}**\n"]
+    lines = [f"- **CURRENT CGPA**: {result['cgpa']}"]
     for s in result["semesters"]:
-        lines.append(f"  Semester {s['semester']}: SGPA **{s['sgpa']}**")
+        lines.append(f"  - SEM {s['semester']} SGPA: {s['sgpa']}")
 
     return "\n".join(lines)
 
@@ -237,7 +245,7 @@ def handle_cgpa(db: Session, student: Student) -> str:
 def handle_best_subject(db: Session, student: Student) -> str:
     marks = db.query(Mark).filter(Mark.student_id == student.id).all()
     if not marks:
-        return "No marks data available."
+        return "- **BEST SUBJECT**: Data Unavailable."
     subj_avg = defaultdict(list)
     for m in marks:
         pct = m.marks_obtained / m.max_marks * 100 if m.max_marks > 0 else 0
@@ -245,13 +253,13 @@ def handle_best_subject(db: Session, student: Student) -> str:
     best_id = max(subj_avg, key=lambda x: sum(subj_avg[x]) / len(subj_avg[x]))
     subj = db.query(Subject).filter(Subject.id == best_id).first()
     avg = round(sum(subj_avg[best_id]) / len(subj_avg[best_id]), 1)
-    return f"🌟 Your strongest subject is **{subj.name if subj else '?'}** with an average of **{avg}%**. Keep it up!"
+    return f"- **BEST SUBJECT**: {subj.name if subj else '?'}({avg}%)."
 
 
 def handle_weakest_subject(db: Session, student: Student) -> str:
     marks = db.query(Mark).filter(Mark.student_id == student.id).all()
     if not marks:
-        return "No marks data available."
+        return "- **WEAKEST SUBJECT**: Data Unavailable."
     subj_avg = defaultdict(list)
     for m in marks:
         pct = m.marks_obtained / m.max_marks * 100 if m.max_marks > 0 else 0
@@ -259,7 +267,7 @@ def handle_weakest_subject(db: Session, student: Student) -> str:
     worst_id = min(subj_avg, key=lambda x: sum(subj_avg[x]) / len(subj_avg[x]))
     subj = db.query(Subject).filter(Subject.id == worst_id).first()
     avg = round(sum(subj_avg[worst_id]) / len(subj_avg[worst_id]), 1)
-    return f"📉 Your weakest subject is **{subj.name if subj else '?'}** at **{avg}%**. Consider extra study sessions or peer tutoring."
+    return f"- **WEAKEST SUBJECT**: {subj.name if subj else '?'}({avg}%)."
 
 
 def handle_eligibility(db: Session, student: Student) -> str:
@@ -270,50 +278,30 @@ def handle_eligibility(db: Session, student: Student) -> str:
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
-    eligible = []
-    not_eligible = []
+    lines = ["- **EXAM ELIGIBILITY**:"]
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 100
-        if pct >= 75:
-            eligible.append(f"✅ {subj.name if subj else '?'} ({pct}%)")
-        else:
-            not_eligible.append(f"🚨 {subj.name if subj else '?'} ({pct}%)")
+        status = "ELIGIBLE" if pct >= 75 else "INELIGIBLE"
+        lines.append(f"  - {subj.name if subj else '?'}: {status} ({pct}%)")
 
-    result = "🎫 **Exam Eligibility Check**\n\n"
-    if not_eligible:
-        result += "**NOT ELIGIBLE (below 75%):**\n" + "\n".join(not_eligible)
-        result += f"\n\n⚠️ You are NOT eligible for exams in {len(not_eligible)} subject(s). Contact your faculty advisor."
-    else:
-        result += "You are **eligible for all exams**! 🎉\n\n" + "\n".join(eligible)
-
-    return result
+    return "\n".join(lines)
 
 
 def handle_profile(student: Student) -> str:
-    return f"""👤 **Your Profile**
-
-| Field | Value |
-|-------|-------|
-| Name | {student.full_name} |
-| Username | {student.username} |
-| Department | {student.department or 'N/A'} |
-| Semester | {student.semester or 'N/A'} |
-| Section | {student.section or 'N/A'} |
-| Roll Number | {student.roll_number or 'N/A'} |
-| Merit Points | {student.merit_points} |
-| Merit Tier | {student.merit_tier or 'Novice'} |
-| Email | {student.email or 'N/A'} |"""
+    return f"""- **PROFILE**: {student.full_name} ({student.roll_number or 'N/A'})
+- **DEPT**: {student.department or 'N/A'} | SEM: {student.semester or 'N/A'}
+- **MERIT**: {student.merit_points} pts ({student.merit_tier or 'Novice'})
+- **CONTACT**: {student.email or 'N/A'}"""
 
 
 def handle_leave_status(db: Session, student: Student) -> str:
     leaves = db.query(LeaveRequest).filter(LeaveRequest.student_id == student.id).order_by(LeaveRequest.applied_on.desc()).limit(5).all()
     if not leaves:
-        return "You have no leave requests on record."
-    lines = ["📋 **Recent Leave Requests**\n", "| Type | From | To | Status |", "|------|------|----|--------|"]
+        return "- **LEAVES**: 0 Requests."
+    lines = ["- **RECENT LEAVES**:"]
     for l in leaves:
-        emoji = "✅" if "Approved" in l.status else "❌" if l.status == "Rejected" else "⏳"
-        lines.append(f"| {l.leave_type} | {l.from_date} | {l.to_date} | {emoji} {l.status} |")
+        lines.append(f"  - {l.leave_type} ({l.from_date} to {l.to_date}): {l.status}")
     return "\n".join(lines)
 
 
@@ -322,45 +310,43 @@ def handle_exam_schedule(db: Session, student: Student) -> str:
     today = datetime.now().strftime("%Y-%m-%d")
     exams = db.query(ExamSchedule).filter(ExamSchedule.exam_date >= today).order_by(ExamSchedule.exam_date).limit(10).all()
     if not exams:
-        return "No upcoming exams scheduled. 🎉"
-    lines = ["📅 **Upcoming Exams**\n", "| Subject | Type | Date | Venue |", "|---------|------|------|-------|"]
+        return "- **EXAMS**: None Scheduled."
+    lines = ["- **UPCOMING EXAMS**:"]
     for e in exams:
         subj = db.query(Subject).filter(Subject.id == e.subject_id).first()
-        lines.append(f"| {subj.name if subj else '?'} | {e.exam_type} | {e.exam_date} | {e.venue or 'TBA'} |")
+        lines.append(f"  - {e.exam_date}: {subj.name if subj else '?'}({e.exam_type}) @ {e.venue or 'TBA'}")
     return "\n".join(lines)
 
 
+def handle_holiday(db: Session) -> str:
+    from datetime import datetime
+    from backend.app.models import AcademicCalendar
+    today = datetime.now().strftime("%Y-%m-%d")
+    next_holiday = db.query(AcademicCalendar).filter(AcademicCalendar.date >= today, AcademicCalendar.is_working_day == 0).order_by(AcademicCalendar.date).first()
+    if not next_holiday:
+        return "- **HOLIDAY**: None Scheduled."
+    return f"- **NEXT HOLIDAY**: {next_holiday.holiday_name} ({next_holiday.date})."
+
+
 def handle_frustrated(student: Student) -> str:
-    return f"""I hear you, {student.full_name}. It's completely normal to feel this way — academics can be overwhelming sometimes. 💙
-
-Here are some things that might help:
-1. **Break it down** — Focus on one subject at a time, not everything at once
-2. **Peer tutoring** — Use `/v2/ai/student/peer-mentors` to find classmates who can help
-3. **Talk to someone** — Your faculty advisor or the campus counsellor is always available
-4. **Study schedule** — I can help you create a day-by-day plan based on your exam dates
-
-You've got this. Want me to create a recovery plan for your attendance or marks?"""
+    return f"- **PROTOCOL STATUS**: Support Mode Active.\n- **NOTICE**: Academic pressure detected. {student.full_name}, I recommend a Recovery Plan or Faculty Counseling."
 
 
 def handle_thank(student: Student) -> str:
-    return f"You're welcome, {student.full_name}! Feel free to ask me anything anytime. Good luck with your studies! 🌟"
+    return "- **ACKNOWLEDGMENT**: Transmission Received. Protocol standby."
 
 
 def handle_distressed(student: Student) -> str:
-    return f"""{student.full_name}, I'm detecting that you're going through a really tough time. 💙 
-Please know that you're not alone, and there's help available.
-
-1. **Student Support Cell** — Open 24/7 for anyone feeling overwhelmed
-2. **Campus Counsellor** — You can book an anonymous session via the 'Campus' tab
-3. **Emergency Helpline** — Call 1800-Studvisor-CARE immediately if you need someone to talk to right now.
-
-Academic pressure is real, but your well-being is much more important. Would you like me to notify your faculty advisor to reach out for a supportive chat?"""
+    return f"- **EMERGENCY PROTOCOL**: Priority Support Triggered.\n- **TARGET**: {student.full_name}.\n- **ACTION**: Call 1800-Studvisor-CARE immediately. Access Support Cell 24/7."
 
 
 # ─── MAIN CHAT DISPATCHER ───────────────────────────────────────────────────
 
-def process_chat(db: Session, student: Student, message: str) -> str:
+async def process_chat(db: Session, student: Student, message: str) -> str:
     """Main entry point for the AI chatbot. Detects intent and dispatches to handler."""
+    from backend.services.ai_service import ai_service
+    from backend.core.ai_context import build_student_context
+
     emotion = detect_emotion(message)
     intent = detect_intent(message)
 
@@ -377,6 +363,8 @@ def process_chat(db: Session, student: Student, message: str) -> str:
         "attendance_subject": lambda: handle_attendance_subject(db, student),
         "bunk_check": lambda: handle_bunk_check(db, student),
         "reach_75": lambda: handle_reach_75(db, student),
+        "attendance_recovery": lambda: handle_reach_75(db, student),
+        "od_help": lambda: handle_od_help(db, student),
         "marks": lambda: handle_marks(db, student),
         "cgpa": lambda: handle_cgpa(db, student),
         "sgpa": lambda: handle_cgpa(db, student),
@@ -386,6 +374,7 @@ def process_chat(db: Session, student: Student, message: str) -> str:
         "profile": lambda: handle_profile(student),
         "leave_status": lambda: handle_leave_status(db, student),
         "exam_schedule": lambda: handle_exam_schedule(db, student),
+        "holiday": lambda: handle_holiday(db),
         "thank": lambda: handle_thank(student),
         "missed_today": lambda: handle_missed_today(db, student),
     }
@@ -393,10 +382,8 @@ def process_chat(db: Session, student: Student, message: str) -> str:
     if intent in handlers:
         return handlers[intent]()
 
-    # Fallback: unknown intent
-    return (
-        f"I'm not sure I understood that, {student.full_name}. "
-        "Try asking about: attendance, marks, CGPA, exam schedule, leave status, "
-        "bunk safety, or eligibility. Type **help** for a full list of commands."
-    )
+    # Fallback: Intelligence Ensemble v2 (Dynamic AI Answering)
+    context = build_student_context(db, student.id)
+    ai_response = await ai_service.ensemble_chat(message, context)
+    return ai_response
 

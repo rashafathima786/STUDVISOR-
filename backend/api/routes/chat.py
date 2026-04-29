@@ -21,9 +21,9 @@ class ChatInput(BaseModel):
 
 
 @router.post("/")
-def chat(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
+async def chat(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Process a chat message through the deterministic AI engine."""
-    response = process_chat(db, student, data.query)
+    response = await process_chat(db, student, data.query)
     # Save to history
     db.add(ChatHistory(student_id=student.id, query=data.query, response=response,
                        context_page=data.context_page))
@@ -34,7 +34,7 @@ def chat(data: ChatInput, student=Depends(get_current_student), db: Session = De
 @router.post("/stream")
 async def chat_stream(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """SSE streaming — sends the AI response word-by-word for typewriter effect."""
-    response = process_chat(db, student, data.query)
+    response = await process_chat(db, student, data.query)
     db.add(ChatHistory(student_id=student.id, query=data.query, response=response,
                        context_page=data.context_page))
     db.commit()

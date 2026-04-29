@@ -4,6 +4,7 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import ToastContainer from './Toast';
 import useAuthStore from '../stores/authStore';
+import useChatStore from '../stores/chatStore';
 
 
 /**
@@ -13,6 +14,7 @@ import useAuthStore from '../stores/authStore';
 export default function ErpLayout({ title, subtitle, children }) {
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
+  const { isOpen } = useChatStore();
 
   function handleLogout() {
     logout();
@@ -20,7 +22,7 @@ export default function ErpLayout({ title, subtitle, children }) {
   }
 
   return (
-    <div className="bg-surface text-on-background min-h-screen flex font-sans antialiased overflow-hidden">
+    <div className={`bg-surface text-on-background min-h-screen flex font-sans antialiased overflow-hidden main-content-wrap ${isOpen ? 'chat-open' : ''}`}>
       {/* Background Ambience (Global) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="bg-blob w-[800px] h-[800px] top-[-200px] left-[-200px] bg-primary opacity-[0.015]" />
@@ -40,10 +42,6 @@ export default function ErpLayout({ title, subtitle, children }) {
           {children}
         </div>
         
-        {/* Institutional Footer (Optional) */}
-        <footer className="p-8 mt-auto opacity-10 text-[9px] font-bold uppercase tracking-[0.6em] text-center pointer-events-none">
-            Nexus Systems // Core v4.1.0 // Operational Integrity Verified
-        </footer>
       </main>
 
       {/* Overlay Notifications */}

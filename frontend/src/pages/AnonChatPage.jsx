@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import ErpLayout from '../components/ErpLayout'
 import { fetchAnonPosts, createAnonPost, reactToPost, flagPost } from '../services/api'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Send, 
   Search, 
   MoreVertical, 
   ThumbsUp, 
+  ThumbsDown,
   Heart, 
   Smile, 
   AlertTriangle, 
@@ -18,7 +21,13 @@ import {
   ChevronRight,
   Zap,
   ShieldAlert,
-  Plus
+  RotateCcw,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+  Download,
+  EyeOff,
+  Settings2
 } from 'lucide-react'
 
 export default function AnonChatPage() {
@@ -26,7 +35,31 @@ export default function AnonChatPage() {
   const [category, setCategory] = useState("General")
   const [newContent, setNewContent] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showMenu, setShowMenu] = useState(false)
+  const [privacyMode, setPrivacyMode] = useState(false)
+
+  const handleClearChat = () => {
+    if (window.confirm("Are you sure you want to clear your local transmission history?")) {
+      const lastId = posts.length > 0 ? Math.max(...posts.map(p => p.id)) : 0
+      localStorage.setItem(`nexus_last_cleared_id_${category}`, lastId.toString())
+      setPosts([])
+      setShowMenu(false)
+    }
+  }
+
+  const handleExport = () => {
+    const content = posts.map(p => `[${p.session_hash === "NEXUS_AI_BOT" ? 'NEXUS AI' : 'USER'}] ${p.content}`).join('\n\n')
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `nexus_report_${category.toLowerCase()}.txt`
+    a.click()
+    setShowMenu(false)
+  }
   const messagesEndRef = useRef(null)
+  const scrollContainerRef = useRef(null)
+  const isFirstLoad = useRef(true)
 
   const channels = [
     { id: "General", name: "Nexus General", desc: "Open campus discussions", icon: "🏫", color: "text-blue-400" },
@@ -44,7 +77,14 @@ export default function AnonChatPage() {
 
   function loadWall() {
     fetchAnonPosts(category, "recent").then(res => {
-      setPosts((res?.posts || []).reverse())
+      const allPosts = (res?.posts || []).reverse()
+      const lastClearedId = parseInt(localStorage.getItem(`nexus_last_cleared_id_${category}`) || "0")
+      
+      if (lastClearedId > 0) {
+        setPosts(allPosts.filter(p => p.id > lastClearedId))
+      } else {
+        setPosts(allPosts)
+      }
       setLoading(false)
     }).catch(() => setLoading(false))
   }
@@ -52,10 +92,28 @@ export default function AnonChatPage() {
   useEffect(() => {
     setLoading(true)
     loadWall()
+    isFirstLoad.current = true // Reset on category change
+    
+    // Auto-refresh polling every 10 seconds
+    const interval = setInterval(loadWall, 10000)
+    return () => clearInterval(interval)
   }, [category])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = scrollContainerRef.current
+    if (container && posts.length > 0) {
+      // Very strict bottom check (within 50px)
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50
+      
+      if (isFirstLoad.current) {
+        // Initial load: Jump to bottom instantly
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+        isFirstLoad.current = false
+      } else if (isAtBottom) {
+        // Only scroll for new messages if user is already at the bottom
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
   }, [posts])
 
   async function handleSend(e) {
@@ -92,78 +150,111 @@ export default function AnonChatPage() {
   const activeChannel = channels.find(c => c.id === category) || channels[0]
 
   return (
-    <ErpLayout title="Campus Connect" subtitle="Encrypted anonymous messaging protocol">
-      <div className="flex h-[calc(100vh-180px)] gap-6 max-w-7xl mx-auto px-6 overflow-hidden">
+    <ErpLayout title="Nexus AI" subtitle="Next-generation intelligence protocol">
+      <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto overflow-hidden bg-black text-white font-sans">
         
-        {/* Channel Intelligence Sidebar */}
-        <div className="w-80 flex flex-col gap-4">
-          <div className="p-6 bg-[#121214]/80 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-xl flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Channels</h2>
-              <div className="p-2 rounded-xl bg-white/5">
-                <Hash size={14} className="text-primary" />
-              </div>
+        {/* Grok-style Sidebar */}
+        <div className="w-64 border-r border-white/5 flex flex-col p-4">
+          <div className="flex items-center gap-3 mb-8 px-2">
+            <div className="w-8 h-8 bg-white flex items-center justify-center rounded-lg">
+              <Zap size={18} className="text-black fill-black" />
             </div>
+            <span className="font-black tracking-tighter text-lg">Nexus</span>
+          </div>
+          
+          <div className="space-y-1 overflow-y-auto flex-1 pr-2 scrollbar-hide">
+            {channels.map(c => (
+              <button 
+                key={c.id} 
+                onClick={() => setCategory(c.id)}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg text-sm font-medium transition-all ${
+                  category === c.id 
+                    ? 'bg-white/10 text-white' 
+                    : 'text-white/40 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span className="text-xl opacity-80">{c.icon}</span>
+                <span className="truncate">{c.name}</span>
+              </button>
+            ))}
+          </div>
 
-            <div className="relative mb-6">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search encrypted streams..." 
-                className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold text-white outline-none focus:border-primary/40 transition-all placeholder:text-white/10"
-              />
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-2 pr-2 scrollbar-hide">
-              {channels.map(c => (
-                <button 
-                  key={c.id} 
-                  onClick={() => setCategory(c.id)}
-                  className={`w-full group flex items-center gap-4 p-4 rounded-2xl transition-all ${
-                    category === c.id 
-                      ? 'bg-primary text-white shadow-lg' 
-                      : 'text-white/40 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <div className={`text-2xl transition-transform group-hover:scale-110 ${category === c.id ? 'opacity-100' : 'opacity-50'}`}>
-                    {c.icon}
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className={`text-xs font-black uppercase tracking-widest truncate ${category === c.id ? 'text-white' : 'text-white/80'}`}>{c.name}</div>
-                    <div className={`text-[9px] font-bold truncate mt-0.5 ${category === c.id ? 'text-white/60' : 'text-white/20'}`}>{c.desc}</div>
-                  </div>
-                  {category === c.id && <Zap size={12} className="text-white/40 animate-pulse" />}
-                </button>
-              ))}
+          <div className="mt-auto pt-4 border-t border-white/5 px-2">
+            <div className="flex items-center gap-3 text-white/40 text-xs font-bold uppercase tracking-widest">
+              <Shield size={14} />
+              <span>Encrypted</span>
             </div>
           </div>
         </div>
 
-        {/* Messaging Terminal */}
-        <div className="flex-1 flex flex-col bg-[#0d0d10]/80 backdrop-blur-2xl rounded-[40px] border border-white/10 overflow-hidden shadow-2xl">
+        {/* Chat Interface */}
+        <div className="flex-1 flex flex-col relative">
           
           {/* Header */}
-          <div className="p-6 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-2xl shadow-inner">
-                {activeChannel.icon}
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest">{activeChannel.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-                   <span className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">Active Synchronisation</span>
+          <div className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl sticky top-0 z-20">
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-1">{activeChannel.name}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest">System Synchronized</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="p-3 rounded-xl hover:bg-white/5 text-white/40 transition-all"><Search size={18} /></button>
-              <button className="p-3 rounded-xl hover:bg-white/5 text-white/40 transition-all"><MoreVertical size={18} /></button>
+            
+            <div className="flex items-center gap-6 relative">
+              <Search size={20} className="text-white/20 cursor-pointer hover:text-white transition-all" />
+              <div className="relative">
+                <MoreVertical 
+                  size={20} 
+                  className={`cursor-pointer transition-all ${showMenu ? 'text-white' : 'text-white/20 hover:text-white'}`}
+                  onClick={() => setShowMenu(!showMenu)}
+                />
+                
+                {showMenu && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                    <div className="absolute right-0 mt-4 w-64 bg-[#161618] border border-white/5 rounded-2xl shadow-2xl p-2 z-40 backdrop-blur-2xl">
+                      <div className="px-4 py-3 mb-2 border-b border-white/5">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Protocol Actions</p>
+                      </div>
+                      
+                      <button 
+                        onClick={handleClearChat}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                      >
+                        <Trash2 size={16} /> Clear History
+                      </button>
+                      
+                      <button 
+                        onClick={handleExport}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                      >
+                        <Download size={16} /> Export Academic Report
+                      </button>
+
+                      <button 
+                        onClick={() => { setPrivacyMode(!privacyMode); setShowMenu(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                      >
+                        <EyeOff size={16} /> {privacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
+                      </button>
+
+                      <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                        <Settings2 size={16} /> Ensemble Config
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
+          {/* Messages Feed */}
+          <div 
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto px-8 md:px-24 py-12 space-y-12 scrollbar-hide"
+          >
             {loading ? (
               <div className="flex flex-col items-center justify-center h-full gap-4">
                 <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
@@ -176,9 +267,10 @@ export default function AnonChatPage() {
               </div>
             ) : (
               posts.map((post, idx) => {
-                const isOutgoing = post.is_mine
-                const reacts = post.reactions || {}
-                
+                const isOutgoing = post.is_mine;
+                const reacts = post.reactions || {};
+                // Enhanced detection: check hash OR if it looks like an AI report
+                const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### 🟢");
                 return (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -186,63 +278,76 @@ export default function AnonChatPage() {
                     key={post.id} 
                     className={`flex flex-col ${isOutgoing ? 'items-end' : 'items-start'}`}
                   >
-                    {post.censored_content && post.censored_content !== post.content && (
-                      <div className="flex items-center gap-1.5 mb-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20">
-                        <Shield size={10} className="text-red-400" />
-                        <span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Protocol Intervention</span>
-                      </div>
-                    )}
-                    
-                    <div className={`max-w-[70%] group relative`}>
-                      <div className={`p-5 rounded-3xl text-sm leading-relaxed border transition-all ${
-                        isOutgoing 
-                          ? 'bg-primary text-white border-primary/20 rounded-tr-none shadow-lg' 
-                          : 'bg-white/5 text-white/90 border-white/5 rounded-tl-none hover:border-white/10'
-                      }`}>
-                        {post.censored_content || post.content}
-                        
-                        <div className={`flex items-center gap-4 mt-3 text-[9px] font-bold uppercase tracking-tighter ${
-                          isOutgoing ? 'text-white/40' : 'text-white/20'
-                        }`}>
-                          <span>ID-{post.id.toString().padStart(4, '0')}</span>
-                          <span>{new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <div className={`max-w-[85%] w-full ${isOutgoing ? 'flex flex-col items-end' : 'flex flex-col items-start'}`}>
+                      
+                      {/* User Message (Grok Style) */}
+                      {isOutgoing && (
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="bg-[#1d1d1f] text-white/90 px-5 py-3 rounded-2xl text-base md:text-lg font-medium shadow-sm">
+                            {(post.content || "").replace(/\\n/g, '\n')}
+                          </div>
+                          <div className="flex items-center gap-3 opacity-20 hover:opacity-100 transition-all mr-1">
+                             <div className="cursor-pointer hover:text-white"><Send size={12} className="rotate-[-45deg] opacity-50" /></div>
+                             <div className="cursor-pointer hover:text-white"><Plus size={12} className="opacity-50" /></div>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Reactions & Actions */}
-                      <div className={`flex flex-wrap gap-2 mt-3 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
-                        {['thumbs_up', 'heart', 'laugh'].map(rt => {
-                          const count = reacts[rt] || 0
-                          if (count === 0) return null
-                          return (
-                            <button 
-                              key={rt} 
-                              onClick={() => handleReact(post.id, rt)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/5 rounded-full hover:bg-white/10 transition-all group/react"
-                            >
-                              <span className="group-hover/react:scale-125 transition-transform">{reactionIcons[rt]}</span>
-                              <span className="text-[10px] font-black text-white/60">{count}</span>
-                            </button>
-                          )
-                        })}
-                        <button 
-                          onClick={() => handleReact(post.id, 'thumbs_up')}
-                          className="w-8 h-8 flex items-center justify-center bg-white/5 border border-white/5 rounded-full text-white/20 hover:text-white/60 hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Plus size={12} />
-                        </button>
+                      {/* AI Content (Academic Report Style) */}
+                      {isAI && (
+                        <div className="w-full bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-2xl">
+                          <div className="flex items-center gap-3 mb-8 opacity-60">
+                             <div className="p-2 bg-white/10 rounded-lg">
+                               <Zap size={16} className="text-white fill-white" />
+                             </div>
+                             <div className="flex flex-col">
+                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Nexus Intelligence</span>
+                               <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Protocol v4.1 Active</span>
+                             </div>
+                          </div>
 
-                        {!isOutgoing && (
-                          <button 
-                            onClick={() => handleFlag(post.id)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-red-500/5 border border-red-500/10 rounded-full hover:bg-red-500/20 text-red-400/40 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
-                            title="Report Intelligence Violation"
-                          >
-                            <ShieldAlert size={12} />
-                            <span className="text-[8px] font-black uppercase tracking-widest">Flag</span>
-                          </button>
-                        )}
-                      </div>
+                          <div className="text-white">
+                            <div className="prose prose-invert prose-p:leading-8 prose-p:mb-8 max-w-none 
+                                prose-headings:text-white/40 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-[0.3em] prose-headings:text-[10px] prose-headings:mb-6
+                                prose-strong:text-white prose-strong:font-bold
+                                prose-ul:list-disc prose-ul:pl-4 prose-li:mb-2">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+
+                          {/* Grok Action Row for AI */}
+                          <div className="flex items-center gap-6 mt-10 text-white/20 border-t border-white/5 pt-6">
+                            <div className="flex items-center gap-5">
+                               <div className="cursor-pointer hover:text-white transition-colors p-1"><Search size={18} /></div>
+                               <div className="cursor-pointer hover:text-white transition-colors p-1"><Send size={18} /></div>
+                               <div className="cursor-pointer hover:text-white transition-colors p-1"><ThumbsUp size={18} /></div>
+                               <div className="cursor-pointer hover:text-white transition-colors p-1"><ThumbsDown size={18} /></div>
+                               <div className="cursor-pointer hover:text-white transition-colors p-1"><RotateCcw size={18} /></div>
+                               <div className="cursor-pointer hover:text-white transition-colors p-1"><MoreHorizontal size={18} /></div>
+                            </div>
+                            <span className="text-[9px] font-black tracking-[0.2em] uppercase ml-auto opacity-30">
+                              Secure Node Verification · {new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Other User Nodes */}
+                      {!isOutgoing && !isAI && (
+                        <div className="flex flex-col items-start gap-3">
+                          <div className="bg-[#161618]/50 text-white/60 px-5 py-3 rounded-2xl text-base font-medium italic border border-white/5">
+                            {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
+                          </div>
+                          <div className="flex items-center gap-3 text-[9px] font-black text-white/10 uppercase tracking-[0.2em] ml-2">
+                            <span>{`NODE-${post.id.toString().padStart(4, '0')}`}</span>
+                            <span className="w-1 h-1 rounded-full bg-white/10" />
+                            <span>{new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </motion.div>
                 )
@@ -257,7 +362,7 @@ export default function AnonChatPage() {
               <div className="flex-1 relative">
                 <input 
                   type="text" 
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-6 pr-14 text-sm text-white font-medium outline-none focus:border-primary/40 focus:bg-white/[0.08] transition-all placeholder:text-white/10"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg py-4 pl-6 pr-14 text-sm text-white font-medium outline-none focus:border-primary/40 focus:bg-white/[0.08] transition-all placeholder:text-white/10"
                   placeholder="Initiate anonymous broadcast..." 
                   value={newContent}
                   onChange={e => setNewContent(e.target.value)}
@@ -271,7 +376,7 @@ export default function AnonChatPage() {
               <button 
                 type="submit" 
                 disabled={!newContent.trim() || loading}
-                className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all"
+                className="w-14 h-14 rounded-lg bg-primary text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all"
               >
                 <Send size={20} />
               </button>

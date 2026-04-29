@@ -1,42 +1,43 @@
-import { useState } from 'react'
-import { Bot, MessageCircle, X } from 'lucide-react'
+import { Bot, X, Maximize2, Minimize2 } from 'lucide-react'
+import useChatStore from '../stores/chatStore'
 import ChatBox from './ChatBox'
 
 export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
-  const [open, setOpen] = useState(false)
+  const { isOpen, isFullScreen, setChatOpen, toggleFullScreen } = useChatStore()
 
   return (
     <div className="floating-chat-shell">
-      {open ? (
-        <div className="floating-chat-panel">
+      {isOpen ? (
+        <div className={`floating-chat-panel sidebar-chat-panel ${isFullScreen ? 'full-screen' : ''}`}>
           <div className="floating-chat-titlebar">
             <div className="floating-chat-title">
               <Bot size={18} />
               <span>ERP Assistant</span>
             </div>
-            <button
-              type="button"
-              className="floating-chat-icon-btn"
-              onClick={() => setOpen(false)}
-              aria-label="Close ERP assistant"
-              title="Close"
-            >
-              <X size={18} />
-            </button>
+            <div className="floating-chat-actions">
+              <button
+                type="button"
+                className="floating-chat-icon-btn"
+                onClick={toggleFullScreen}
+                aria-label={isFullScreen ? "Exit full screen" : "Enter full screen"}
+                title={isFullScreen ? "Minimize" : "Maximize"}
+              >
+                {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              </button>
+              <button
+                type="button"
+                className="floating-chat-icon-btn"
+                onClick={() => setChatOpen(false)}
+                aria-label="Close ERP assistant"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
-          <ChatBox compact contextPage={contextPage} className="floating-chatbox" />
+          <ChatBox compact={!isFullScreen} contextPage={contextPage} className="floating-chatbox" />
         </div>
       ) : null}
-
-      <button
-        type="button"
-        className="floating-chat-trigger"
-        onClick={() => setOpen((current) => !current)}
-        aria-label="Open ERP assistant"
-        title="ERP assistant"
-      >
-        <MessageCircle size={24} />
-      </button>
     </div>
   )
 }
