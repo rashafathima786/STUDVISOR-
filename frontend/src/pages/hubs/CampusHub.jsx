@@ -22,11 +22,11 @@ export default function CampusHub() {
           fetchAnnouncements(),
           fetchLostFound()
         ])
-        setPosts(postsData.slice(0, 3))
-        setEvents(eventsData.slice(0, 1))
-        setPolls(pollsData.slice(0, 1))
-        setAnnouncements(announcementsData.slice(0, 1))
-        setLostFound(lostFoundData.slice(0, 3))
+        setPosts(Array.isArray(postsData?.posts) ? postsData.posts.slice(0, 3) : [])
+        setEvents(Array.isArray(eventsData?.events) ? eventsData.events.slice(0, 1) : [])
+        setPolls(Array.isArray(pollsData?.polls) ? pollsData.polls.slice(0, 1) : [])
+        setAnnouncements(Array.isArray(announcementsData?.announcements) ? announcementsData.announcements.slice(0, 1) : [])
+        setLostFound(Array.isArray(lostFoundData?.items) ? lostFoundData.items.slice(0, 3) : [])
       } catch (err) {
         console.error('Error fetching campus data:', err)
       } finally {

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Bot, SendHorizonal, User, ArrowRight, ExternalLink } from 'lucide-react'
+import { SendHorizonal, User, ArrowRight, ExternalLink } from 'lucide-react'
+import ChatbotLogo from './ui/ChatbotLogo'
 import { fetchChatHistory, sendChatMessage, streamChatMessage, fetchChatWelcome } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 
@@ -68,7 +69,7 @@ function TypingIndicator() {
       transition={{ duration: 0.22, ease: 'easeOut' }}
     >
       <div className="chat-avatar bot-avatar-premium">
-        <Bot size={16} strokeWidth={2.5} />
+        <ChatbotLogo size={20} />
       </div>
       <div className="chat-bubble bot bot-bubble-premium typing-bubble" aria-live="polite">
         <span className="typing-copy typing-shimmer">Analyzing your academic profile...</span>
@@ -353,7 +354,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
               layout
             >
               <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar-premium' : 'bot-avatar-premium'}`}>
-                {msg.sender === 'user' ? <User size={16} /> : <Bot size={16} />}
+                {msg.sender === 'user' ? <User size={16} /> : <ChatbotLogo size={20} />}
               </div>
               <div
                 className={`chat-bubble ${msg.sender} ${msg.sender === 'bot' ? 'markdown-body bot-bubble-premium' : 'user-bubble-premium'} ${

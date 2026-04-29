@@ -406,6 +406,18 @@ export async function votePoll(pollId, optionId) {
   return response.data;
 }
 
+// ── HELPDESK ───────────────────────────────────────────────────────────────
+
+export async function fetchFaqs() {
+  const response = await api.get("/campus/helpdesk/faqs");
+  return response.data;
+}
+
+export async function fetchHelpdeskStats() {
+  const response = await api.get("/campus/helpdesk/stats");
+  return response.data;
+}
+
 // ── EVENTS ──────────────────────────────────────────────────────────────────
 
 export async function fetchEvents() {
@@ -526,12 +538,12 @@ export async function fetchPlacementDrives() {
 }
 
 export async function applyToDrive(driveId) {
-  const response = await api.post(`/placement/drives/${driveId}/apply`);
+  const response = await api.post(`/campus/placement/apply/${driveId}`);
   return response.data;
 }
 
 export async function fetchMyApplications() {
-  const response = await api.get("/placement/my-applications");
+  const response = await api.get("/campus/placement/my-applications");
   return response.data;
 }
 

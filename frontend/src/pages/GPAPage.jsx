@@ -38,7 +38,7 @@ export default function GPAPage() {
       <div className="flex flex-col gap-6">
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
           <div className="glass-panel rounded-2xl p-6 flex flex-col gap-2">
             <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Cumulative GPA</p>
             <p className="text-5xl font-bold text-primary" style={{ fontFamily: 'var(--font-space-grotesk)' }}>

@@ -3,7 +3,7 @@ from backend.api.routes.features import (
     poll_router, event_router, announcement_router, lost_found_router, 
     complaint_router, peer_matching_router, faculty_router,
     placement_student_router, fees_student_router,
-    library_student_router, leave_student_router
+    library_student_router, leave_student_router, helpdesk_router
 )
 from backend.api.routes.chat import router as chat_router
 from backend.api.routes.misc_routes import anon_chat_router, calendar_router
@@ -28,3 +28,4 @@ router.include_router(placement_student_router, tags=["Placement"])
 router.include_router(fees_student_router, tags=["Fees"])
 router.include_router(library_student_router, tags=["Library"])
 router.include_router(leave_student_router, tags=["Leave"])
+router.include_router(helpdesk_router, tags=["Helpdesk"])

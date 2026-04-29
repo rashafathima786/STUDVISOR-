@@ -78,7 +78,7 @@ export default function AnnouncementsPage() {
       <div className="space-y-8 max-w-5xl mx-auto">
         {/* Filters & Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex gap-2 p-1 glass-panel rounded-2xl">
+          <div className="flex gap-2 p-1 glass-panel rounded-2xl overflow-x-auto scrollbar-hide max-w-full">
             {filters.map((filter) => (
               <button
                 key={filter.id}

@@ -27,6 +27,24 @@ lost_found_router = APIRouter(prefix="/lost-found", tags=["Lost & Found"])
 achievement_router = APIRouter(prefix="/achievements", tags=["Achievements"])
 leaderboard_router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 peer_matching_router = APIRouter(prefix="/peer-matching", tags=["AI Peer Matching"])
+helpdesk_router = APIRouter(prefix="/helpdesk", tags=["Helpdesk"])
+
+# ─── HELPDESK ───────────────────────────────────────────────────────────────
+@helpdesk_router.get("/faqs")
+def get_faqs():
+    return {"faqs": [
+        {"id": 1, "question": "How do I apply for OD?", "answer": "Navigate to the Services Hub, select Leave & OD Portal, and fill out the request form with necessary documents."},
+        {"id": 2, "question": "Where can I find my semester results?", "answer": "Results are available in the Academics Hub under the 'Results' section once published by the HOD."},
+        {"id": 3, "question": "How to pay tuition fees online?", "answer": "Go to the Financial Terminal (Fees) and use the secure payment gateway to pay your pending dues."},
+        {"id": 4, "question": "Whom should I contact for library issues?", "answer": "You can contact the Librarian at cabin L-102 or use the ticket system in the Helpdesk."},
+        {"id": 5, "question": "Can I update my profile details?", "answer": "Basic profile details can be updated in Settings. For critical changes, contact the Registrar office."}
+    ]}
+
+@helpdesk_router.get("/stats")
+def get_helpdesk_stats(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    active_tickets = db.query(Complaint).filter(Complaint.student_id == student.id, Complaint.status != "Resolved").count()
+    resolved_tickets = db.query(Complaint).filter(Complaint.student_id == student.id, Complaint.status == "Resolved").count()
+    return {"active_tickets": active_tickets, "resolved_tickets": resolved_tickets}
 
 # ─── PEER MATCHING ──────────────────────────────────────────────────────────
 @peer_matching_router.get("/matches")
@@ -310,10 +328,17 @@ def vote(pid: int, option_id: int, student=Depends(get_current_student), db: Ses
     db.commit()
     return {"message": "Vote recorded"}
 
-# ─── EVENTS ──────────────────────────────────────────────────────────────────
 @event_router.get("/")
 def list_events(db: Session = Depends(get_db)):
-    return {"events": [{"id": e.id, "title": e.title, "description": e.description, "date": e.event_date, "venue": e.venue} for e in db.query(Event).order_by(Event.event_date.desc()).all()]}
+    return {"events": [{
+        "id": e.id, 
+        "title": e.title, 
+        "description": e.description, 
+        "date": e.event_date,
+        "event_date": e.event_date,
+        "venue": e.venue,
+        "location": e.venue
+    } for e in db.query(Event).order_by(Event.event_date.desc()).all()]}
 
 @event_router.post("/{eid}/rsvp")
 def rsvp(eid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
@@ -336,7 +361,16 @@ def faculty_directory(db: Session = Depends(get_db)):
 # ─── LOST & FOUND ────────────────────────────────────────────────────────────
 @lost_found_router.get("/")
 def list_lost_found(db: Session = Depends(get_db)):
-    return {"items": [{"id": i.id, "item": i.item_name, "description": i.description, "type": i.type, "location": i.location, "status": i.status, "date": str(i.created_at)} for i in db.query(LostFound).order_by(LostFound.created_at.desc()).limit(30).all()]}
+    return {"items": [{
+        "id": i.id, 
+        "item": i.item_name, 
+        "item_name": i.item_name, 
+        "description": i.description, 
+        "type": i.type, 
+        "location": i.location, 
+        "status": i.status, 
+        "date": str(i.created_at)
+    } for i in db.query(LostFound).order_by(LostFound.created_at.desc()).limit(30).all()]}
 
 class LostFoundCreate(BaseModel):
     item_name: str
@@ -377,8 +411,11 @@ def list_placement_drives(db: Session = Depends(get_db)):
     return {"drives": [{
         "id": d.id, "company": d.company_name, "role": d.role_title,
         "package_lpa": d.package_lpa, "description": d.description,
+        "requirements": d.job_requirements,
         "min_cgpa": d.eligibility_cgpa, "departments": d.eligible_departments,
-        "drive_date": d.drive_date, "last_date": d.last_date_apply, "status": d.status
+        "backlogs": d.eligibility_backlog,
+        "drive_date": d.drive_date, "last_date": d.last_date_apply, "status": d.status,
+        "location": d.location, "company_rating": d.company_rating, "company_logo_url": d.company_logo_url
     } for d in drives]}
 
 @placement_student_router.post("/apply/{drive_id}")
@@ -394,23 +431,69 @@ def apply_to_drive(drive_id: int, student=Depends(get_current_student), db: Sess
     db.commit()
     return {"message": "Application submitted", "id": app.id}
 
+@placement_student_router.get("/my-applications")
+def my_placement_applications(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    apps = db.query(PlacementApplication).filter(PlacementApplication.student_id == student.id).all()
+    drives = {d.id: d for d in db.query(PlacementDrive).all()}
+    return {"applications": [{
+        "id": a.id, "drive_id": a.drive_id,
+        "company_name": drives[a.drive_id].company_name if a.drive_id in drives else "Unknown",
+        "role_title": drives[a.drive_id].role_title if a.drive_id in drives else "Role",
+        "package_lpa": drives[a.drive_id].package_lpa if a.drive_id in drives else None,
+        "location": drives[a.drive_id].location if a.drive_id in drives else "Unknown",
+        "company_logo_url": drives[a.drive_id].company_logo_url if a.drive_id in drives else None,
+        "status": a.status, "applied_at": str(a.applied_at)
+    } for a in apps]}
+
 # ─── FEES (student view) ──────────────────────────────────────────────────────
 fees_student_router = APIRouter(prefix="/fees", tags=["Fees Student"])
 
-@fees_student_router.get("/my")
-def my_fees(student=Depends(get_current_student), db: Session = Depends(get_db)):
+@fees_student_router.get("/my-fees")
+def my_fees_legacy(student=Depends(get_current_student), db: Session = Depends(get_db)):
     fees = db.query(StudentFee).filter(StudentFee.student_id == student.id).all()
     structures = {fs.id: fs for fs in db.query(FeeStructure).all()}
-    total_due = sum(f.amount_due for f in fees)
-    total_paid = sum(f.amount_paid for f in fees)
     return {
-        "summary": {"total_due": total_due, "total_paid": total_paid, "balance": total_due - total_paid},
         "fees": [{
-            "id": f.id, "name": structures.get(f.fee_structure_id, {}).name if f.fee_structure_id and f.fee_structure_id in structures else "Fee",
+            "id": f.id, "fee_name": structures.get(f.fee_structure_id, {}).name if f.fee_structure_id and f.fee_structure_id in structures else "Fee",
+            "category": structures.get(f.fee_structure_id, {}).category if f.fee_structure_id and f.fee_structure_id in structures else "General",
             "amount_due": f.amount_due, "amount_paid": f.amount_paid,
-            "due_date": f.due_date, "status": f.status
+            "due_date": str(f.due_date), "status": f.status
         } for f in fees]
     }
+
+@fees_student_router.get("/summary")
+def fee_summary_v2(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    fees = db.query(StudentFee).filter(StudentFee.student_id == student.id).all()
+    total_due = sum(f.amount_due for f in fees)
+    total_paid = sum(f.amount_paid for f in fees)
+    overdue_count = sum(1 for f in fees if f.status == "Overdue")
+    return {
+        "total_due": total_due,
+        "total_paid": total_paid,
+        "total_balance": total_due - total_paid,
+        "overdue_count": overdue_count
+    }
+
+@fees_student_router.post("/pay")
+def pay_fee_v2(fee_id: int, amount: float, student=Depends(get_current_student), db: Session = Depends(get_db)):
+    fee = db.query(StudentFee).filter(StudentFee.id == fee_id, StudentFee.student_id == student.id).first()
+    if not fee: raise HTTPException(404, "Fee record not found")
+    fee.amount_paid += amount
+    if fee.amount_paid >= fee.amount_due: fee.status = "Paid"
+    
+    payment = Payment(student_id=student.id, student_fee_id=fee_id, amount=amount, payment_method="Gateway")
+    db.add(payment)
+    db.commit()
+    return {"message": "Payment successful", "balance": fee.amount_due - fee.amount_paid}
+
+@fees_student_router.get("/payments")
+def payment_history_v2(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    history = db.query(Payment).filter(Payment.student_id == student.id).order_by(Payment.paid_at.desc()).all()
+    return {"payments": [{
+        "id": p.id, "amount": p.amount, "payment_method": p.payment_method,
+        "transaction_id": p.transaction_id, "paid_at": str(p.paid_at),
+        "receipt_number": f"REC-{p.id:05d}"
+    } for p in history]}
 
 # ─── LIBRARY (student view) ───────────────────────────────────────────────────
 library_student_router = APIRouter(prefix="/library", tags=["Library Student"])

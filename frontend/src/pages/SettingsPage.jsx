@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ErpLayout from '../components/ErpLayout';
 import useAuthStore from '../stores/authStore';
+import useUIStore from '../stores/uiStore';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Shield, Palette, Globe, Moon, Sun, Monitor,
@@ -101,15 +102,18 @@ export default function SettingsPage() {
   };
   const save = (key, val) => localStorage.setItem(`setting_${key}`, JSON.stringify(val));
 
-  const [theme, setTheme] = useState(() => load('theme', 'dark'));
-  const [accentColor, setAccentColor] = useState(() => load('accent', 'violet'));
+  const {
+    theme, setTheme,
+    accentColor, setAccentColor,
+    compactMode, setCompactMode,
+    animationsOn, setAnimationsOn
+  } = useUIStore();
+
   const [notifAnnounce, setNotifAnnounce] = useState(() => load('notif_announce', true));
   const [notifAssign, setNotifAssign] = useState(() => load('notif_assign', true));
   const [notifAttend, setNotifAttend] = useState(() => load('notif_attend', true));
   const [notifExam, setNotifExam] = useState(() => load('notif_exam', true));
   const [notifLeave, setNotifLeave] = useState(() => load('notif_leave', false));
-  const [compactMode, setCompactMode] = useState(() => load('compact', false));
-  const [animationsOn, setAnimationsOn] = useState(() => load('animations', true));
   const [language, setLanguage] = useState(() => load('language', 'en'));
   const [showRollNo, setShowRollNo] = useState(() => load('show_roll', true));
   const [saved, setSaved] = useState(false);
@@ -197,9 +201,10 @@ export default function SettingsPage() {
               <SettingsRow label="Theme" description="Interface colour mode">
                 <SelectChip
                   value={theme}
-                  onChange={persist(setTheme, 'theme')}
+                  onChange={(val) => { setTheme(val); triggerSaved(); }}
                   options={[
                     { value: 'dark', label: '🌑 Dark' },
+                    { value: 'light', label: '☀️ Light' },
                     { value: 'system', label: '💻 System' },
                   ]}
                 />
@@ -209,7 +214,7 @@ export default function SettingsPage() {
                   {accentOptions.map(a => (
                     <button
                       key={a.value}
-                      onClick={() => persist(setAccentColor, 'accent')(a.value)}
+                      onClick={() => { setAccentColor(a.value); triggerSaved(); }}
                       title={a.label}
                       style={{ background: a.color }}
                       className={`w-7 h-7 rounded-full transition-all border-2 ${accentColor === a.value ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
@@ -218,10 +223,10 @@ export default function SettingsPage() {
                 </div>
               </SettingsRow>
               <SettingsRow label="Compact Mode" description="Reduce padding and card spacing">
-                <Toggle checked={compactMode} onChange={persist(setCompactMode, 'compact')} />
+                <Toggle checked={compactMode} onChange={(val) => { setCompactMode(val); triggerSaved(); }} />
               </SettingsRow>
               <SettingsRow label="Animations" description="Entrance animations and micro-interactions">
-                <Toggle checked={animationsOn} onChange={persist(setAnimationsOn, 'animations')} />
+                <Toggle checked={animationsOn} onChange={(val) => { setAnimationsOn(val); triggerSaved(); }} />
               </SettingsRow>
             </SettingsSection>
 
@@ -319,6 +324,22 @@ export default function SettingsPage() {
           Studvisor Elite v4.1.0 · Academic Session 2025–26
         </p>
 
+        {/* Advanced: System Sync */}
+        <div className="glass-panel p-8 rounded-2xl border-panel-border mt-8 flex justify-between items-center bg-error-container/5">
+          <div>
+            <h3 className="text-xl font-bold text-on-surface mb-1">System Integrity</h3>
+            <p className="text-on-surface-variant/60 text-xs">If interface changes are not reflecting, perform a force sync.</p>
+          </div>
+          <button 
+            onClick={() => {
+              localStorage.clear();
+              window.location.reload();
+            }}
+            className="px-6 py-2 bg-error text-white font-bold rounded-xl hover:bg-error-container transition-all active:scale-95"
+          >
+            FORCE SYNC
+          </button>
+        </div>
       </div>
     </ErpLayout>
   );

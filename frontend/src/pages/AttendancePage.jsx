@@ -77,7 +77,7 @@ const AttendancePage = () => {
 
     return (
         <ErpLayout title="Attendance Matrix" subtitle="Real-time engagement tracking and strategic absence analytics">
-            <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
                 
                 {/* Header Controls */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
@@ -109,7 +109,7 @@ const AttendancePage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 mb-12">
                     {/* Aggregate Score Card */}
                     <motion.div 
                         initial={{ opacity: 0, x: -20 }}
@@ -167,7 +167,7 @@ const AttendancePage = () => {
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="flex flex-col md:grid md:grid-cols-4 gap-6">
                             {bunkAlerts.length > 0 ? bunkAlerts.slice(0, 4).map((alert, idx) => (
                                 <motion.div 
                                   key={idx} 

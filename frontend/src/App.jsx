@@ -31,6 +31,7 @@ const GPAPage = lazy(() => import("./pages/GPAPage"));
 const FeesPage = lazy(() => import("./pages/FeesPage"));
 const LibraryPage = lazy(() => import("./pages/LibraryPage"));
 const PlacementPage = lazy(() => import('./pages/PlacementPage'));
+const HelpdeskPage = lazy(() => import('./pages/HelpdeskPage'));
 const SettingsPage  = lazy(() => import('./pages/SettingsPage'));
 const LectureLogPage = lazy(() => import("./pages/LectureLogPage"));
 
@@ -112,6 +113,7 @@ function getContextPage(pathname) {
   if (pathname.startsWith("/fees")) return "fees";
   if (pathname.startsWith("/library")) return "library";
   if (pathname.startsWith("/placement")) return "placement";
+  if (pathname.startsWith("/helpdesk")) return "helpdesk";
   if (pathname.startsWith("/admin/dashboard")) return "admin_dashboard";
   if (pathname.startsWith("/admin/students")) return "admin_students";
   if (pathname.startsWith("/admin/analytics")) return "admin_analytics";
@@ -162,6 +164,7 @@ export default function App() {
           <Route path="/fees" element={<ProtectedRoute allowedRoles={["student"]}><FeesPage /></ProtectedRoute>} />
           <Route path="/library" element={<ProtectedRoute allowedRoles={["student"]}><LibraryPage /></ProtectedRoute>} />
           <Route path="/placement" element={<ProtectedRoute allowedRoles={["student"]}><PlacementPage /></ProtectedRoute>} />
+          <Route path="/helpdesk" element={<ProtectedRoute allowedRoles={["student"]}><HelpdeskPage /></ProtectedRoute>} />
           <Route path="/settings"  element={<ProtectedRoute allowedRoles={["student","faculty","hod","admin"]}><SettingsPage /></ProtectedRoute>} />
 
 

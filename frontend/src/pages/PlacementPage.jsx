@@ -14,10 +14,13 @@ import {
   GraduationCap,
   CalendarDays,
   IndianRupee,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  Star,
+  MapPin
 } from 'lucide-react'
+import { fetchPlacementDrives, fetchMyApplications, applyToDrive as transmitApplication } from '../services/api'
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 export default function PlacementPage() {
   const [drives, setDrives] = useState([])
@@ -25,27 +28,34 @@ export default function PlacementPage() {
   const [tab, setTab] = useState('drives')
   const [loading, setLoading] = useState(true)
 
-  const token = localStorage.getItem('erp_token')
-  const headers = { Authorization: `Bearer ${token}` }
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API}/placement/drives`, { headers }).then(r => r.json()).catch(() => ({ drives: [] })),
-      fetch(`${API}/placement/my-applications`, { headers }).then(r => r.json()).catch(() => ({ applications: [] })),
-    ]).then(([drivesRes, appsRes]) => {
-      setDrives(drivesRes.drives || [])
-      setApplications(appsRes.applications || [])
-      setLoading(false)
-    })
+    loadPlacementData();
   }, [])
 
-  const applyToDrive = async (driveId) => {
+  async function loadPlacementData() {
+    setLoading(true);
     try {
-      const res = await fetch(`${API}/placement/apply/${driveId}`, { method: 'POST', headers })
-      const data = await res.json()
-      alert(data.message || data.detail)
+      const [drivesRes, appsRes] = await Promise.all([
+        fetchPlacementDrives(),
+        fetchMyApplications()
+      ]);
+      setDrives(drivesRes.drives || []);
+      setApplications(appsRes.applications || []);
     } catch (err) {
-      alert("System Error: Application transmission failed.")
+      console.error("Placement data load error", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleApply = async (driveId) => {
+    try {
+      const data = await transmitApplication(driveId);
+      alert(data.message || "Application transmitted successfully.");
+      loadPlacementData();
+    } catch (err) {
+      alert("System Error: Application transmission failed.");
     }
   }
 
@@ -107,7 +117,7 @@ export default function PlacementPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
               {drives.map((d, idx) => (
                 <motion.div 
@@ -122,28 +132,68 @@ export default function PlacementPage() {
                   </div>
 
                   <div className="flex justify-between items-start mb-8 relative z-10">
-                    <div className="flex flex-col">
-                       <h3 className="text-2xl font-black text-white tracking-tighter uppercase group-hover:text-primary transition-colors">{d.company_name}</h3>
-                       <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mt-1">{d.role_title}</span>
-                    </div>
-                    {d.package_lpa && (
-                      <div className="flex flex-col items-end">
-                        <span className="text-xl font-black text-emerald-400 tracking-tighter">₹{d.package_lpa}L</span>
-                        <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Base CTC</span>
+                    <div className="flex items-start gap-4">
+                      {d.company_logo_url ? (
+                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center justify-center overflow-hidden">
+                          <img src={d.company_logo_url} alt={d.company} className="w-full h-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                          <Building2 className="text-primary" size={24} />
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                         <h3 className="text-xl font-black text-on-surface tracking-tighter uppercase group-hover:text-primary transition-colors">{d.company}</h3>
+                         {/* Removed role from here to place it prominently below */}
+                         <div className="flex items-center gap-1.5 mt-2 text-white/30">
+                           <MapPin size={10} className="text-primary/60" />
+                           <span className="text-[9px] font-bold uppercase tracking-wider">{d.location || 'Remote'}</span>
+                         </div>
                       </div>
-                    )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {d.package_lpa && (
+                        <div className="flex flex-col items-end">
+                          <span className="text-xl font-black text-emerald-400 tracking-tighter">₹{d.package_lpa}L</span>
+                          <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Base CTC</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                        <Star size={10} className="fill-amber-400 text-amber-400" />
+                        <span className="text-[9px] font-black text-amber-400">{d.company_rating || '4.0'}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <p className="text-white/40 text-sm leading-relaxed mb-10 line-clamp-3 font-medium relative z-10">
-                    {d.description || "Corporate engagement protocol for high-performing engineering students. Eligibility criteria applies."}
-                  </p>
+                  <div className="flex items-center gap-3 mb-6 relative z-10 bg-white/5 p-4 rounded-2xl border border-white/5 group/role transition-all hover:bg-white/[0.08]">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
+                      <Briefcase size={20} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Job Role</span>
+                      <span className="text-lg font-black text-on-surface tracking-tight leading-none mt-1 group-hover/role:text-primary transition-colors">{d.role}</span>
+                    </div>
+                  </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
+                  {d.requirements && (
+                    <div className="flex flex-wrap gap-2 mb-8 relative z-10">
+                      {d.requirements.split(',').map((skill, idx) => (
+                        <span key={idx} className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-white/50 uppercase tracking-wider">
+                          {skill.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col md:grid md:grid-cols-2 gap-4 mb-8 relative z-10">
                     <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col gap-1">
                        <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Eligibility</span>
                        <div className="flex items-center gap-2">
                          <Target size={12} className="text-primary/60" />
-                         <span className="text-xs font-bold text-white/80">{d.eligibility_cgpa} CGPA</span>
+                         <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white/80">{d.min_cgpa} CGPA</span>
+                            <span className="text-[9px] font-bold text-white/30 uppercase tracking-tighter">Max {d.backlogs || 0} Backlogs</span>
+                          </div>
                        </div>
                     </div>
                     <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col gap-1">
@@ -156,7 +206,7 @@ export default function PlacementPage() {
                   </div>
 
                   <button 
-                    onClick={() => applyToDrive(d.id)}
+                    onClick={() => handleApply(d.id)}
                     className="mt-auto w-full py-5 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-3 relative z-10"
                   >
                     Transmit Application
@@ -218,9 +268,20 @@ export default function PlacementPage() {
                               className="hover:bg-white/[0.03] transition-colors group"
                             >
                               <td className="px-10 py-8">
-                                 <div className="flex flex-col">
-                                   <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight text-lg">{a.company_name}</span>
-                                   <span className="text-[10px] text-white/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Drive</span>
+                                 <div className="flex items-center gap-4">
+                                   {a.company_logo_url ? (
+                                     <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 p-1.5 flex items-center justify-center overflow-hidden shrink-0">
+                                       <img src={a.company_logo_url} alt={a.company_name} className="w-full h-full object-contain" />
+                                     </div>
+                                   ) : (
+                                     <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                                       <Building2 className="text-primary" size={18} />
+                                     </div>
+                                   )}
+                                   <div className="flex flex-col">
+                                     <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight text-lg">{a.company_name}</span>
+                                     <span className="text-[11px] text-on-surface-variant/40 font-black uppercase tracking-widest">{a.role_title}</span>
+                                   </div>
                                  </div>
                               </td>
                               <td className="px-6 py-8">

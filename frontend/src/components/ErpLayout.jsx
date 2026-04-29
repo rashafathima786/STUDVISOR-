@@ -22,7 +22,7 @@ export default function ErpLayout({ title, subtitle, children }) {
   }
 
   return (
-    <div className={`bg-surface text-on-background min-h-screen flex font-sans antialiased overflow-hidden main-content-wrap ${isOpen ? 'chat-open' : ''}`}>
+    <div className="bg-surface text-on-surface min-h-screen flex font-sans antialiased overflow-hidden main-content-wrap">
       {/* Background Ambience (Global) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="bg-blob w-[800px] h-[800px] top-[-200px] left-[-200px] bg-primary opacity-[0.015]" />
@@ -38,7 +38,7 @@ export default function ErpLayout({ title, subtitle, children }) {
         <Header title={title} subtitle={subtitle} />
 
         {/* Dynamic Page Content with Entrance Animation */}
-        <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in-up">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in-up">
           {children}
         </div>
         

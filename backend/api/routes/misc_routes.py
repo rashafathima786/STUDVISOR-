@@ -77,10 +77,13 @@ def list_posts(
             "content": p.content, 
             "category": p.category, 
             "reactions": dict(reaction_counts), 
+            "reaction_count": len(reactions),
             "date": str(p.created_at),
+            "created_at": str(p.created_at),
             "is_mine": p.session_hash == current_hash,
             "censored_content": p.censored_content,
-            "session_hash": p.session_hash # Needed for frontend AI detection
+            "session_hash": p.session_hash,
+            "reply_count": db.query(AnonPost).filter(AnonPost.parent_id == p.id).count()
         })
     return {"posts": result}
 

@@ -51,11 +51,10 @@ export default function LostFoundPage() {
 
     try {
       await createLostFoundItem({
-        title,
+        item_name: title,
         description,
-        item_type: itemType,
+        type: itemType,
         location,
-        date: new Date().toISOString().split('T')[0]
       });
       setShowModal(false);
       setTitle('');
@@ -137,20 +136,20 @@ export default function LostFoundPage() {
                     className="group relative bg-surface-container/40 backdrop-blur-xl rounded-[32px] p-6 border border-white/5 hover:border-primary/30 transition-all flex flex-col"
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <div className={`p-3 rounded-2xl ${item.item_type === 'lost' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                      <div className={`p-3 rounded-2xl ${item.type === 'lost' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
                         <Package size={20} />
                       </div>
                       <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                        item.item_type === 'lost' 
+                        item.type === 'lost' 
                           ? 'border-red-500/20 text-red-400 bg-red-500/5' 
                           : 'border-emerald-500/20 text-emerald-400 bg-emerald-500/5'
                       }`}>
-                        {item.item_type}
+                        {item.type}
                       </span>
                     </div>
 
                     <h3 className="text-lg font-bold text-white mb-3 tracking-tight group-hover:text-primary transition-colors">
-                      {item.title}
+                      {item.item_name}
                     </h3>
                     
                     <p className="text-white/50 text-sm leading-relaxed mb-6 flex-grow line-clamp-3">

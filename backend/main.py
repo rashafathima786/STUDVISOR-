@@ -36,6 +36,7 @@ app.add_middleware(CORSMiddleware, allow_origins=cors_origins, allow_credentials
 
 # ── Database ─────────────────────────────────────────────────────────────────
 from backend.app.database import Base, engine
+from backend.app import models # Ensure models are registered with Base
 Base.metadata.create_all(bind=engine)
 
 # ── Domain-Driven Route Registration ────────────────────────────────────────

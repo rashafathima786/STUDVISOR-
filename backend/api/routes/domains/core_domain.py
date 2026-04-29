@@ -9,7 +9,7 @@ from backend.api.routes.misc_routes import bunk_alerts_router
 router = APIRouter(tags=["Core Domain"]) # No prefix for core auth usually, but can be /api/core
 
 router.include_router(auth_router, prefix="/auth", tags=["Auth"])
-router.include_router(ai_engine_router, prefix="/ai", tags=["AI Engine"])
+router.include_router(ai_engine_router, tags=["AI Engine"])
 router.include_router(search_router, prefix="/search", tags=["Search"])
 router.include_router(websocket_router, prefix="/ws", tags=["Websockets"])
 router.include_router(chat_stream_router, prefix="/stream", tags=["Streaming"])

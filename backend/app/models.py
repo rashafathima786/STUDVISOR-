@@ -605,11 +605,15 @@ class PlacementDrive(Base):
     role_title = Column(String, nullable=False)
     package_lpa = Column(Float, nullable=True)
     description = Column(Text, nullable=True)
+    job_requirements = Column(Text, nullable=True) # Comma-separated skills or requirements
     eligibility_cgpa = Column(Float, nullable=True, default=0)
     eligibility_backlog = Column(Integer, nullable=True, default=0)
     eligible_departments = Column(String, nullable=True)
     drive_date = Column(String, nullable=True)
     last_date_apply = Column(String, nullable=True)
+    location = Column(String, nullable=True, default="Remote")
+    company_rating = Column(Float, nullable=True, default=4.0)
+    company_logo_url = Column(String, nullable=True)
     status = Column(String, nullable=False, default="Open")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

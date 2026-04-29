@@ -105,7 +105,7 @@ export default function ResultsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="bg-surface-container/40 backdrop-blur-xl rounded-[40px] p-8 border border-white/5 flex items-center gap-6"
+              className="bg-surface-container/40 backdrop-blur-xl rounded-[40px] p-8 border border-white/5 flex flex-col md:flex-row items-center gap-6"
             >
               <div className="p-5 bg-white/5 rounded-3xl">
                 <stat.icon className={i === 0 ? 'text-primary' : i === 1 ? 'text-emerald-400' : 'text-red-400'} size={28} />

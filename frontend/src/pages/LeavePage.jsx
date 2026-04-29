@@ -98,7 +98,7 @@ export default function LeavePage() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-10">
           
           {/* Apply Form - Column 4 */}
           <div className="lg:col-span-4 space-y-6">
@@ -128,7 +128,7 @@ export default function LeavePage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Commencement</label>
                     <input 
@@ -253,7 +253,7 @@ export default function LeavePage() {
                   <h2 className="text-xl font-bold text-white tracking-tight">Anomalous Absences</h2>
                 </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
                 {missedClasses.length === 0 ? (
                    <div className="col-span-2 py-12 glass-panel rounded-3xl flex flex-col items-center justify-center border border-white/5 opacity-40">
                       <CheckCircle size={32} className="mb-4" />

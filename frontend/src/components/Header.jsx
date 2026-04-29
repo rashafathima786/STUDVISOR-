@@ -5,6 +5,7 @@ import { fetchNotifications } from '../services/api';
 import useAuthStore from '../stores/authStore';
 import useUIStore from '../stores/uiStore';
 import useChatStore from '../stores/chatStore';
+import ChatbotLogo from './ui/ChatbotLogo';
 
 
 /**
@@ -15,7 +16,7 @@ export default function Header({ title, subtitle }) {
   const [notifs, setNotifs] = useState([]);
   const [showPanel, setShowPanel] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const { theme, setTheme } = useUIStore();
   const userMenuRef = useRef(null);
   const notifRef = useRef(null);
   const navigate = useNavigate();
@@ -32,10 +33,7 @@ export default function Header({ title, subtitle }) {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+  // Global theme management is now handled by ThemeProvider
 
   useEffect(() => {
     const handler = (e) => {
@@ -58,7 +56,7 @@ export default function Header({ title, subtitle }) {
   const roleLabel = (role || 'student').charAt(0).toUpperCase() + (role || 'student').slice(1);
 
   return (
-    <header className="sticky top-0 z-[30] bg-surface/80 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-[30] bg-surface/80 backdrop-blur-md border-b border-panel-border px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
       
       {/* Left: Context & Navigation */}
       <div className="flex items-center gap-4">
@@ -70,11 +68,11 @@ export default function Header({ title, subtitle }) {
           <Menu size={20} />
         </button>
         <div className="animate-fade-in-up">
-          <h1 className="text-xl font-bold text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>
+          <h1 className="text-lg md:text-xl font-bold text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">
+            <p className="text-[9px] md:text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60 line-clamp-1 max-w-[150px] md:max-w-none">
               {subtitle}
             </p>
           )}
@@ -82,7 +80,7 @@ export default function Header({ title, subtitle }) {
       </div>
 
       {/* Right: Operational Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         
         {/* Global Search Core */}
         <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-surface-container-low rounded-xl border border-white/5 focus-within:border-primary/30 transition-all w-64">
@@ -150,21 +148,21 @@ export default function Header({ title, subtitle }) {
           onClick={toggleChat}
           title="AI Assistant"
         >
-          <Bot size={20} strokeWidth={isOpen ? 2.5 : 2} />
+          <ChatbotLogo size={20} />
         </button>
 
         {/* Identity & Session Control */}
         <div className="relative" ref={userMenuRef}>
           <button 
-            className="flex items-center gap-3 p-1.5 pl-3 rounded-2xl bg-surface-container-low hover:bg-surface-container-high transition-all border border-white/5"
+            className="flex items-center gap-3 p-1.5 pl-3 rounded-2xl bg-surface-container-low hover:bg-surface-container-high transition-all border border-panel-border"
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
             <div className="flex flex-col items-end hidden sm:flex">
               <span className="text-xs font-bold text-on-surface">{displayName}</span>
               <span className="text-[9px] font-bold text-primary uppercase tracking-widest">{roleLabel}</span>
             </div>
-            <div className="w-8 h-8 rounded-xl bg-primary-soft flex items-center justify-center text-primary border border-primary/20">
-              <User size={16} />
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary-soft flex items-center justify-center text-primary border border-primary/20">
+              <User size={14} />
             </div>
           </button>
 

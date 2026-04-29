@@ -60,8 +60,8 @@ export default function Sidebar({ onLogout }) {
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[50] w-64 bg-[#111114]
-        border-r border-white/5 transition-transform duration-500 ease-in-out
+        fixed inset-y-0 left-0 z-[50] w-64 bg-surface-container-low
+        border-r border-panel-border transition-transform duration-500 ease-in-out
         lg:sticky lg:top-0 lg:h-screen lg:translate-x-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
@@ -73,7 +73,7 @@ export default function Sidebar({ onLogout }) {
               <GraduationCap className="text-white" size={28} strokeWidth={2.5} />
             </div>
             <div className="flex flex-col">
-              <h2 className="text-2xl font-bold text-white tracking-tight leading-none" style={{ fontFamily: 'var(--font-jakarta)' }}>
+              <h2 className="text-2xl font-bold text-on-surface tracking-tight leading-none" style={{ fontFamily: 'var(--font-jakarta)' }}>
                 Studvisor
               </h2>
               <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mt-2">
@@ -92,8 +92,8 @@ export default function Sidebar({ onLogout }) {
                 className={({ isActive }) => `
                   group flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300
                   ${isActive 
-                    ? 'bg-primary/10 text-white border border-primary/20' 
-                    : 'text-white/60 hover:bg-white/[0.03] hover:text-white'
+                    ? 'bg-primary/10 text-on-surface border border-primary/20' 
+                    : 'text-on-surface-variant/60 hover:bg-on-surface/[0.03] hover:text-on-surface'
                   }
                 `}
               >
@@ -119,7 +119,7 @@ export default function Sidebar({ onLogout }) {
               onClick={closeSidebar}
               className={({ isActive }) => `
                 flex items-center gap-4 px-4 py-3 rounded-xl transition-all
-                ${isActive ? 'bg-primary/10 text-primary border border-primary/20' : 'text-white/60 hover:bg-white/[0.03] hover:text-white'}
+                ${isActive ? 'bg-primary/10 text-primary border border-primary/20' : 'text-on-surface-variant/60 hover:bg-on-surface/[0.03] hover:text-on-surface'}
               `}
             >
               {({ isActive }) => (

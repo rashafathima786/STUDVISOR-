@@ -1,6 +1,7 @@
-import { Bot, X, Maximize2, Minimize2 } from 'lucide-react'
+import { X, Maximize2, Minimize2 } from 'lucide-react'
 import useChatStore from '../stores/chatStore'
 import ChatBox from './ChatBox'
+import ChatbotLogo from './ui/ChatbotLogo'
 
 export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
   const { isOpen, isFullScreen, setChatOpen, toggleFullScreen } = useChatStore()
@@ -8,10 +9,10 @@ export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
   return (
     <div className="floating-chat-shell">
       {isOpen ? (
-        <div className={`floating-chat-panel sidebar-chat-panel ${isFullScreen ? 'full-screen' : ''}`}>
+        <div className={`floating-chat-panel ${isFullScreen ? 'full-screen' : ''}`}>
           <div className="floating-chat-titlebar">
             <div className="floating-chat-title">
-              <Bot size={18} />
+              <ChatbotLogo size={24} />
               <span>ERP Assistant</span>
             </div>
             <div className="floating-chat-actions">
@@ -44,7 +45,12 @@ export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
           aria-label="Open ERP assistant"
           title="Ask AI Assistant"
         >
-          <Bot size={28} />
+          <div className="hidden md:block">
+            <ChatbotLogo size={44} mode="logo" />
+          </div>
+          <div className="block md:hidden">
+            <ChatbotLogo size={32} mode="logo" />
+          </div>
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-surface animate-pulse" />
         </button>
       )}

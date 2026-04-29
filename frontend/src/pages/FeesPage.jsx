@@ -80,7 +80,7 @@ export default function FeesPage() {
         </div>
 
         {/* Financial Summary Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="flex flex-col md:grid md:grid-cols-4 gap-6 mb-12">
           {[
             { label: 'Aggregate Due', value: `₹${summary?.total_due?.toLocaleString() || 0}`, icon: Wallet, color: 'text-red-400' },
             { label: 'Synchronized Paid', value: `₹${summary?.total_paid?.toLocaleString() || 0}`, icon: TrendingUp, color: 'text-emerald-400' },
