@@ -12,6 +12,7 @@ router = APIRouter(prefix="/attendance", tags=["Attendance"])
 @router.get("/overall")
 def overall(student=Depends(get_current_student), db: Session = Depends(get_db)):
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
+    print(f"[DEBUG] Attendance for student {student.id} ({student.username}): found {len(records)} records")
     total = len(records)
     present = sum(1 for r in records if r.status == "P")
     return {"total": total, "present": present, "absent": total - present, "percentage": round(present / total * 100, 1) if total > 0 else 0}
@@ -55,13 +56,35 @@ def bunk_alerts(student=Depends(get_current_student), db: Session = Depends(get_
     for r in records:
         data[r.subject_id]["total"] += 1
         if r.status == "P": data[r.subject_id]["present"] += 1
+    
     alerts = []
     for sid, d in data.items():
-        pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 100
-        if pct < 75:
-            subj = db.query(Subject).filter(Subject.id == sid).first()
-            level = "critical" if pct < 65 else "warning"
-            alerts.append({"subject": subj.name if subj else "?", "percentage": pct, "level": level})
+        total = d["total"]
+        present = d["present"]
+        pct = round(present / total * 100, 1) if total > 0 else 100
+        
+        subj = db.query(Subject).filter(Subject.id == sid).first()
+        subject_name = subj.name if subj else "Unknown Subject"
+        
+        # Calculation Logic:
+        # Safe Bunks: present / (total + x) >= 0.75  => x <= (present / 0.75) - total
+        # Required to Clear: (present + y) / (total + y) >= 0.75 => y >= 3*total - 4*present
+        
+        safe_bunks = int((present / 0.75) - total) if total > 0 else 0
+        required_to_clear = max(0, 3 * total - 4 * present) if pct < 75 else 0
+        
+        level = "optimal" if pct >= 85 else "warning" if pct >= 75 else "critical"
+        
+        alerts.append({
+            "subject_name": subject_name,
+            "percentage": pct,
+            "safe_bunks": max(0, safe_bunks),
+            "required_to_clear": int(required_to_clear),
+            "level": level,
+            "total": total,
+            "present": present
+        })
+    
     return {"alerts": sorted(alerts, key=lambda x: x["percentage"])}
 
 @router.get("/simulate-bunk")

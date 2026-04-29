@@ -1,0 +1,21 @@
+Subject Code,Subject Name,Total Classes,Present,Percentage,Status
+PH101,Engineering Physics,20,14,70%,Critical
+MA101,Engineering Mathematics I,20,15,75%,Optimal
+BCA101,Intro to Computing,20,15,75%,Optimal
+PST-LAB,Problem Solving Technique Lab,20,15,75%,Optimal
+BCA102,Programming in C,20,16,80%,Optimal
+L1,Kannada,20,16,80%,Optimal
+EVS,Environmental Studies,20,16,80%,Optimal
+CS401,Operating Systems,20,16,80%,Optimal
+CS404,Theory of Computation,20,16,80%,Optimal
+BCA103,Discrete Math,20,17,85%,Optimal
+1SEM-DS-MAT,Discrete Structures-bca,20,17,85%,Optimal
+PST,Problem Solving Techniques,20,17,85%,Optimal
+OATL,Office Automation Tools Lab,20,17,85%,Optimal
+CS402,Database Management,20,17,85%,Optimal
+ME101,Engineering Graphics,20,18,90%,Optimal
+BCA104,Digital Logic,20,18,90%,Optimal
+CA LAB,Computer Architecture Lab,20,18,90%,Optimal
+GE,General English,20,19,95%,Optimal
+CS403,Computer Networks,20,19,95%,Optimal
+CA,Computer Architecture,20,20,100%,Optimal

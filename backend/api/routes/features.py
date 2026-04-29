@@ -120,6 +120,10 @@ def my_merit(student=Depends(get_current_student), db: Session = Depends(get_db)
     logs = db.query(MeritLog).filter(MeritLog.student_id == student.id).order_by(MeritLog.created_at.desc()).all()
     return {"points": student.merit_points, "tier": student.merit_tier, "history": [{"points": l.points, "reason": l.reason, "date": str(l.created_at)} for l in logs]}
 
+@merit_router.get("/status")
+def my_merit_status(student=Depends(get_current_student)):
+    return {"points": student.merit_points, "tier": student.merit_tier}
+
 # ─── TIMETABLE ───────────────────────────────────────────────────────────────
 @timetable_router.get("/today")
 def get_today_timetable(student=Depends(get_current_student), db: Session = Depends(get_db)):
@@ -169,12 +173,64 @@ def predict_cgpa_post(data: PredictCgpaRequest, student=Depends(get_current_stud
     from backend.services.analytics_service import analytics_service
     return analytics_service.predict_future_cgpa(db, student.id, data.expected_marks)
 
+@analytics_router.get("/performance")
+async def student_performance_overview(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    """Summary of student performance for the dashboard."""
+    print(f"[DEBUG] Fetching performance overview for student {student.id} ({student.username})")
+    from backend.services.gpa_service import gpa_service
+    
+    # 1. Get CGPA
+    cgpa_data = gpa_service.get_cgpa(db, student.id)
+    cgpa = cgpa_data.get("cgpa", 0.0)
+    
+    # 2. Get Overall Attendance
+    from backend.app.models import Attendance
+    records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
+    total = len(records)
+    present = sum(1 for r in records if r.status == "P")
+    att_pct = round(present / total * 100, 1) if total > 0 else 0
+    
+    # 3. Generate Insight
+    performance_text = "Good"
+    if cgpa >= 9.0: performance_text = "Excellent"
+    elif cgpa >= 8.0: performance_text = "Very Good"
+    elif cgpa < 6.0: performance_text = "Needs Improvement"
+    
+    insight = f"Based on your {cgpa} CGPA and {att_pct}% attendance, you are performing at a '{performance_text}' level."
+    if att_pct < 75:
+        insight += " Warning: Low attendance might impact your eligibility for exams."
+    elif cgpa >= 8.5:
+        insight += " You are eligible for the Dean's Honor List."
+        
+    return {
+        "recent_performance": performance_text,
+        "ai_insight": insight
+    }
+
 # ─── ASSIGNMENTS ─────────────────────────────────────────────────────────────
 @assignment_router.get("/")
 def list_assignments(student=Depends(get_current_student), db: Session = Depends(get_db)):
     assignments = db.query(Assignment).order_by(Assignment.due_date.desc()).all()
     submissions = {s.assignment_id for s in db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == student.id).all()}
-    return {"assignments": [{"id": a.id, "title": a.title, "description": a.description, "due_date": a.due_date, "max_marks": a.max_marks, "submitted": a.id in submissions} for a in assignments]}
+    
+    result = []
+    for a in assignments:
+        subj = db.query(Subject).filter(Subject.id == a.subject_id).first()
+        sub = db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id == a.id, AssignmentSubmission.student_id == student.id).first()
+        
+        result.append({
+            "id": a.id,
+            "title": a.title,
+            "description": a.description,
+            "due_date": a.due_date,
+            "max_marks": a.max_marks,
+            "subject": subj.name if subj else "General",
+            "status": "Submitted" if sub else "Pending",
+            "submitted": sub is not None,
+            "submitted_at": str(sub.submitted_at) if sub else None,
+            "grade": sub.grade if sub else None
+        })
+    return {"assignments": result}
 
 @assignment_router.post("/{aid}/submit")
 def submit_assignment(aid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
@@ -301,6 +357,10 @@ def report_item(data: LostFoundCreate, student=Depends(get_current_student), db:
 def my_achievements(student=Depends(get_current_student), db: Session = Depends(get_db)):
     achs = db.query(Achievement).filter(Achievement.student_id == student.id).order_by(Achievement.earned_at.desc()).all()
     return {"achievements": [{"badge": a.badge_name, "xp": a.xp, "earned": str(a.earned_at)} for a in achs]}
+
+@achievement_router.get("/")
+def all_achievements(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    return my_achievements(student, db)
 
 # ─── LEADERBOARD ─────────────────────────────────────────────────────────────
 @leaderboard_router.get("/")

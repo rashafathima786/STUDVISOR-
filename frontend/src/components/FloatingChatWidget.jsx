@@ -37,7 +37,17 @@ export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
           </div>
           <ChatBox compact={!isFullScreen} contextPage={contextPage} className="floating-chatbox" />
         </div>
-      ) : null}
+      ) : (
+        <button 
+          className="floating-chat-trigger"
+          onClick={() => setChatOpen(true)}
+          aria-label="Open ERP assistant"
+          title="Ask AI Assistant"
+        >
+          <Bot size={28} />
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-surface animate-pulse" />
+        </button>
+      )}
     </div>
   )
 }
