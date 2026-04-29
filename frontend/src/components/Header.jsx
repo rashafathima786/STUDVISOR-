@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Search, Sun, Moon, Menu, User, LogOut, ChevronDown, Settings as SettingsIcon } from 'lucide-react';
+import { Bell, Search, Sun, Moon, Menu, User, LogOut, ChevronDown, Bot, Settings as SettingsIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchNotifications } from '../services/api';
 import useAuthStore from '../stores/authStore';
 import useUIStore from '../stores/uiStore';
+import useChatStore from '../stores/chatStore';
 
 
 /**
@@ -23,6 +24,7 @@ export default function Header({ title, subtitle }) {
   const role = useAuthStore((s) => s.role);
   const logout = useAuthStore((s) => s.logout);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const { toggleChat, isOpen } = useChatStore();
 
   useEffect(() => {
     fetchNotifications()
@@ -100,7 +102,7 @@ export default function Header({ title, subtitle }) {
         >
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
-
+        
         {/* Notification Telemetry */}
         <div className="relative" ref={notifRef}>
           <button 
@@ -139,6 +141,17 @@ export default function Header({ title, subtitle }) {
             </div>
           )}
         </div>
+
+        {/* Intelligence Orchestrator (Chatbot) */}
+        <button 
+          className={`p-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center
+            ${isOpen ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' : 'hover:bg-white/5 text-on-surface-variant'}
+          `} 
+          onClick={toggleChat}
+          title="AI Assistant"
+        >
+          <Bot size={20} strokeWidth={isOpen ? 2.5 : 2} />
+        </button>
 
         {/* Identity & Session Control */}
         <div className="relative" ref={userMenuRef}>

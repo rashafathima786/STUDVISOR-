@@ -45,20 +45,37 @@ class AnonPostCreate(BaseModel):
     category: str = "general"
 
 @anon_chat_router.get("/posts")
-def list_posts(db: Session = Depends(get_db)):
-    posts = db.query(AnonPost).filter(AnonPost.moderated == False).order_by(AnonPost.created_at.desc()).limit(50).all()
+def list_posts(category: str = None, student=Depends(get_current_student), db: Session = Depends(get_db)):
+    from backend.services.anonymity_service import compute_anon_id
+    current_hash = compute_anon_id(student.id)
+    
+    query = db.query(AnonPost).filter(AnonPost.moderated == False)
+    if category and category.lower() != "all":
+        query = query.filter(AnonPost.category.ilike(category))
+        
+    posts = query.order_by(AnonPost.created_at.desc()).limit(50).all()
+    
     result = []
     for p in posts:
         reactions = db.query(AnonReaction).filter(AnonReaction.post_id == p.id).all()
         reaction_counts = defaultdict(int)
         for r in reactions: reaction_counts[r.reaction_type] += 1
-        result.append({"id": p.id, "content": p.content, "category": p.category, "reactions": dict(reaction_counts), "date": str(p.created_at)})
+        
+        result.append({
+            "id": p.id, 
+            "content": p.content, 
+            "category": p.category, 
+            "reactions": dict(reaction_counts), 
+            "date": str(p.created_at),
+            "is_mine": p.session_hash == current_hash
+        })
     return {"posts": result}
 
 @anon_chat_router.post("/posts")
-def create_post(data: AnonPostCreate, student=Depends(get_current_student), db: Session = Depends(get_db)):
+async def create_post(data: AnonPostCreate, student=Depends(get_current_student), db: Session = Depends(get_db)):
     from backend.services.sentiment_service import sentiment_service
     from backend.services.anonymity_service import compute_anon_id
+    from backend.services.ai_service import ai_service
     import hashlib
     
     # Analyze sentiment
@@ -74,7 +91,70 @@ def create_post(data: AnonPostCreate, student=Depends(get_current_student), db: 
     )
     db.add(post)
     db.commit()
-    
+    db.refresh(post)
+
+    # ── AI ENSEMBLE ASSISTANT TRIGGER ───────────────────────────────────────
+    if data.category in ["Questions", "General"]:
+        try:
+            # 1. Get DB Context for this student (Personal + Campus)
+            from backend.app.models import Attendance, ExamSchedule, Announcement, Subject
+            from backend.services.gpa_service import gpa_service
+            from datetime import datetime
+            
+            # Personal Context (Enhanced with Subject-wise data)
+            att_records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
+            total_pct = "N/A"
+            subject_details = "No data."
+            
+            if att_records:
+                total_pct = round(sum(1 for r in att_records if r.status == "P")/len(att_records)*100, 1)
+                # Subject breakdown
+                from collections import defaultdict
+                subj_data = defaultdict(lambda: {"t": 0, "p": 0})
+                for r in att_records:
+                    subj_data[r.subject_id]["t"] += 1
+                    if r.status == "P": subj_data[r.subject_id]["p"] += 1
+                
+                details = []
+                for sid, d in subj_data.items():
+                    s = db.query(Subject).filter(Subject.id == sid).first()
+                    p = round(d["p"]/d["t"]*100, 1)
+                    details.append(f"{s.name if s else '?'}: {p}%")
+                subject_details = " | ".join(details)
+
+            cgpa = gpa_service.get_cgpa(db, student.id).get("cgpa", "N/A")
+            
+            # Campus Context
+            upcoming_exams = db.query(ExamSchedule, Subject).join(Subject, ExamSchedule.subject_id == Subject.id)\
+                .filter(ExamSchedule.exam_date >= datetime.now().strftime("%Y-%m-%d")).limit(2).all()
+            exam_info = ", ".join([f"{s.name} on {e.exam_date}" for e, s in upcoming_exams]) if upcoming_exams else "No upcoming exams."
+            
+            recent_ann = db.query(Announcement).order_by(Announcement.created_at.desc()).limit(2).all()
+            ann_info = " | ".join([f"{a.title}: {a.content[:100]}" for a in recent_ann]) if recent_ann else "No recent news."
+
+            db_context = (
+                f"Student Identity: {student.full_name} (ID: {student.id}). "
+                f"Attendance: Overall {total_pct}%. Breakdown: {subject_details}. "
+                f"Academic Stats: CGPA is {cgpa}. "
+                f"Campus Schedule: Upcoming exams: {exam_info}. "
+                f"Recent News: {ann_info}."
+            )
+
+            # 2. Call Ensemble Chat (Gemini Draft -> Groq Refine)
+            ai_response = await ai_service.ensemble_chat(data.content, db_context)
+            
+            ai_post = AnonPost(
+                session_hash="NEXUS_AI_BOT",
+                content=ai_response,
+                category=data.category,
+                parent_id=post.id
+            )
+            db.add(ai_post)
+            db.commit()
+            print(f"DEBUG: Nexus AI Response generated and saved successfully.")
+        except Exception as ai_err:
+            print(f"AI Ensemble Auto-reply failed: {ai_err}")
+
     return {
         "message": "Posted anonymously", 
         "moderated": post.moderated,

@@ -6,9 +6,9 @@ import { Bot, SendHorizonal, User } from 'lucide-react'
 import { fetchChatHistory, sendChatMessage, streamChatMessage } from '../services/api'
 
 const messageVariants = {
-  hidden: { opacity: 0, y: 16, scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.98 },
+  hidden: { opacity: 0, y: 20, scale: 0.95, filter: 'blur(10px)' },
+  visible: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
+  exit: { opacity: 0, y: -10, scale: 0.95, filter: 'blur(5px)' },
 }
 
 function BotMessage({ text }) {
@@ -45,15 +45,15 @@ function TypingIndicator() {
       exit="exit"
       transition={{ duration: 0.22, ease: 'easeOut' }}
     >
-      <div className="chat-avatar">
-        <Bot size={16} />
+      <div className="chat-avatar bot-avatar-premium">
+        <Bot size={16} strokeWidth={2.5} />
       </div>
-      <div className="chat-bubble bot typing-bubble" aria-live="polite">
-        <span className="typing-copy">Thinking through your ERP data</span>
+      <div className="chat-bubble bot bot-bubble-premium typing-bubble" aria-live="polite">
+        <span className="typing-copy typing-shimmer">Analyzing your academic profile...</span>
         <span className="typing-dots" aria-hidden="true">
-          <span />
-          <span />
-          <span />
+          <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} />
+          <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} />
+          <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} />
         </span>
       </div>
     </motion.div>
@@ -62,34 +62,34 @@ function TypingIndicator() {
 
 const promptSets = {
   attendance: [
-    ['which classes did i miss today', 'Missed today'],
-    ['show my missed classes this week', 'This week'],
-    ['how many classes can i miss', 'Can miss'],
-    ['which subject did i miss most', 'Most missed'],
+    ['which classes did i miss today', 'Missed today', 'attendance'],
+    ['show my missed classes this week', 'This week', 'attendance'],
+    ['how many classes can i miss', 'Can miss', 'attendance'],
+    ['which subject did i miss most', 'Most missed', 'attendance'],
   ],
   results: [
-    ['what is my weakest subject', 'Weakest'],
-    ['what is my best subject', 'Best'],
-    ['what is my latest sgpa', 'SGPA'],
-    ['compare my semester performance', 'Trend'],
+    ['what is my weakest subject', 'Weakest', 'results'],
+    ['what is my best subject', 'Best', 'results'],
+    ['what is my latest sgpa', 'SGPA', 'results'],
+    ['compare my semester performance', 'Trend', 'results'],
   ],
   calendar: [
-    ['when is the next holiday', 'Next holiday'],
-    ['is tomorrow a working day', 'Tomorrow'],
-    ['show holidays this month', 'This month'],
-    ['how many working hours are there on 24 April', 'Hours'],
+    ['when is the next holiday', 'Next holiday', 'calendar'],
+    ['is tomorrow a working day', 'Tomorrow', 'calendar'],
+    ['show holidays this month', 'This month', 'calendar'],
+    ['how many working hours are there on 24 April', 'Hours', 'calendar'],
   ],
   od: [
-    ['which classes did i miss on 10 April for OD', 'OD details'],
-    ['which od have i applied and not applied', 'OD status'],
-    ['show pending medical leave requests', 'Medical'],
-    ['what dates should I mention for my medical leave', 'Dates'],
+    ['which classes did i miss on 10 April for OD', 'OD details', 'od'],
+    ['which od have i applied and not applied', 'OD status', 'od'],
+    ['show pending medical leave requests', 'Medical', 'od'],
+    ['what dates should I mention for my medical leave', 'Dates', 'od'],
   ],
   dashboard: [
-    ['which classes did i miss today', 'Missed today'],
-    ['when is the next holiday', 'Next holiday'],
-    ['what is my weakest subject', 'Weakest'],
-    ['explain my eligibility status', 'Eligibility'],
+    ['which classes did i miss today', 'Missed today', 'attendance'],
+    ['when is the next holiday', 'Next holiday', 'calendar'],
+    ['what is my weakest subject', 'Weakest', 'results'],
+    ['explain my eligibility status', 'Eligibility', 'attendance'],
   ],
 }
 
@@ -135,10 +135,13 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
           formatted.push({ sender: 'bot', text: item.response })
         })
 
-      setMessages(
+      const hour = new Date().getHours()
+      const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+      
+        setMessages(
         formatted.length
           ? formatted
-          : [{ sender: 'bot', text: 'Ask me about attendance, marks, profile, and more.' }],
+          : [{ sender: 'bot', text: `✨ **${greeting}!** I'm your ERP Assistant. I can analyze your attendance, marks, and help you track missing ODs.\n\nType **help** to see everything I can do for you!` }],
       )
     } catch {
       setMessages([{ sender: 'bot', text: 'Unable to load previous chat history.' }])
@@ -230,7 +233,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
   }
 
   return (
-    <div className={`card chatbot-card ${compact ? 'compact-chatbot-card' : ''} ${className}`}>
+    <div className={`card chatbot-card chatbot-card-premium ${compact ? 'compact-chatbot-card' : ''} ${className}`}>
       <div className="chatbot-header">
         <h3 className="section-title">ERP Chatbot</h3>
         {!compact ? (
@@ -238,18 +241,32 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
             Ask about attendance, weakest subject, eligibility, marks, or a quick academic summary.
           </p>
         ) : null}
-        <div className="chat-prompt-row">
-          {(promptSets[contextPage] || promptSets.dashboard).map(([prompt, label]) => (
-            <button key={prompt} type="button" className="chat-prompt-chip" onClick={() => setInput(prompt)}>
+        <div className="chat-prompt-row scrollbar-hide">
+          {(promptSets[contextPage] || promptSets.dashboard).map(([prompt, label, category]) => (
+            <motion.button 
+              key={prompt} 
+              type="button" 
+              className={`chat-prompt-chip ${category || ''}`} 
+              onClick={() => setInput(prompt)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               {label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
 
-      <div className="chat-window">
+      <div className="chat-window custom-scrollbar">
         {loadingHistory ? (
-          <div className="chat-history-loader">Loading your recent conversation...</div>
+          <div className="chat-history-loader">
+            <motion.div 
+              animate={{ rotate: 360 }} 
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+              className="loader-spinner"
+            />
+            Synchronizing your academic data...
+          </div>
         ) : null}
 
         <AnimatePresence initial={false}>
@@ -264,9 +281,11 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
               transition={{ duration: 0.24, ease: 'easeOut' }}
               layout
             >
-              <div className="chat-avatar">{msg.sender === 'user' ? <User size={16} /> : <Bot size={16} />}</div>
+              <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar-premium' : 'bot-avatar-premium'}`}>
+                {msg.sender === 'user' ? <User size={16} /> : <Bot size={16} />}
+              </div>
               <div
-                className={`chat-bubble ${msg.sender} ${msg.sender === 'bot' ? 'markdown-body' : ''} ${
+                className={`chat-bubble ${msg.sender} ${msg.sender === 'bot' ? 'markdown-body bot-bubble-premium' : 'user-bubble-premium'} ${
                   msg.streaming ? 'streaming-bubble' : ''
                 }`}
               >

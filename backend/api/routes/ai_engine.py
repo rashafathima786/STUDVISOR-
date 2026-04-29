@@ -33,14 +33,16 @@ class QuestionPaperRequest(BaseModel):
 
 @router.post("/student/chat")
 async def student_chat(req: ChatRequest, student=Depends(get_current_student), db: Session = Depends(get_db)):
-    """Context-aware AI chat for students."""
+    """Context-aware AI chat for students using the premium Intelligence Ensemble."""
     from backend.services.ai_service import ai_service
-    system_prompt = build_student_context(db, student.id)
-    ai_response = await ai_service.chat(system_prompt, req.query)
+    # We use the detailed context builder
+    context = build_student_context(db, student.id)
+    # Use ensemble chat which uses both Gemini and Groq
+    ai_response = await ai_service.ensemble_chat(req.query, context)
     return {
         "response": ai_response,
         "context_page": req.context_page,
-        "ai_provider": "anthropic-claude",
+        "ai_provider": "Intelligence-Ensemble-v2",
     }
 
 
@@ -314,7 +316,7 @@ async def voice_interact(req: VoiceRequest, student=Depends(get_current_student)
     from backend.app.chatbot import process_chat
     
     transcript = await voice_service.transcribe_audio(req.audio_b64)
-    ai_text = process_chat(db, student, transcript)
+    ai_text = await process_chat(db, student, transcript)
     audio_out = await voice_service.generate_speech(ai_text)
     
     return {

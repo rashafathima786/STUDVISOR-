@@ -314,6 +314,7 @@ class AnonPost(Base):
     moderated = Column(Boolean, default=False)
     toxicity_score = Column(Float, default=0.0)
     censored_content = Column(Text, nullable=True)
+    parent_id = Column(Integer, ForeignKey("anon_posts.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
