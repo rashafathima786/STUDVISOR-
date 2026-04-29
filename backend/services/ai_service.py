@@ -17,6 +17,51 @@ class AIService:
         self.api_key = os.getenv("ANTHROPIC_API_KEY") 
         self.model = self.anthropic_model
 
+    async def get_welcome_package(self, db_context: str, user_name: str) -> Dict:
+        """Generates a personalized welcome message and quick actions."""
+        # We use a simple heuristic combined with AI for the welcome text
+        lines = db_context.split('\n')
+        att_line = next((l for l in lines if "Overall Attendance" in l), "")
+        cgpa_line = next((l for l in lines if "CGPA" in l), "")
+        exams_line = next((l for l in lines if "Upcoming Exams" in l), "")
+        
+        att_pct = float(att_line.split(":")[1].split("%")[0].strip()) if "%" in att_line else 100.0
+        exams_count = int(exams_line.split(":")[1].split(" ")[1].strip()) if "Upcoming Exams" in exams_line else 0
+
+        # Base actions
+        actions = [
+            {"label": "📊 Attendance Summary", "query": "show my attendance summary", "category": "attendance"},
+            {"label": "📅 Next Holiday", "query": "when is the next holiday", "category": "calendar"},
+        ]
+
+        # Contextual actions
+        if att_pct < 75:
+            actions.insert(0, {"label": "⚠️ Attendance Recovery", "query": "how to recover my attendance", "category": "critical"})
+        if exams_count > 0:
+            actions.append({"label": "📝 Exam Schedule", "query": "show my upcoming exams", "category": "academic"})
+        
+        hour = asyncio.get_event_loop().time() # Mocking time for greeting
+        # Note: real time greeting is handled by frontend, but we can refine it here
+        
+        welcome_prompt = (
+            f"Context: {db_context}\n"
+            f"User: {user_name}\n"
+            "Generate a very brief (1 sentence) 'State of the Union' for this student. "
+            "Example: 'Welcome back! Your attendance is solid, but you have 2 exams coming up.'"
+        )
+        
+        status_msg = await self.chat("You are a helpful ERP assistant.", welcome_prompt)
+
+        return {
+            "message": status_msg,
+            "actions": actions,
+            "suggestions": [
+                "What is my weakest subject?",
+                "Am I safe to bunk tomorrow?",
+                "Compare my semester performance"
+            ]
+        }
+
     async def chat(self, system_prompt: str, user_query: str) -> str:
         """Standard non-streaming chat. Priority: Gemini -> Groq -> Anthropic -> Ollama -> Mock."""
         from backend.core.config import get_settings
@@ -150,26 +195,22 @@ class AIService:
         if groq_key:
             headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
             
-            # Hardened Nexus AI Intelligence Protocol (Forced Verticality)
+            # Turing-5 Premium Intelligence Protocol
             refinement_prompt = (
-                "ACT AS: Nexus AI (Next-Generation Intelligence Protocol).\n"
+                "ACT AS: Turing-5 (High-Fidelity ERP Intelligence Assistant).\n"
                 f"STUDENT QUERY: '{user_query}'.\n"
                 f"CONTEXT: {db_context}.\n"
                 f"DRAFT: {draft if draft else 'N/A'}.\n\n"
                 "CRITICAL INSTRUCTIONS:\n"
-                "1. EVERY segment MUST start on a NEW LINE.\n"
-                "2. FORBIDDEN: Never put `---` and `- **LABEL**` on the same line.\n"
-                "3. WHITESPACE: You MUST use two newlines (Enter key twice) between every segment.\n"
-                "4. PRIORITY: Answer the specific query in the first segment under **QUERY**.\n"
-                "5. BREVITY: 2-4 words per bullet. Minimal words.\n"
-                "6. DATA: Use exact values from Breakdown for subject accuracy.\n\n"
-                "EXAMPLE OUTPUT (STRICT VERTICAL LAYOUT):\n"
-                "---\n\n"
-                "- **QUERY**: Lowest: Math (65%).\n\n"
-                "---\n\n"
-                "- **STATUS**: Att 78.8%. CGPA 7.83.\n\n"
-                "---\n\n"
-                "- **ACTION**: Review Math. Use SAC study."
+                "1. TONE: Helpful, professional, and conversational. Avoid clinical or robotic phrasing.\n"
+                "2. STRUCTURE: Use clear paragraphs and bullet points where appropriate. No forced verticality.\n"
+                "3. PERSONALIZATION: Address the student by name if provided in context.\n"
+                "4. ACCURACY: Use the exact data provided in the context to answer precisely.\n"
+                "5. BREVITY: Be concise but thorough. Ensure the user feels supported, not just informed.\n\n"
+                "FORMATTING RULES:\n"
+                "- Use Markdown for emphasis (bold, italic).\n"
+                "- Use emojis sparingly to maintain a premium feel.\n"
+                "- If the query is a greeting, provide a warm, personalized welcome and ask how to help."
             )
 
             data = {
@@ -183,17 +224,36 @@ class AIService:
                 async with httpx.AsyncClient() as client:
                     resp = await client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=20.0)
                     if resp.status_code == 200:
-                        return resp.json()["choices"][0]["message"]["content"]
+                        content = resp.json()["choices"][0]["message"]["content"]
+                        # Turing-5 Enhancement: Detection of "Action" intent
+                        # If the AI suggests a page or tool, we can extract it.
+                        actions = []
+                        if "ATTENDANCE" in content.upper() or "BUNK" in content.upper():
+                            actions.append({"label": "View Attendance", "action": "navigate", "payload": "/attendance"})
+                        if "EXAM" in content.upper() or "CIA" in content.upper():
+                            actions.append({"label": "Check Exams", "action": "navigate", "payload": "/exams"})
+                        if "GPA" in content.upper() or "RESULT" in content.upper():
+                            actions.append({"label": "Performance Hub", "action": "navigate", "payload": "/performance"})
+                        
+                        return {
+                            "text": content,
+                            "actions": actions,
+                            "protocol": "Turing-5"
+                        }
                     else:
                         # If Groq fails but we have a draft, return the draft
-                        if draft: return draft
+                        if draft: return {"text": draft, "actions": [], "protocol": "Gemini-Fallback"}
                         print(f"[AI] Groq Refine failed: {resp.status_code} - {resp.text}")
             except Exception as e:
                 print(f"[AI] Groq Refine exception: {e}")
 
         # Final Fallback
-        if draft: return draft
-        return f"### ⚠️ **NEXUS SYSTEM ALERT**\n---\n**Protocol Error:** Intelligence Ensemble unreachable.\n\n*Check connection or API quota.*"
+        if draft: return {"text": draft, "actions": [], "protocol": "Gemini-Fallback"}
+        return {
+            "text": "### ⚠️ **Intelligence Service Interruption**\n\nI'm having trouble connecting to my core intelligence engine at the moment. Please check your connection or try again in a few seconds.",
+            "actions": [],
+            "protocol": "Error"
+        }
 
     async def chat_stream(self, system_prompt: str, user_query: str) -> AsyncGenerator[str, None]:
         """Streaming chat via SSE."""

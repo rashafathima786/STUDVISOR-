@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Bot, SendHorizonal, User } from 'lucide-react'
-import { fetchChatHistory, sendChatMessage, streamChatMessage } from '../services/api'
+import { Bot, SendHorizonal, User, ArrowRight, ExternalLink } from 'lucide-react'
+import { fetchChatHistory, sendChatMessage, streamChatMessage, fetchChatWelcome } from '../services/api'
+import { useNavigate } from 'react-router-dom'
 
 const messageVariants = {
   hidden: { opacity: 0, y: 20, scale: 0.95, filter: 'blur(10px)' },
@@ -29,10 +30,31 @@ function BotMessage({ text }) {
 }
 
 function ProviderBadge({ meta }) {
-  const label = meta?.orchestration?.provider_summary?.label
-  if (!label) return null
+  const protocol = meta?.protocol || meta?.orchestration?.provider_summary?.label
+  if (!protocol) return null
 
-  return <div className="provider-badge">{label}</div>
+  return <div className="provider-badge">{protocol}</div>
+}
+
+function ActionButtons({ actions, onAction }) {
+  if (!actions || actions.length === 0) return null
+
+  return (
+    <div className="chat-action-container">
+      {actions.map((action, idx) => (
+        <motion.button
+          key={`${action.label}-${idx}`}
+          className={`chat-action-btn ${action.category || ''}`}
+          onClick={() => onAction(action)}
+          whileHover={{ scale: 1.02, x: 2 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {action.label}
+          {action.action === 'navigate' ? <ExternalLink size={12} className="ml-1 opacity-60" /> : <ArrowRight size={12} className="ml-1 opacity-60" />}
+        </motion.button>
+      ))}
+    </div>
+  )
 }
 
 function TypingIndicator() {
@@ -99,6 +121,8 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
   const [sending, setSending] = useState(false)
   const [showTyping, setShowTyping] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(true)
+  const [welcomeData, setWelcomeData] = useState(null)
+  const navigate = useNavigate()
   const chatEndRef = useRef(null)
   const hasMountedRef = useRef(false)
   const currentMetaRef = useRef(null)
@@ -123,9 +147,12 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
   async function loadInitialChats() {
     setLoadingHistory(true)
     try {
-      const history = await fetchChatHistory()
-      const formatted = []
+      const [history, welcome] = await Promise.all([
+        fetchChatHistory(),
+        fetchChatWelcome().catch(() => null)
+      ])
 
+      const formatted = []
       history
         .slice()
         .reverse()
@@ -135,18 +162,38 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
           formatted.push({ sender: 'bot', text: item.response })
         })
 
+      setWelcomeData(welcome)
+      
       const hour = new Date().getHours()
       const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
       
+      if (formatted.length === 0 && welcome) {
+         setMessages([{ 
+           sender: 'bot', 
+           text: `✨ **${greeting}, ${welcome.message.split('!')[0].split(' ').pop() || ''}!** ${welcome.message}`,
+           actions: welcome.actions,
+           protocol: 'Turing-5'
+         }])
+      } else {
         setMessages(
-        formatted.length
-          ? formatted
-          : [{ sender: 'bot', text: `✨ **${greeting}!** I'm your ERP Assistant. I can analyze your attendance, marks, and help you track missing ODs.\n\nType **help** to see everything I can do for you!` }],
-      )
+          formatted.length
+            ? formatted
+            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm your ERP Assistant. I can analyze your attendance, marks, and help you track missing ODs.\n\nType **help** to see everything I can do for you!` }],
+        )
+      }
     } catch {
       setMessages([{ sender: 'bot', text: 'Unable to load previous chat history.' }])
     } finally {
       setLoadingHistory(false)
+    }
+  }
+
+  async function handleAction(action) {
+    if (action.action === 'navigate') {
+      navigate(action.payload)
+    } else if (action.query) {
+      setInput(action.query)
+      setTimeout(() => document.getElementById('chat-send-btn')?.click(), 10)
     }
   }
 
@@ -181,7 +228,13 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
             }
 
             return prev.map((msg) =>
-              msg.id === botMessageId ? { ...msg, text: finalText, streaming: true, meta: currentMetaRef.current || msg.meta } : msg,
+              msg.id === botMessageId ? { 
+                ...msg, 
+                text: finalText, 
+                streaming: true, 
+                meta: currentMetaRef.current || msg.meta,
+                actions: currentMetaRef.current?.actions || msg.actions
+              } : msg,
             )
           })
         },
@@ -189,7 +242,13 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
           setShowTyping(false)
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === botMessageId ? { ...msg, text: finalText || msg.text, streaming: false, meta: currentMetaRef.current || msg.meta } : msg,
+              msg.id === botMessageId ? { 
+                ...msg, 
+                text: finalText || msg.text, 
+                streaming: false, 
+                meta: currentMetaRef.current || msg.meta,
+                actions: currentMetaRef.current?.actions || msg.actions
+              } : msg,
             ),
           )
         },
@@ -198,7 +257,13 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
       if (!streamed.reply) {
         const response = await sendChatMessage(userMessage, contextPage)
         setShowTyping(false)
-        setMessages((prev) => [...prev, { id: botMessageId, sender: 'bot', text: response.reply || 'No reply received.', meta: response.meta }])
+        setMessages((prev) => [...prev, { 
+          id: botMessageId, 
+          sender: 'bot', 
+          text: response.reply || 'No reply received.', 
+          meta: response.meta,
+          actions: response.actions
+        }])
       }
 
       if (onNewChat) {
@@ -242,18 +307,24 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
           </p>
         ) : null}
         <div className="chat-prompt-row scrollbar-hide">
-          {(promptSets[contextPage] || promptSets.dashboard).map(([prompt, label, category]) => (
-            <motion.button 
-              key={prompt} 
-              type="button" 
-              className={`chat-prompt-chip ${category || ''}`} 
-              onClick={() => setInput(prompt)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {label}
-            </motion.button>
-          ))}
+          {(welcomeData?.actions || promptSets[contextPage] || promptSets.dashboard).map((item) => {
+            const prompt = Array.isArray(item) ? item[0] : item.query
+            const label = Array.isArray(item) ? item[1] : item.label
+            const category = Array.isArray(item) ? item[2] : item.category
+
+            return (
+              <motion.button 
+                key={prompt} 
+                type="button" 
+                className={`chat-prompt-chip ${category || ''}`} 
+                onClick={() => handleAction(Array.isArray(item) ? { query: prompt } : item)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {label}
+              </motion.button>
+            )
+          })}
         </div>
       </div>
 
@@ -292,6 +363,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
                 {msg.sender === 'bot' ? (
                   <>
                     <BotMessage text={msg.text} />
+                    <ActionButtons actions={msg.actions} onAction={handleAction} />
                     <ProviderBadge meta={msg.meta} />
                   </>
                 ) : msg.text}
@@ -311,7 +383,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
           onKeyDown={handleKeyDown}
           rows={2}
         />
-        <button className="send-btn" onClick={handleSend} disabled={sending}>
+        <button id="chat-send-btn" className="send-btn" onClick={handleSend} disabled={sending}>
           <SendHorizonal size={18} />
           {sending ? 'Thinking...' : 'Send'}
         </button>

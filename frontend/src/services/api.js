@@ -184,6 +184,11 @@ export async function sendChatMessage(query, contextPage = "dashboard") {
   return response.data;
 }
 
+export async function fetchChatWelcome() {
+  const response = await api.get("/v2/ai/student/welcome");
+  return response.data;
+}
+
 export async function streamChatMessage(query, handlers = {}) {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/campus/chat/stream`, {

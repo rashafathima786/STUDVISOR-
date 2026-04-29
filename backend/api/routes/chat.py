@@ -23,27 +23,40 @@ class ChatInput(BaseModel):
 @router.post("/")
 async def chat(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Process a chat message through the deterministic AI engine."""
-    response = await process_chat(db, student, data.query)
-    # Save to history
-    db.add(ChatHistory(student_id=student.id, query=data.query, response=response,
+    result = await process_chat(db, student, data.query)
+    # Save text reply to history
+    db.add(ChatHistory(student_id=student.id, query=data.query, response=result["reply"],
                        context_page=data.context_page))
     db.commit()
-    return {"reply": response, "emotion": detect_emotion(data.query)}
+    return {
+        "reply": result["reply"], 
+        "actions": result.get("actions", []),
+        "protocol": result.get("protocol", "Nexus"),
+        "emotion": detect_emotion(data.query)
+    }
 
 
 @router.post("/stream")
 async def chat_stream(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """SSE streaming — sends the AI response word-by-word for typewriter effect."""
-    response = await process_chat(db, student, data.query)
+    result = await process_chat(db, student, data.query)
+    response = result["reply"]
+    actions = result.get("actions", [])
+    
     db.add(ChatHistory(student_id=student.id, query=data.query, response=response,
                        context_page=data.context_page))
     db.commit()
-
+ 
     async def generate():
+        # First send metadata and actions
+        yield f"event: meta\ndata: {json.dumps({'actions': actions, 'protocol': result.get('protocol')})}\n\n"
+        
         words = response.split()
         for i, word in enumerate(words):
-            yield f"data: {json.dumps({'token': word + ' ', 'done': i == len(words) - 1})}\n\n"
-            await asyncio.sleep(0.03)
+            yield f"event: chunk\ndata: {json.dumps({'token': word + ' ', 'done': i == len(words) - 1})}\n\n"
+            await asyncio.sleep(0.02)
+        
+        yield f"event: done\ndata: {json.dumps({'status': 'finished'})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 

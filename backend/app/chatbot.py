@@ -72,20 +72,38 @@ def detect_emotion(message: str) -> str:
 
 # ─── RESPONSE GENERATORS ────────────────────────────────────────────────────
 
-def handle_greeting(student: Student) -> str:
-    return f"- **IDENTITY**: Nexus AI Protocol Active.\n- **TARGET**: {student.full_name}.\n- **STATUS**: Awaiting academic query."
+def handle_greeting(student: Student) -> dict:
+    return {
+        "reply": f"Hello {student.full_name.split()[0]}! 👋 I'm your Studvisor AI assistant. I've analyzed your current academic profile and I'm ready to help you with attendance, marks, or any ERP queries you have.\n\nHow can I support your studies today?",
+        "actions": [
+            {"label": "📊 Attendance Summary", "query": "show my attendance", "category": "attendance"},
+            {"label": "📅 Academic Calendar", "query": "when is next holiday", "category": "calendar"},
+            {"label": "📈 Performance Hub", "query": "what is my cgpa", "category": "academic"}
+        ]
+    }
 
 
-def handle_help() -> str:
-    return """- **CAPABILITIES**: Attendance, Recovery, OD/Leave, Marks, CGPA, Exams, Profile.
-- **USAGE**: Ask naturally about any academic metric.
-- **EXAMPLE**: "What is my CGPA?" or "Attendance in Math"."""
+def handle_help() -> dict:
+    return {
+        "reply": """I'm a high-fidelity academic assistant capable of tracking your entire ERP journey. You can ask me about:
+        
+✨ **Attendance**: Overall percentage, subject-wise breakdown, or bunk safety.
+📈 **Performance**: CGPA/SGPA tracking and subject-wise marks analysis.
+📅 **Planning**: Exam schedules, holidays, and academic calendar events.
+📝 **Compliance**: OD status, leave requests, and exam eligibility.
+
+What would you like to check first?""",
+        "actions": [
+            {"label": "📝 Exam Schedule", "query": "show exams", "category": "academic"},
+            {"label": "📈 CGPA Check", "query": "what is my cgpa", "category": "academic"}
+        ]
+    }
 
 
-def handle_attendance_overall(db: Session, student: Student) -> str:
+def handle_attendance_overall(db: Session, student: Student) -> dict:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     if not records:
-        return "- **ATTENDANCE**: Data Unavailable."
+        return {"reply": "- **ATTENDANCE**: Data Unavailable.", "actions": []}
 
     total = len(records)
     present = sum(1 for r in records if r.status == "P")
@@ -94,11 +112,14 @@ def handle_attendance_overall(db: Session, student: Student) -> str:
     pct = round(present / total * 100, 1)
 
     status = "STABLE" if pct >= 85 else "WARNING" if pct >= 75 else "CRITICAL"
+    actions = [{"label": "View Full Report", "action": "navigate", "payload": "/attendance"}]
+    if pct < 75:
+        actions.append({"label": "Recovery Plan", "query": "how to recover attendance"})
 
-    return f"""- **ATTENDANCE**: {pct}% ({present}/{total} sessions).
-- **DETAILS**: Absent: {absent}, Duty Leave: {dl}.
-- **STATUS**: {status}.
-- **ACTION**: {"No action required." if pct >= 75 else "Initialize Recovery Plan."}"""
+    return {
+        "reply": f"Your current overall attendance stands at **{pct}%** ({present} out of {total} sessions).\n\nDetails:\n- **Present**: {present}\n- **Absent**: {absent}\n- **Duty Leave**: {dl}\n\nYour current status is **{status}**. {'You are safely above the 75% requirement.' if pct >= 75 else 'You are currently below the required 75% threshold.'}",
+        "actions": actions
+    }
 def handle_missed_today(db: Session, student: Student) -> str:
     from datetime import datetime
     today = datetime.now().strftime("%Y-%m-%d")
@@ -109,14 +130,14 @@ def handle_missed_today(db: Session, student: Student) -> str:
     ).all()
     
     if not records:
-        return "- **MISSED TODAY**: None. Attendance record spotless."
+        return "You haven't missed any classes today! Your attendance record for today is spotless. ✨"
     
     missed = []
     for r in records:
         subj = db.query(Subject).filter(Subject.id == r.subject_id).first()
         missed.append(f"{subj.name if subj else '?'}(Slot {r.slot or 'TBA'})")
     
-    return f"- **MISSED TODAY**: {', '.join(missed)}."
+    return f"You were marked absent in the following sessions today:\n" + "\n".join([f"• {m}" for m in missed])
 
 def handle_attendance_subject(db: Session, student: Student) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
@@ -134,7 +155,7 @@ def handle_attendance_subject(db: Session, student: Student) -> str:
         subj = db.query(Subject).filter(Subject.id == sid).first()
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 0
         status = "OK" if pct >= 75 else "LOW"
-        lines.append(f"- **{subj.name if subj else '?'}**: {pct}% ({status})")
+        lines.append(f"• **{subj.name if subj else '?'}**: {pct}% ({status})")
 
     return "\n".join(lines)
 
@@ -159,7 +180,7 @@ def handle_bunk_check(db: Session, student: Student) -> str:
             buffer += 1
         
         status = "SAFE" if buffer >= 3 else "WARN" if buffer > 0 else "CRIT"
-        lines.append(f"- **{subj.name if subj else '?'}**: {buffer} classes ({status})")
+        lines.append(f"• **{subj.name if subj else '?'}**: {buffer} classes ({status})")
 
     return "\n".join(lines)
 
@@ -185,9 +206,9 @@ def handle_reach_75(db: Session, student: Student) -> str:
             needed = 0
             while (p + needed) / (t + needed) * 100 < 75 and needed < 200:
                 needed += 1
-            lines.append(f"- **{subj.name if subj else '?'}**: {pct}% -> Need {needed} classes.")
+            lines.append(f"• **{subj.name if subj else '?'}**: {pct}% (Requires **{needed}** more classes)")
         else:
-            lines.append(f"- **{subj.name if subj else '?'}**: {pct}% (Target Met).")
+            lines.append(f"• **{subj.name if subj else '?'}**: {pct}% (Safe)")
 
     return "\n".join(lines)
 
@@ -289,10 +310,14 @@ def handle_eligibility(db: Session, student: Student) -> str:
 
 
 def handle_profile(student: Student) -> str:
-    return f"""- **PROFILE**: {student.full_name} ({student.roll_number or 'N/A'})
-- **DEPT**: {student.department or 'N/A'} | SEM: {student.semester or 'N/A'}
-- **MERIT**: {student.merit_points} pts ({student.merit_tier or 'Novice'})
-- **CONTACT**: {student.email or 'N/A'}"""
+    return f"""Here are your profile details as recorded in the system:
+
+👤 **Name**: {student.full_name}
+🆔 **Roll Number**: {student.roll_number or 'N/A'}
+🏫 **Department**: {student.department or 'N/A'}
+📅 **Semester**: {student.semester or 'N/A'}
+🏆 **Merit Points**: {student.merit_points} ({student.merit_tier or 'Novice'})
+📧 **Contact**: {student.email or 'N/A'}"""
 
 
 def handle_leave_status(db: Session, student: Student) -> str:
@@ -329,20 +354,23 @@ def handle_holiday(db: Session) -> str:
 
 
 def handle_frustrated(student: Student) -> str:
-    return f"- **PROTOCOL STATUS**: Support Mode Active.\n- **NOTICE**: Academic pressure detected. {student.full_name}, I recommend a Recovery Plan or Faculty Counseling."
+    return f"I can sense you're feeling a bit overwhelmed, {student.full_name.split()[0]}. I'm here to support you. Let's look at a Recovery Plan or I can help you connect with a faculty advisor to discuss any challenges you're facing."
 
 
 def handle_thank(student: Student) -> str:
-    return "- **ACKNOWLEDGMENT**: Transmission Received. Protocol standby."
+    return f"You're very welcome, {student.full_name.split()[0]}! Happy to help. Is there anything else I can assist you with?"
 
 
-def handle_distressed(student: Student) -> str:
-    return f"- **EMERGENCY PROTOCOL**: Priority Support Triggered.\n- **TARGET**: {student.full_name}.\n- **ACTION**: Call 1800-Studvisor-CARE immediately. Access Support Cell 24/7."
+def handle_distressed(student: Student) -> dict:
+    return {
+        "reply": f"I'm concerned about you, {student.full_name.split()[0]}. Please know that you're not alone. I've triggered a priority support alert. You can call our 24/7 Support Cell at 1800-Studvisor-CARE immediately for professional assistance.",
+        "actions": [{"label": "📞 Emergency Support", "action": "call", "payload": "18005550199"}]
+    }
 
 
 # ─── MAIN CHAT DISPATCHER ───────────────────────────────────────────────────
 
-async def process_chat(db: Session, student: Student, message: str) -> str:
+async def process_chat(db: Session, student: Student, message: str) -> dict:
     """Main entry point for the AI chatbot. Detects intent and dispatches to handler."""
     from backend.services.ai_service import ai_service
     from backend.core.ai_context import build_student_context
@@ -354,36 +382,45 @@ async def process_chat(db: Session, student: Student, message: str) -> str:
     if emotion == "distressed":
         return handle_distressed(student)
     if emotion == "frustrated":
-        return handle_frustrated(student)
+        # We'll just return the reply for now, or adapt it to dict
+        res = handle_frustrated(student)
+        return {"reply": res, "actions": [{"label": "Talk to Counselor", "query": "connect me to counselor"}], "protocol": "Safety"}
 
     handlers = {
         "greeting": lambda: handle_greeting(student),
         "help": lambda: handle_help(),
         "attendance_overall": lambda: handle_attendance_overall(db, student),
-        "attendance_subject": lambda: handle_attendance_subject(db, student),
-        "bunk_check": lambda: handle_bunk_check(db, student),
-        "reach_75": lambda: handle_reach_75(db, student),
-        "attendance_recovery": lambda: handle_reach_75(db, student),
-        "od_help": lambda: handle_od_help(db, student),
-        "marks": lambda: handle_marks(db, student),
-        "cgpa": lambda: handle_cgpa(db, student),
-        "sgpa": lambda: handle_cgpa(db, student),
-        "best_subject": lambda: handle_best_subject(db, student),
-        "weakest_subject": lambda: handle_weakest_subject(db, student),
-        "eligibility": lambda: handle_eligibility(db, student),
-        "profile": lambda: handle_profile(student),
-        "leave_status": lambda: handle_leave_status(db, student),
-        "exam_schedule": lambda: handle_exam_schedule(db, student),
-        "holiday": lambda: handle_holiday(db),
-        "thank": lambda: handle_thank(student),
-        "missed_today": lambda: handle_missed_today(db, student),
+        "attendance_subject": lambda: {"reply": handle_attendance_subject(db, student), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
+        "bunk_check": lambda: {"reply": handle_bunk_check(db, student), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
+        "reach_75": lambda: {"reply": handle_reach_75(db, student), "actions": []},
+        "attendance_recovery": lambda: {"reply": handle_reach_75(db, student), "actions": []},
+        "od_help": lambda: {"reply": handle_od_help(db, student), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
+        "marks": lambda: {"reply": handle_marks(db, student), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
+        "cgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
+        "sgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
+        "best_subject": lambda: {"reply": handle_best_subject(db, student), "actions": []},
+        "weakest_subject": lambda: {"reply": handle_weakest_subject(db, student), "actions": []},
+        "eligibility": lambda: {"reply": handle_eligibility(db, student), "actions": []},
+        "profile": lambda: {"reply": handle_profile(student), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
+        "leave_status": lambda: {"reply": handle_leave_status(db, student), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
+        "exam_schedule": lambda: {"reply": handle_exam_schedule(db, student), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
+        "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
+        "thank": lambda: {"reply": handle_thank(student), "actions": []},
+        "missed_today": lambda: {"reply": handle_missed_today(db, student), "actions": []},
     }
 
     if intent in handlers:
-        return handlers[intent]()
+        result = handlers[intent]()
+        if "protocol" not in result:
+            result["protocol"] = "Deterministic"
+        return result
 
     # Fallback: Intelligence Ensemble v2 (Dynamic AI Answering)
     context = build_student_context(db, student.id)
-    ai_response = await ai_service.ensemble_chat(message, context)
-    return ai_response
+    ai_result = await ai_service.ensemble_chat(message, context)
+    return {
+        "reply": ai_result["text"],
+        "actions": ai_result["actions"],
+        "protocol": ai_result["protocol"]
+    }
 

@@ -38,12 +38,26 @@ async def student_chat(req: ChatRequest, student=Depends(get_current_student), d
     # We use the detailed context builder
     context = build_student_context(db, student.id)
     # Use ensemble chat which uses both Gemini and Groq
-    ai_response = await ai_service.ensemble_chat(req.query, context)
+    ai_result = await ai_service.ensemble_chat(req.query, context)
+    
     return {
-        "response": ai_response,
-        "context_page": req.context_page,
-        "ai_provider": "Intelligence-Ensemble-v2",
+        "response": ai_result["text"],
+        "actions": ai_result["actions"],
+        "meta": {
+            "protocol": ai_result["protocol"],
+            "context_page": req.context_page,
+            "ai_provider": "Turing-5-Ensemble",
+        }
     }
+
+
+@router.get("/student/welcome")
+async def student_welcome(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    """Fetches a personalized welcome package for the student."""
+    from backend.services.ai_service import ai_service
+    context = build_student_context(db, student.id)
+    package = await ai_service.get_welcome_package(context, student.full_name)
+    return package
 
 
 @router.post("/student/chat/stream")

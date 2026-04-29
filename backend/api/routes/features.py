@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from collections import defaultdict
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict
 from backend.core.security import get_current_student, require_role
 from backend.app.database import get_db
 from backend.app.models import *
@@ -154,11 +154,20 @@ def generate_timetable(semester: int, section: str, _=Depends(require_role("admi
     return {"message": f"Successfully generated {count} slots for {section} (Semester {semester})"}
 
 # ─── ANALYTICS ───────────────────────────────────────────────────────────────
-@analytics_router.get("/predict-cgpa")
-def predict_cgpa(target_pct: float = 80, student=Depends(get_current_student), db: Session = Depends(get_db)):
-    from backend.api.routes.gpa import percentage_to_grade
-    grade = percentage_to_grade(target_pct)
-    return {"target_percentage": target_pct, "projected_grade": grade["letter"], "projected_grade_point": grade["point"], "note": f"If you score {target_pct}% in all remaining subjects"}
+class PredictCgpaRequest(BaseModel):
+    expected_marks: Dict[int, float]
+
+@analytics_router.get("/performance")
+def get_performance(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    from backend.services.analytics_service import analytics_service
+    res = analytics_service.get_performance_summary(db, student.id)
+    if not res: raise HTTPException(404, "Student performance data not found")
+    return res
+
+@analytics_router.post("/predict-cgpa")
+def predict_cgpa_post(data: PredictCgpaRequest, student=Depends(get_current_student), db: Session = Depends(get_db)):
+    from backend.services.analytics_service import analytics_service
+    return analytics_service.predict_future_cgpa(db, student.id, data.expected_marks)
 
 # ─── ASSIGNMENTS ─────────────────────────────────────────────────────────────
 @assignment_router.get("/")
