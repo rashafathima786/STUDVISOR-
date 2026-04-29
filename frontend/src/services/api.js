@@ -261,7 +261,7 @@ export async function fetchNotifications() {
 // ── MERIT ───────────────────────────────────────────────────────────────────
 
 export async function fetchMeritStatus() {
-  const response = await api.get("/user/merit/status");
+  const response = await api.get("/user/merit/my");
   return response.data;
 }
 
@@ -297,7 +297,7 @@ export async function fetchAssignments() {
 }
 
 export async function submitAssignment(assignmentId) {
-  const response = await api.post(`/assignments/${assignmentId}/submit`);
+  const response = await api.post(`/academic/assignments/${assignmentId}/submit`);
   return response.data;
 }
 
@@ -450,7 +450,7 @@ export async function claimLostFoundItem(itemId) {
 // ── ACHIEVEMENTS ────────────────────────────────────────────────────────────
 
 export async function fetchAchievements() {
-  const response = await api.get("/user/achievements");
+  const response = await api.get("/user/achievements/my");
   return response.data;
 }
 
@@ -698,5 +698,9 @@ export async function fetchMoodAnalytics(batchYear = null, section = null) {
   return response.data;
 }
 
+export async function fetchStudentLectureLogs() {
+  const response = await api.get("/academic/lecture-logs/my-logs");
+  return response.data;
+}
+
 export default api;
-export const fetchStudentLectureLogs = () => api.get('/academic/lecture-logs/my-logs').then(res => res.data);

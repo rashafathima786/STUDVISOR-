@@ -20,7 +20,8 @@ def percentage_to_grade(pct):
     return {"letter": "F", "point": 0}
 
 @router.get("/cgpa")
-def cgpa(student=Depends(get_current_student), db: Session = Depends(get_db)):
+def get_cgpa(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    print(f"[DEBUG] Calculating CGPA for student {student.id} ({student.username})")
     # Only use published marks. Average all assessments per subject-semester
     # so that CIA-1, CIA-2, and Model marks for the same subject are collapsed
     # into a single grade point entry rather than triple-counting credits.

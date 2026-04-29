@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.core.security import get_current_user
+from backend.core.security import get_current_student
 from backend.app.database import get_db
-from backend.app.models import LectureLog, Subject, Student, Faculty
-from typing import List
+from backend.app.models import LectureLog, Subject, Faculty
 
 router = APIRouter(prefix="/lecture-logs", tags=["Lecture Logs"])
 
 @router.get("/my-logs")
-def get_student_lecture_logs(student=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_student_lecture_logs(student=Depends(get_current_student), db: Session = Depends(get_db)):
     # Students see logs for subjects in their current semester
     # And potentially restricted by section if we had that mapping, 
     # but for now we filter by subject semester.

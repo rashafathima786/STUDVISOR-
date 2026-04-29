@@ -22,12 +22,14 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         if request.method in WRITE_METHODS and request.url.path not in SKIP_AUDIT:
             # Extract actor from JWT if present
             auth = request.headers.get("Authorization", "")
+            actor_id = 0
             actor = "anonymous"
             if auth.startswith("Bearer "):
                 from backend.core.security import decode_token
                 payload = decode_token(auth.split(" ", 1)[1])
                 if payload:
-                    actor = f"{payload.get('role', '?')}:{payload.get('sub', '?')}(id={payload.get('entity_id', '?')})"
+                    actor_id = payload.get('entity_id', 0)
+                    actor = f"{payload.get('role', '?')}:{payload.get('sub', '?')}"
 
             ip = request.client.host if request.client else "?"
             log_msg = f"[AUDIT] {request.method} {request.url.path} → {response.status_code} | actor={actor} | ip={ip}"
@@ -38,7 +40,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             from backend.app.models import AuditLog
             from fastapi import BackgroundTasks
             
-            async def persist_audit_log(actor_info, method, path, status, ip_addr):
+            async def persist_audit_log(actor_info, actor_id, method, path, status, ip_addr):
                 db = SessionLocal()
                 try:
                     # Parse actor_info back to pieces if possible or just store as string
@@ -48,13 +50,14 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                     log = AuditLog(
                         actor_username=username,
                         actor_role=role,
+                        actor_id=actor_id,
                         action=f"{method} {path}",
                         resource_type=path.split("/")[1] if len(path.split("/")) > 1 else "root",
-                        resource_id=None, # Extracting this would require parsing request body
+                        resource_id=None,
                         old_value=None,
                         new_value=f"Status: {status}",
                         ip_address=ip_addr,
-                        user_agent=request.headers.get("user-agent", "?")
+                        details=request.headers.get("user-agent", "?")
                     )
                     db.add(log)
                     db.commit()
@@ -66,7 +69,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             # Note: dispatch doesn't have easy access to BackgroundTasks object from response
             # So we create a one-off task if needed or just fire and forget
             import asyncio
-            asyncio.create_task(persist_audit_log(actor, request.method, request.url.path, response.status_code, ip))
+            asyncio.create_task(persist_audit_log(actor, actor_id, request.method, request.url.path, response.status_code, ip))
 
         return response
 

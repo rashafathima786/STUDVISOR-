@@ -42,6 +42,30 @@ const AttendancePage = () => {
         loadData();
     }, []);
 
+    const handleExport = () => {
+        if (!subjects.length) return;
+        const headers = ["Subject Code", "Subject Name", "Total Classes", "Present", "Percentage", "Status"];
+        const rows = subjects.map(s => [
+            s.code,
+            s.subject,
+            s.total,
+            s.present,
+            `${s.percentage}%`,
+            s.percentage >= 75 ? "Optimal" : "Critical"
+        ]);
+        
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `attendance_matrix_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     if (loading) return (
         <div className="bg-surface min-h-screen flex items-center justify-center">
             <div className="animate-pulse flex flex-col items-center">
@@ -68,11 +92,17 @@ const AttendancePage = () => {
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <button className="px-6 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-xl">
+                    <button 
+                        onClick={() => alert("Current Term: Semester 1 (Jan - June 2026)")}
+                        className="px-6 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-xl"
+                    >
                       <Calendar size={18} />
                       Current Term
                     </button>
-                    <button className="px-8 py-3.5 rounded-2xl bg-white text-black hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-2xl">
+                    <button 
+                        onClick={handleExport}
+                        className="px-8 py-3.5 rounded-2xl bg-white text-black hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-2xl"
+                    >
                       <Download size={18} />
                       Export Matrix
                     </button>
@@ -144,18 +174,18 @@ const AttendancePage = () => {
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: idx * 0.1 }}
-                                  className="bg-white/5 rounded-[32px] p-6 border border-white/5 flex flex-col items-center justify-center text-center group hover:bg-white/[0.08] transition-all"
+                                  className="bg-white/5 rounded-[32px] px-3 py-6 border border-white/5 flex flex-col items-center justify-center text-center group hover:bg-white/[0.08] transition-all"
                                 >
-                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-4 truncate w-full px-2">
+                                    <span className="text-[9px] font-black text-white/50 uppercase tracking-tight mb-4 line-clamp-2 h-8 flex items-center justify-center w-full px-1 leading-tight">
                                         {alert.subject_name}
                                     </span>
                                     <div className={`relative w-20 h-20 flex items-center justify-center rounded-full border-2 transition-all group-hover:scale-110 ${alert.safe_bunks > 0 ? 'border-primary/20 bg-primary/5' : 'border-red-500/20 bg-red-500/5'}`}>
                                         <span className={`text-2xl font-black ${alert.safe_bunks > 0 ? 'text-primary' : 'text-red-400'}`}>
-                                            {alert.safe_bunks}
+                                            {alert.safe_bunks > 0 ? alert.safe_bunks : alert.required_to_clear || 0}
                                         </span>
                                     </div>
                                     <span className={`text-[9px] mt-4 font-black uppercase tracking-widest ${alert.safe_bunks > 0 ? 'text-white/20' : 'text-red-400/60'}`}>
-                                        {alert.safe_bunks > 0 ? 'Units Left' : 'CRITICAL'}
+                                        {alert.safe_bunks > 0 ? 'Units Left' : 'Required'}
                                     </span>
                                 </motion.div>
                             )) : (
