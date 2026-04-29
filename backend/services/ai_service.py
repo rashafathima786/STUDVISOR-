@@ -12,7 +12,8 @@ class AIService:
     def __init__(self):
         self.groq_model = "llama-3.3-70b-versatile"
         self.anthropic_model = "claude-3-sonnet-20240229"
-        self.gemini_model = "gemini-2.5-flash"
+        self.gemini_model = "gemini-3-flash"  # Latest model as per user request
+        self.gemini_fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
         # For streaming fallback if needed
         self.api_key = os.getenv("ANTHROPIC_API_KEY") 
         self.model = self.anthropic_model
@@ -72,27 +73,25 @@ class AIService:
         
         # 1. Gemini (Google AI)
         if gemini_key:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
-            headers = {"Content-Type": "application/json"}
-            data = {
-                "contents": [{
-                    "parts": [{"text": f"System: {system_prompt}\nUser: {user_query}"}]
-                }]
-            }
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(url, headers=headers, json=data, timeout=30.0)
-                    if response.status_code == 200:
-                        result = response.json()
-                        return result["candidates"][0]["content"]["parts"][0]["text"]
-                    else:
-                        # Fallback to 2.0
-                        url_v2 = url.replace("2.5-flash", "2.0-flash")
-                        response = await client.post(url_v2, headers=headers, json=data, timeout=30.0)
+            models_to_try = [self.gemini_model] + self.gemini_fallback_models
+            async with httpx.AsyncClient() as client:
+                for model in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
+                    headers = {"Content-Type": "application/json"}
+                    data = {
+                        "contents": [{
+                            "parts": [{"text": f"System: {system_prompt}\nUser: {user_query}"}]
+                        }]
+                    }
+                    try:
+                        response = await client.post(url, headers=headers, json=data, timeout=30.0)
                         if response.status_code == 200:
-                            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-            except Exception as e:
-                print(f"[AI ERROR] Gemini Exception: {e}")
+                            result = response.json()
+                            return result["candidates"][0]["content"]["parts"][0]["text"]
+                        else:
+                            print(f"[AI] Model {model} failed: {response.status_code}")
+                    except Exception as e:
+                        print(f"[AI ERROR] Gemini {model} Exception: {e}")
 
         # 2. Groq (High Speed)
         if groq_key:
@@ -164,40 +163,35 @@ class AIService:
         groq_key = settings.GROQ_API_KEY
 
         # Step 1: Creative Draft (Gemini)
-        # We now give context to Gemini too so the draft is already grounded.
         draft = ""
         if gemini_key:
-            # Using the latest Gemini 2.5 Flash as requested
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
-            headers = {"Content-Type": "application/json"}
-            data = {
-                "contents": [{
-                    "parts": [{"text": f"Context: {db_context}\n\nStudent asked: '{user_query}'\n\nDraft a helpful, student-centric response. If it's a greeting, be friendly. If it's a question, be informative."}]
-                }]
-            }
-            try:
-                async with httpx.AsyncClient() as client:
-                    resp = await client.post(url, headers=headers, json=data, timeout=15.0)
-                    if resp.status_code == 200:
-                        draft = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                    else:
-                        # Fallback chain: 2.5 -> 2.0 -> 1.5
-                        for model_ver in ["gemini-2.0-flash", "gemini-1.5-flash"]:
-                            url_fb = f"https://generativelanguage.googleapis.com/v1beta/models/{model_ver}:generateContent?key={gemini_key}"
-                            resp_fb = await client.post(url_fb, headers=headers, json=data, timeout=15.0)
-                            if resp_fb.status_code == 200:
-                                draft = resp_fb.json()["candidates"][0]["content"]["parts"][0]["text"]
-                                break
-            except Exception as e:
-                print(f"[AI] Gemini Draft failed: {e}")
+            models_to_try = [self.gemini_model] + self.gemini_fallback_models
+            async with httpx.AsyncClient() as client:
+                for model in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
+                    headers = {"Content-Type": "application/json"}
+                    data = {
+                        "contents": [{
+                            "parts": [{"text": f"Context: {db_context}\n\nStudent asked: '{user_query}'\n\nDraft a helpful, student-centric response. If it's a greeting, be friendly. If it's a question, be informative."}]
+                        }]
+                    }
+                    try:
+                        resp = await client.post(url, headers=headers, json=data, timeout=15.0)
+                        if resp.status_code == 200:
+                            draft = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+                            break
+                        else:
+                            print(f"[AI] Draft Model {model} failed: {resp.status_code}")
+                    except Exception as e:
+                        print(f"[AI] Gemini Draft failed for {model}: {e}")
 
         # Step 2: Logical Refinement & Formatting (Groq)
         if groq_key:
             headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
             
-            # Turing-5 Premium Intelligence Protocol
+            # Campus Connect Premium Intelligence Protocol
             refinement_prompt = (
-                "ACT AS: Turing-5 (High-Fidelity ERP Intelligence Assistant).\n"
+                "ACT AS: Campus Connect (High-Fidelity ERP Intelligence Assistant).\n"
                 f"STUDENT QUERY: '{user_query}'.\n"
                 f"CONTEXT: {db_context}.\n"
                 f"DRAFT: {draft if draft else 'N/A'}.\n\n"

@@ -173,13 +173,13 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
            sender: 'bot', 
            text: `✨ **${greeting}, ${welcome.message.split('!')[0].split(' ').pop() || ''}!** ${welcome.message}`,
            actions: welcome.actions,
-           protocol: 'Turing-5'
+           protocol: 'Campus Connect'
          }])
       } else {
         setMessages(
           formatted.length
             ? formatted
-            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm your ERP Assistant. I can analyze your attendance, marks, and help you track missing ODs.\n\nType **help** to see everything I can do for you!` }],
+            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm **Campus Connect**, your premium ERP Assistant. I can analyze your attendance, marks, and help you track missing academic items.\n\nType **help** to see everything I can do for you!` }],
         )
       }
     } catch {
@@ -301,7 +301,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
   return (
     <div className={`card chatbot-card chatbot-card-premium ${compact ? 'compact-chatbot-card' : ''} ${className}`}>
       <div className="chatbot-header">
-        <h3 className="section-title">ERP Chatbot</h3>
+        <h3 className="section-title">Campus Connect</h3>
         {!compact ? (
           <p className="chatbot-subtitle">
             Ask about attendance, weakest subject, eligibility, marks, or a quick academic summary.

@@ -150,7 +150,7 @@ export default function AnonChatPage() {
   const activeChannel = channels.find(c => c.id === category) || channels[0]
 
   return (
-    <ErpLayout title="Nexus AI" subtitle="Next-generation intelligence protocol">
+    <ErpLayout title="Campus Connect" subtitle="Next-generation intelligence protocol">
       <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto overflow-hidden bg-black text-white font-sans">
         
         {/* Grok-style Sidebar */}
@@ -301,8 +301,8 @@ export default function AnonChatPage() {
                                <Zap size={16} className="text-white fill-white" />
                              </div>
                              <div className="flex flex-col">
-                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Nexus Intelligence</span>
-                               <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Protocol v4.1 Active</span>
+                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Campus Connect</span>
+                               <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Protocol v5.0 Active</span>
                              </div>
                           </div>
 

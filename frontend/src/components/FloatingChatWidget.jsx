@@ -13,7 +13,7 @@ export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
           <div className="floating-chat-titlebar">
             <div className="floating-chat-title">
               <ChatbotLogo size={24} />
-              <span>ERP Assistant</span>
+              <span>Campus Connect</span>
             </div>
             <div className="floating-chat-actions">
               <button

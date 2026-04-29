@@ -63,11 +63,11 @@ export default function CampusHub() {
           <div className="hub-tile-header">
             <div className="hub-tile-icon-wrap">🗣️</div>
             <div className="hub-tile-title">
-              <span className="hub-tile-label">Community Wall</span>
-              <span className="hub-tile-desc">Anonymous campus feed</span>
+              <span className="hub-tile-label">Campus Connect</span>
+              <span className="hub-tile-desc">High-fidelity campus feed</span>
             </div>
             <div style={{ marginLeft: 'auto' }}>
-              <Link to="/campus-wall" className="bento-task-action">Open Wall</Link>
+              <Link to="/campus-wall" className="bento-task-action">Open Connect</Link>
             </div>
           </div>
           <div className="bento-internal-scroll">
