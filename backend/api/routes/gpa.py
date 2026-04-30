@@ -19,7 +19,7 @@ def percentage_to_grade(pct):
             return {"letter": letter, "point": point}
     return {"letter": "F", "point": 0}
 
-@router.get("/cgpa")
+@router.get("/cgpa/")
 def get_cgpa(student=Depends(get_current_student), db: Session = Depends(get_db)):
     print(f"[DEBUG] Calculating CGPA for student {student.id} ({student.username})")
     # Only use published marks. Average all assessments per subject-semester
@@ -69,7 +69,7 @@ def get_cgpa(student=Depends(get_current_student), db: Session = Depends(get_db)
     cgpa_val = round(total_weighted / total_credits, 2) if total_credits > 0 else 0
     return {"cgpa": cgpa_val, "total_credits": total_credits, "semesters": semesters}
 
-@router.get("/semester/{sem}")
+@router.get("/semester/{sem}/")
 def semester_gpa(sem: str, student=Depends(get_current_student), db: Session = Depends(get_db)):
     # Aggregate all assessments per subject before computing grade (same logic as /cgpa)
     marks = db.query(Mark).filter(

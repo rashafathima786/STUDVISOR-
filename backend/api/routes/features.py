@@ -168,7 +168,7 @@ def get_timetable(student=Depends(get_current_student), db: Session = Depends(ge
         result.append({"day": s.day, "hour": s.hour, "subject": subj.name if subj else "?", "code": subj.code if subj else "?", "faculty": fac.name if fac else "?", "room": s.room})
     return {"timetable": result}
 
-@timetable_router.post("/generate")
+@timetable_router.post("/generate/")
 def generate_timetable(semester: int, section: str, _=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """Admin triggers AI timetable generation for a section."""
     from backend.services.timetable_service import conflict_resolver
@@ -250,7 +250,7 @@ def list_assignments(student=Depends(get_current_student), db: Session = Depends
         })
     return {"assignments": result}
 
-@assignment_router.post("/{aid}/submit")
+@assignment_router.post("/{aid}/submit/")
 def submit_assignment(aid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
     if not db.query(Assignment).filter(Assignment.id == aid).first():
         raise HTTPException(404, "Assignment not found")
@@ -298,7 +298,7 @@ def list_notes(db: Session = Depends(get_db)):
     notes = db.query(Note).order_by(Note.created_at.desc()).limit(50).all()
     return {"notes": [{"id": n.id, "title": n.title, "file_url": n.file_url, "helpful": n.helpful_count, "not_helpful": n.not_helpful_count} for n in notes]}
 
-@notes_router.post("/{nid}/rate")
+@notes_router.post("/{nid}/rate/")
 def rate_note(nid: int, helpful: bool = True, db: Session = Depends(get_db)):
     note = db.query(Note).filter(Note.id == nid).first()
     if not note: raise HTTPException(404, "Note not found")
@@ -317,7 +317,7 @@ def list_polls(db: Session = Depends(get_db)):
         result.append({"id": p.id, "question": p.question, "options": [{"id": o.id, "text": o.option_text, "votes": o.vote_count} for o in options]})
     return {"polls": result}
 
-@poll_router.post("/{pid}/vote")
+@poll_router.post("/{pid}/vote/")
 def vote(pid: int, option_id: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
     existing = db.query(PollVote).filter(PollVote.poll_id == pid, PollVote.student_id == student.id).first()
     if existing: raise HTTPException(400, "Already voted")
@@ -340,7 +340,7 @@ def list_events(db: Session = Depends(get_db)):
         "location": e.venue
     } for e in db.query(Event).order_by(Event.event_date.desc()).all()]}
 
-@event_router.post("/{eid}/rsvp")
+@event_router.post("/{eid}/rsvp/")
 def rsvp(eid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
     if db.query(EventRSVP).filter(EventRSVP.event_id == eid, EventRSVP.student_id == student.id).first():
         raise HTTPException(400, "Already RSVP'd")

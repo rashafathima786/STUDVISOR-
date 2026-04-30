@@ -31,7 +31,7 @@ class QuestionPaperRequest(BaseModel):
 
 # ─── STUDENT AI ──────────────────────────────────────────────────────────────
 
-@router.post("/student/chat")
+@router.post("/student/chat/")
 async def student_chat(req: ChatRequest, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Context-aware AI chat for students using the premium Intelligence Ensemble."""
     from backend.services.ai_service import ai_service
@@ -51,7 +51,7 @@ async def student_chat(req: ChatRequest, student=Depends(get_current_student), d
     }
 
 
-@router.get("/student/welcome")
+@router.get("/student/welcome/")
 async def student_welcome(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Fetches a personalized welcome package for the student."""
     from backend.services.ai_service import ai_service
@@ -60,7 +60,7 @@ async def student_welcome(student=Depends(get_current_student), db: Session = De
     return package
 
 
-@router.post("/student/chat/stream")
+@router.post("/student/chat/stream/")
 async def student_chat_stream(req: ChatRequest, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """SSE streaming AI chat with context injection."""
     from backend.services.ai_service import ai_service
@@ -73,7 +73,7 @@ async def student_chat_stream(req: ChatRequest, student=Depends(get_current_stud
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-@router.get("/student/suggestions")
+@router.get("/student/suggestions/")
 def chat_suggestions(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """AI-generated contextual question suggestions based on student state."""
     from backend.app.models import Attendance, Mark
@@ -97,7 +97,7 @@ def chat_suggestions(student=Depends(get_current_student), db: Session = Depends
     return {"suggestions": suggestions}
 
 
-@router.get("/student/safe-to-bunk")
+@router.get("/student/safe-to-bunk/")
 def safe_to_bunk(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """AI-computed: which subjects have enough attendance buffer."""
     from backend.app.models import Attendance, Subject
@@ -132,7 +132,7 @@ def safe_to_bunk(student=Depends(get_current_student), db: Session = Depends(get
     return {"subjects": sorted(result, key=lambda x: x["classes_can_miss"], reverse=True)}
 
 
-@router.get("/student/recovery-plan")
+@router.get("/student/recovery-plan/")
 def attendance_recovery_plan(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """AI plan to recover attendance in subjects below 75%."""
     from backend.app.models import Attendance, Subject
@@ -177,18 +177,18 @@ def attendance_recovery_plan(student=Depends(get_current_student), db: Session =
 
 # ─── STUDENT GAMIFICATION ───────────────────────────────────────────────────
 
-@router.get("/student/badges")
+@router.get("/student/badges/")
 def student_badges(student=Depends(get_current_student), db: Session = Depends(get_db)):
     return {"badges": gamification_service.check_badges(db, student.id), "total_xp": gamification_service.get_xp(db, student.id)}
 
-@router.get("/student/peer-mentors")
+@router.get("/student/peer-mentors/")
 def peer_mentors(student=Depends(get_current_student), db: Session = Depends(get_db)):
     return {"mentors": gamification_service.find_peer_mentors(db, student.id)}
 
 
 # ─── STUDENT RISK (self-check) ──────────────────────────────────────────────
 
-@router.get("/student/my-risk-score")
+@router.get("/student/my-risk-score/")
 def my_risk_score(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Student can see their own risk assessment (anonymized version)."""
     risk = predictive_service.compute_all_risks(db, student.id)
@@ -201,7 +201,7 @@ def my_risk_score(student=Depends(get_current_student), db: Session = Depends(ge
 
 # ─── FACULTY AI ──────────────────────────────────────────────────────────────
 
-@router.post("/faculty/chat")
+@router.post("/faculty/chat/")
 async def faculty_chat(req: ChatRequest, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
     context = build_faculty_context(db, faculty.id)
     return {
@@ -210,7 +210,7 @@ async def faculty_chat(req: ChatRequest, faculty=Depends(get_current_faculty), d
     }
 
 
-@router.get("/faculty/class-health")
+@router.get("/faculty/class-health/")
 def class_health(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
     """AI summary: which students are at risk in faculty's classes."""
     from backend.app.models import Subject, Student, Attendance
@@ -256,7 +256,7 @@ def class_health(faculty=Depends(get_current_faculty), db: Session = Depends(get
     return {"at_risk_students": at_risk[:20], "total_flagged": len(at_risk)}
 
 
-@router.post("/faculty/generate-question-paper")
+@router.post("/faculty/generate-question-paper/")
 def generate_question_paper(req: QuestionPaperRequest, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
     """AI generates a question paper from syllabus topics with Bloom's taxonomy levels."""
     from backend.app.models import Subject, SyllabusTopic
@@ -303,13 +303,13 @@ def generate_question_paper(req: QuestionPaperRequest, faculty=Depends(get_curre
 
 # ─── ADMIN AI ────────────────────────────────────────────────────────────────
 
-@router.get("/admin/risk-dashboard")
+@router.get("/admin/risk-dashboard/")
 def admin_risk_dashboard(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """All at-risk students across the institution."""
     return {"at_risk_students": predictive_service.batch_risk_assessment(db)}
 
 
-@router.post("/admin/chat")
+@router.post("/admin/chat/")
 def admin_chat(req: ChatRequest, _=Depends(require_role("admin")), db: Session = Depends(get_db)):
     context = build_admin_context(db)
     return {
@@ -323,7 +323,7 @@ def admin_chat(req: ChatRequest, _=Depends(require_role("admin")), db: Session =
 class VoiceRequest(BaseModel):
     audio_b64: str
 
-@router.post("/voice/interact")
+@router.post("/voice/interact/")
 async def voice_interact(req: VoiceRequest, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Accept voice input, transcribe, process via chatbot, and return audio response."""
     from backend.services.voice_service import voice_service
@@ -345,7 +345,7 @@ async def voice_interact(req: VoiceRequest, student=Depends(get_current_student)
 class ModerationRequest(BaseModel):
     text: str
 
-@router.post("/moderation/check")
+@router.post("/moderation/check/")
 def moderation_check(req: ModerationRequest, _=Depends(require_role("admin"))):
     """Admin tool to check sentiment and toxicity of content."""
     from backend.services.sentiment_service import sentiment_service
@@ -354,7 +354,7 @@ def moderation_check(req: ModerationRequest, _=Depends(require_role("admin"))):
 
 # ─── ADVANCED PATHING ───────────────────────────────────────────────────────
 
-@router.get("/student/pathway")
+@router.get("/student/pathway/")
 def get_student_pathway(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """AI recommends career paths and recovery steps based on academic performance."""
     from backend.services.predictive_service import predictive_service
@@ -406,7 +406,7 @@ def get_student_pathway(student=Depends(get_current_student), db: Session = Depe
     }
 
 
-@router.post("/student/placement-match")
+@router.post("/student/placement-match/")
 async def placement_match(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """AI matches student profile with open placement drives."""
     from backend.app.models import PlacementDrive, Mark, Subject
@@ -441,7 +441,7 @@ async def placement_match(student=Depends(get_current_student), db: Session = De
 
 # ─── STUDENT STUDY SCHEDULE ─────────────────────────────────────────────────
 
-@router.get("/student/study-schedule")
+@router.get("/student/study-schedule/")
 def study_schedule(daily_hours: int = 4, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """AI-generated personalized day-by-day study schedule."""
     from backend.services.study_schedule_service import study_scheduler
@@ -450,7 +450,7 @@ def study_schedule(daily_hours: int = 4, student=Depends(get_current_student), d
 
 # ─── FACULTY PLAGIARISM DETECTION ────────────────────────────────────────────
 
-@router.get("/faculty/plagiarism-check/{assignment_id}")
+@router.get("/faculty/plagiarism-check/{assignment_id}/")
 def check_plagiarism(assignment_id: int, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
     """Run plagiarism detection across all submissions for an assignment."""
     from backend.app.models import AssignmentSubmission, Student
@@ -473,7 +473,7 @@ def check_plagiarism(assignment_id: int, faculty=Depends(get_current_faculty), d
 
 # ─── FACULTY ATTENDANCE TRENDS ───────────────────────────────────────────────
 
-@router.get("/faculty/attendance-anomalies")
+@router.get("/faculty/attendance-anomalies/")
 def attendance_anomalies(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
     """Detect students with sudden attendance drops in faculty's subjects."""
     from backend.app.models import Subject, Student, Attendance
@@ -530,7 +530,7 @@ def attendance_anomalies(faculty=Depends(get_current_faculty), db: Session = Dep
 
 # ─── FACULTY EXAM READINESS ─────────────────────────────────────────────────
 
-@router.get("/faculty/exam-readiness/{subject_code}")
+@router.get("/faculty/exam-readiness/{subject_code}/")
 def exam_readiness(subject_code: str, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
     """Predict class performance on upcoming exam based on CIA scores."""
     from backend.app.models import Subject, Student, Mark
@@ -573,14 +573,14 @@ def exam_readiness(subject_code: str, faculty=Depends(get_current_faculty), db: 
 
 # ─── ADMIN TIMETABLE CONFLICTS ──────────────────────────────────────────────
 
-@router.get("/admin/timetable-conflicts")
+@router.get("/admin/timetable-conflicts/")
 def timetable_conflicts(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """Detect all scheduling conflicts in current timetable."""
     from backend.services.timetable_service import conflict_resolver
     return conflict_resolver.detect_conflicts(db)
 
 
-@router.get("/admin/timetable-suggestions")
+@router.get("/admin/timetable-suggestions/")
 def timetable_suggestions(subject_id: int, section: str = "A", semester: int = 3,
                           _=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """Find conflict-free slot alternatives."""
@@ -590,14 +590,14 @@ def timetable_suggestions(subject_id: int, section: str = "A", semester: int = 3
 
 # ─── ADMIN DEPARTMENT ANALYTICS ──────────────────────────────────────────────
 
-@router.get("/admin/department-performance")
+@router.get("/admin/department-performance/")
 def department_perf(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """Per-department KPIs."""
     from backend.services.advanced_analytics import analytics_engine
     return {"departments": analytics_engine.department_performance(db)}
 
 
-@router.get("/admin/faculty-effectiveness")
+@router.get("/admin/faculty-effectiveness/")
 def faculty_effectiveness(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """Faculty effectiveness scores."""
     from backend.services.advanced_analytics import analytics_engine

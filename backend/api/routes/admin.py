@@ -9,7 +9,7 @@ from backend.app.models import Student, Faculty, Admin, LeaveRequest, Complaint,
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-@router.get("/dashboard/v2")
+@router.get("/dashboard/v2/")
 def dashboard_v2(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """Enterprise-grade integrated dashboard with cross-module analytics."""
     from sqlalchemy import func
@@ -66,7 +66,7 @@ def dashboard_v2(_=Depends(require_role("admin")), db: Session = Depends(get_db)
         "last_updated": str(datetime.now())
     }
 
-@router.get("/students")
+@router.get("/students/")
 def list_students(dept: Optional[str] = None, _=Depends(require_role("admin")), db: Session = Depends(get_db)):
     q = db.query(Student)
     if dept: q = q.filter(Student.department == dept)
@@ -81,7 +81,7 @@ class StudentCreate(BaseModel):
     department: Optional[str] = None
     semester: Optional[int] = None
 
-@router.post("/students")
+@router.post("/students/")
 def create_student(data: StudentCreate, _=Depends(require_role("admin")), db: Session = Depends(get_db)):
     from backend.core.security import hash_password
     s = Student(username=data.username, email=data.email, hashed_password=hash_password(data.password), full_name=data.full_name, department=data.department, semester=data.semester)
@@ -89,11 +89,11 @@ def create_student(data: StudentCreate, _=Depends(require_role("admin")), db: Se
     db.commit()
     return {"message": "Student created", "id": s.id}
 
-@router.get("/faculty")
+@router.get("/faculty/")
 def list_faculty(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     return {"faculty": [{"id": f.id, "name": f.name, "department": f.department, "designation": f.designation, "subjects": f.subjects_teaching} for f in db.query(Faculty).order_by(Faculty.name).all()]}
 
-@router.get("/leaves/pending")
+@router.get("/leaves/pending/")
 def pending_leaves(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     leaves = db.query(LeaveRequest).filter(LeaveRequest.status == "Pending").order_by(LeaveRequest.applied_on.desc()).all()
     result = []
@@ -102,7 +102,7 @@ def pending_leaves(_=Depends(require_role("admin")), db: Session = Depends(get_d
         result.append({"id": l.id, "student": s.full_name if s else "?", "type": l.leave_type, "from": l.from_date, "to": l.to_date, "reason": l.reason})
     return {"leaves": result}
 
-@router.put("/leaves/{lid}")
+@router.put("/leaves/{lid}/")
 def action_leave(lid: int, status: str = "Approved", _=Depends(require_role("admin")), db: Session = Depends(get_db)):
     leave = db.query(LeaveRequest).filter(LeaveRequest.id == lid).first()
     if not leave: raise HTTPException(404, "Leave not found")
@@ -110,7 +110,7 @@ def action_leave(lid: int, status: str = "Approved", _=Depends(require_role("adm
     db.commit()
     return {"message": f"Leave {status}"}
 
-@router.get("/reports/attendance")
+@router.get("/reports/attendance/")
 def attendance_report(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     from collections import defaultdict
     students = db.query(Student).all()
@@ -122,13 +122,13 @@ def attendance_report(_=Depends(require_role("admin")), db: Session = Depends(ge
             if r.status == "P": dept_data[s.department or "Unknown"]["present"] += 1
     return {"report": [{"department": d, "total": v["total"], "present": v["present"], "pct": round(v["present"]/v["total"]*100, 1) if v["total"] > 0 else 0} for d, v in sorted(dept_data.items())]}
 
-@router.get("/reports/fees")
+@router.get("/reports/fees/")
 def fees_report(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     fees = db.query(StudentFee).all()
     total_due = sum(f.amount_due for f in fees)
     total_paid = sum(f.amount_paid for f in fees)
     return {"total_due": total_due, "total_collected": total_paid, "pending": total_due - total_paid, "overdue_count": sum(1 for f in fees if f.status == "Overdue")}
-@router.get("/analytics/mood")
+@router.get("/analytics/mood/")
 def mood_analytics(batch_year: Optional[int] = None, section: Optional[str] = None, _=Depends(require_role("admin")), db: Session = Depends(get_db)):
     """Admin analytics for student wellbeing trends."""
     from backend.app.models import MoodCheckin

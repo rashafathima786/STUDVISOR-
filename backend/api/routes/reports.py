@@ -43,7 +43,7 @@ def get_premium_style():
     </style>
     """
 
-@reports_router.get("/marksheet/{student_id}", response_class=HTMLResponse)
+@reports_router.get("/marksheet/{student_id}/", response_class=HTMLResponse)
 def marksheet(student_id: int, current=Depends(get_current_student), db: Session = Depends(get_db)):
     if current.id != student_id:
         raise HTTPException(status_code=403, detail="Cannot access another student's report")
@@ -91,7 +91,7 @@ def marksheet(student_id: int, current=Depends(get_current_student), db: Session
     </html>
     """
 
-@reports_router.get("/bonafide/{student_id}", response_class=HTMLResponse)
+@reports_router.get("/bonafide/{student_id}/", response_class=HTMLResponse)
 def bonafide(student_id: int, current=Depends(get_current_student), db: Session = Depends(get_db)):
     if current.id != student_id:
         raise HTTPException(status_code=403, detail="Cannot access another student's report")
@@ -124,7 +124,7 @@ def bonafide(student_id: int, current=Depends(get_current_student), db: Session 
     </html>
     """
 
-@reports_router.get("/attendance-cert/{student_id}", response_class=HTMLResponse)
+@reports_router.get("/attendance-cert/{student_id}/", response_class=HTMLResponse)
 def attendance_cert(student_id: int, current=Depends(get_current_student), db: Session = Depends(get_db)):
     if current.id != student_id:
         raise HTTPException(status_code=403, detail="Cannot access another student's report")
@@ -161,7 +161,7 @@ def attendance_cert(student_id: int, current=Depends(get_current_student), db: S
     </html>
     """
 
-@reports_router.get("/fee-receipt/{student_id}", response_class=HTMLResponse)
+@reports_router.get("/fee-receipt/{student_id}/", response_class=HTMLResponse)
 def fee_receipt(student_id: int, current=Depends(get_current_student), db: Session = Depends(get_db)):
     if current.id != student_id:
         raise HTTPException(status_code=403, detail="Cannot access another student's report")

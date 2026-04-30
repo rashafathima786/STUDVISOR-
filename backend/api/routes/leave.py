@@ -14,19 +14,19 @@ class LeaveCreate(BaseModel):
     to_date: str
     reason: str
 
-@router.get("/requests")
+@router.get("/requests/")
 def my_leaves(student=Depends(get_current_student), db: Session = Depends(get_db)):
     leaves = db.query(LeaveRequest).filter(LeaveRequest.student_id == student.id).order_by(LeaveRequest.applied_on.desc()).all()
     return {"leaves": [{"id": l.id, "type": l.leave_type, "from": l.from_date, "to": l.to_date, "reason": l.reason, "status": l.status} for l in leaves]}
 
-@router.post("/requests")
+@router.post("/requests/")
 def apply_leave(data: LeaveCreate, student=Depends(get_current_student), db: Session = Depends(get_db)):
     leave = LeaveRequest(student_id=student.id, leave_type=data.leave_type, from_date=data.from_date, to_date=data.to_date, reason=data.reason)
     db.add(leave)
     db.commit()
     return {"message": "Leave applied", "id": leave.id}
 
-@router.delete("/requests/{leave_id}")
+@router.delete("/requests/{leave_id}/")
 def withdraw_leave(leave_id: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
     leave = db.query(LeaveRequest).filter(LeaveRequest.id == leave_id, LeaveRequest.student_id == student.id, LeaveRequest.status == "Pending").first()
     if not leave: raise HTTPException(404, "Leave not found or already actioned")
@@ -34,7 +34,7 @@ def withdraw_leave(leave_id: int, student=Depends(get_current_student), db: Sess
     db.commit()
     return {"message": "Leave withdrawn"}
 
-@router.get("/balance")
+@router.get("/balance/")
 def leave_balance(student=Depends(get_current_student), db: Session = Depends(get_db)):
     approved = db.query(LeaveRequest).filter(LeaveRequest.student_id == student.id, LeaveRequest.status.in_(["Faculty_Approved", "HOD_Approved", "Approved"])).all()
     used = {"Medical": 0, "Personal": 0, "OD": 0, "Other": 0}

@@ -74,7 +74,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 def root():
     return {"success": True, "message": "Studvisor v2.0 — Unified Campus Intelligence Platform", "version": "2.0.0"}
 
-@app.get("/health")
+@app.get("/health/")
 def health():
     return {"success": True, "status": "ok", "version": "2.0.0"}
 

@@ -9,7 +9,7 @@ from backend.app.models import Attendance, Subject
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
-@router.get("/overall")
+@router.get("/overall/")
 def overall(student=Depends(get_current_student), db: Session = Depends(get_db)):
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     print(f"[DEBUG] Attendance for student {student.id} ({student.username}): found {len(records)} records")
@@ -17,7 +17,7 @@ def overall(student=Depends(get_current_student), db: Session = Depends(get_db))
     present = sum(1 for r in records if r.status == "P")
     return {"total": total, "present": present, "absent": total - present, "percentage": round(present / total * 100, 1) if total > 0 else 0}
 
-@router.get("/subject-wise")
+@router.get("/subject-wise/")
 def subject_wise(student=Depends(get_current_student), db: Session = Depends(get_db)):
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     data = defaultdict(lambda: {"total": 0, "present": 0})
@@ -31,7 +31,7 @@ def subject_wise(student=Depends(get_current_student), db: Session = Depends(get
         result.append({"subject_id": sid, "subject": subj.name if subj else "?", "code": subj.code if subj else "?", "total": d["total"], "present": d["present"], "percentage": pct, "below_75": pct < 75})
     return {"subjects": sorted(result, key=lambda x: x["percentage"])}
 
-@router.get("/heatmap")
+@router.get("/heatmap/")
 def heatmap(student=Depends(get_current_student), db: Session = Depends(get_db)):
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     daily = defaultdict(lambda: {"total": 0, "present": 0})
@@ -40,7 +40,7 @@ def heatmap(student=Depends(get_current_student), db: Session = Depends(get_db))
         if r.status == "P": daily[r.date]["present"] += 1
     return {"heatmap": [{"date": d, "total": v["total"], "present": v["present"], "status": "full" if v["present"] == v["total"] else "partial" if v["present"] > 0 else "absent"} for d, v in sorted(daily.items())]}
 
-@router.get("/missed-classes")
+@router.get("/missed-classes/")
 def missed(student=Depends(get_current_student), db: Session = Depends(get_db)):
     records = db.query(Attendance).filter(Attendance.student_id == student.id, Attendance.status == "A").order_by(Attendance.date.desc()).all()
     result = []
@@ -49,7 +49,7 @@ def missed(student=Depends(get_current_student), db: Session = Depends(get_db)):
         result.append({"date": r.date, "hour": r.hour, "subject": subj.name if subj else "?"})
     return {"missed": result[:50]}
 
-@router.get("/bunk-alerts")
+@router.get("/bunk-alerts/")
 def bunk_alerts(student=Depends(get_current_student), db: Session = Depends(get_db)):
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     data = defaultdict(lambda: {"total": 0, "present": 0})
@@ -87,7 +87,7 @@ def bunk_alerts(student=Depends(get_current_student), db: Session = Depends(get_
     
     return {"alerts": sorted(alerts, key=lambda x: x["percentage"])}
 
-@router.get("/simulate-bunk")
+@router.get("/simulate-bunk/")
 def simulate(miss_count: int = 1, subject_id: Optional[int] = None, student=Depends(get_current_student), db: Session = Depends(get_db)):
     query = db.query(Attendance).filter(Attendance.student_id == student.id)
     if subject_id is not None:

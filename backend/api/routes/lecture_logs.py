@@ -6,7 +6,7 @@ from backend.app.models import LectureLog, Subject, Faculty
 
 router = APIRouter(prefix="/lecture-logs", tags=["Lecture Logs"])
 
-@router.get("/my-logs")
+@router.get("/my-logs/")
 def get_student_lecture_logs(student=Depends(get_current_student), db: Session = Depends(get_db)):
     # Students see logs for subjects in their current semester
     # And potentially restricted by section if we had that mapping, 

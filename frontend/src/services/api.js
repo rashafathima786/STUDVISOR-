@@ -309,7 +309,7 @@ export async function fetchAssignments() {
 }
 
 export async function submitAssignment(assignmentId) {
-  const response = await api.post(`/academic/assignments/${assignmentId}/submit`);
+  const response = await api.post(`/academic/assignments/${assignmentId}/submit/`);
   return response.data;
 }
 
@@ -333,7 +333,7 @@ export async function fetchSyllabus() {
 }
 
 export async function toggleSyllabusTopic(topicId) {
-  const response = await api.post(`/syllabus/topics/${topicId}/toggle`);
+  const response = await api.post(`/syllabus/topics/${topicId}/toggle/`);
   return response.data;
 }
 
@@ -351,7 +351,7 @@ export async function createNote(data) {
 }
 
 export async function rateNote(noteId, isHelpful) {
-  const response = await api.post(`/academic/notes/${noteId}/rate`, null, { params: { helpful: isHelpful } });
+  const response = await api.post(`/academic/notes/${noteId}/rate/`, null, { params: { helpful: isHelpful } });
   return response.data;
 }
 
@@ -370,12 +370,12 @@ export async function createAnonPost(data) {
 }
 
 export async function reactToPost(postId, reactionType) {
-  const response = await api.post(`/campus/anon/posts/${postId}/react`, { reaction_type: reactionType });
+  const response = await api.post(`/campus/anon/posts/${postId}/react/`, { reaction_type: reactionType });
   return response.data;
 }
 
 export async function flagPost(postId) {
-  const response = await api.post(`/campus/anon/posts/${postId}/flag`);
+  const response = await api.post(`/campus/anon/posts/${postId}/flag/`);
   return response.data;
 }
 
@@ -392,7 +392,7 @@ export async function createComplaint(data) {
 }
 
 export async function upvoteComplaint(complaintId) {
-  const response = await api.post(`/complaints/${complaintId}/upvote`);
+  const response = await api.post(`/complaints/${complaintId}/upvote/`);
   return response.data;
 }
 
@@ -409,7 +409,7 @@ export async function createPoll(question, options, category = "campus") {
 }
 
 export async function votePoll(pollId, optionId) {
-  const response = await api.post(`/campus/polls/${pollId}/vote`, { option_id: optionId });
+  const response = await api.post(`/campus/polls/${pollId}/vote/`, { option_id: optionId });
   return response.data;
 }
 
@@ -433,7 +433,7 @@ export async function fetchEvents() {
 }
 
 export async function rsvpEvent(eventId) {
-  const response = await api.post(`/campus/events/${eventId}/rsvp`);
+  const response = await api.post(`/campus/events/${eventId}/rsvp/`);
   return response.data;
 }
 
@@ -467,7 +467,7 @@ export async function createLostFoundItem(data) {
 }
 
 export async function claimLostFoundItem(itemId) {
-  const response = await api.post(`/lost-found/${itemId}/claim`);
+  const response = await api.post(`/lost-found/${itemId}/claim/`);
   return response.data;
 }
 
@@ -488,7 +488,7 @@ export async function fetchLeaderboard(category = "merit") {
 // ── GPA / CGPA ──────────────────────────────────────────────────────────────
 
 export async function fetchSemesterGPA(semester) {
-  const response = await api.get(`/gpa/semester/${semester}`);
+  const response = await api.get(`/gpa/semester/${semester}/`);
   return response.data;
 }
 
@@ -540,7 +540,7 @@ export async function fetchMyIssuedBooks() {
 // ── PLACEMENT ───────────────────────────────────────────────────────────────
 
 export async function fetchPlacementDrives() {
-  const response = await api.get('/campus/placement/drives');
+  const response = await api.get('/campus/placement/drives/');
   return response.data;
 }
 
@@ -700,7 +700,7 @@ export async function fetchPendingLeaves() {
 }
 
 export async function updateLeaveStatus(leaveId, status) {
-  const response = await api.put(`/admin/leaves/${leaveId}`, { status });
+  const response = await api.put(`/admin/leaves/${leaveId}/`, { status });
   return response.data;
 }
 

@@ -8,10 +8,10 @@ from backend.app.models import Attendance, Mark, Subject, Student
 
 router = APIRouter(prefix="/student", tags=["Student"])
 
-@router.get("/profile")
+@router.get("/profile/")
 def profile(student=Depends(get_current_student)):
     return {"id": student.id, "username": student.username, "full_name": student.full_name, "email": student.email, "department": student.department, "semester": student.semester, "merit_points": student.merit_points, "merit_tier": student.merit_tier}
-@router.post("/mood/checkin")
+@router.post("/mood/checkin/")
 def mood_checkin(score: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Anonymous mood check-in. Score 1-5."""
     if not (1 <= score <= 5):
