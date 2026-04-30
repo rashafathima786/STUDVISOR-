@@ -98,14 +98,14 @@ api.interceptors.response.use(
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 
 export async function loginUser(credentials) {
-  const response = await api.post("/auth/login", credentials);
+  const response = await api.post("/auth/login/", credentials);
   return response.data;
 }
 
 // ── PROFILE ─────────────────────────────────────────────────────────────────
 
 export async function fetchProfile() {
-  const response = await api.get("/auth/student/me");
+  const response = await api.get("/auth/student/me/");
   return response.data;
 }
 
@@ -122,24 +122,24 @@ export async function fetchSubjectAttendance() {
 }
 
 export async function fetchMissedClasses(params = {}) {
-  const response = await api.get("/academic/attendance/missed-classes", { params });
+  const response = await api.get("/academic/attendance/missed-classes/", { params });
   return response.data;
 }
 
 export async function fetchBunkAlerts() {
-  const response = await api.get("/academic/attendance/bunk-alerts");
+  const response = await api.get("/academic/attendance/bunk-alerts/");
   return response.data;
 }
 
 export async function simulateBunk(missCount = 1, subjectCode = null) {
   const params = { miss_count: missCount };
   if (subjectCode) params.subject_code = subjectCode;
-  const response = await api.get("/academic/attendance/simulate-bunk", { params });
+  const response = await api.get("/academic/attendance/simulate-bunk/", { params });
   return response.data;
 }
 
 export async function fetchHeatmap(year = 2026, month = 4) {
-  const response = await api.get("/academic/attendance/heatmap", { params: { year, month } });
+  const response = await api.get("/academic/attendance/heatmap/", { params: { year, month } });
   return response.data;
 }
 
@@ -153,46 +153,46 @@ export async function fetchMarks() {
 // ── CALENDAR ────────────────────────────────────────────────────────────────
 
 export async function fetchCalendarMonth(year = 2026, month = 4) {
-  const response = await api.get("/campus/calendar/month", { params: { year, month } });
+  const response = await api.get("/campus/calendar/month/", { params: { year, month } });
   return response.data;
 }
 
 export async function fetchUpcomingHolidays() {
-  const response = await api.get("/campus/calendar/upcoming-holidays");
+  const response = await api.get("/campus/calendar/upcoming-holidays/");
   return response.data;
 }
 
 // ── LEAVE ───────────────────────────────────────────────────────────────────
 
 export async function fetchLeaveRequests() {
-  const response = await api.get("/user/leave/requests");
+  const response = await api.get("/user/leave/requests/");
   return response.data;
 }
 
 export async function applyLeaveRequest(data) {
-  const response = await api.post("/user/leave/requests", data);
+  const response = await api.post("/user/leave/requests/", data);
   return response.data;
 }
 
 // ── CHAT ────────────────────────────────────────────────────────────────────
 
 export async function fetchChatHistory() {
-  const response = await api.get("/campus/chat/history");
+  const response = await api.get("/campus/chat/history/");
   return response.data.messages || [];
 }
 
 export async function clearChatHistory() {
-  const response = await api.delete("/campus/chat/history");
+  const response = await api.delete("/campus/chat/history/");
   return response.data;
 }
 
 export async function sendChatMessage(query, contextPage = "dashboard") {
-  const response = await api.post("/campus/chat", { query, context_page: contextPage });
+  const response = await api.post("/campus/chat/", { query, context_page: contextPage });
   return response.data;
 }
 
 export async function fetchChatWelcome() {
-  const response = await api.get("/v2/ai/student/welcome");
+  const response = await api.get("/v2/ai/student/welcome/");
   return response.data;
 }
 
@@ -297,7 +297,7 @@ export async function fetchPerformanceAnalytics() {
 }
 
 export async function predictCgpa(expectedMarks) {
-  const response = await api.post("/analytics/predict-cgpa", { expected_marks: expectedMarks });
+  const response = await api.post("/analytics/predict-cgpa/", { expected_marks: expectedMarks });
   return response.data;
 }
 
@@ -346,7 +346,7 @@ export async function fetchNotes(subjectId = null) {
 }
 
 export async function createNote(data) {
-  const response = await api.post("/academic/notes", data);
+  const response = await api.post("/academic/notes/", data);
   return response.data;
 }
 
@@ -365,7 +365,7 @@ export async function fetchAnonPosts(category = null, sort = "recent") {
 }
 
 export async function createAnonPost(data) {
-  const response = await api.post("/campus/anon/posts", data);
+  const response = await api.post("/campus/anon/posts/", data);
   return response.data;
 }
 
@@ -382,12 +382,12 @@ export async function flagPost(postId) {
 // ── COMPLAINTS ──────────────────────────────────────────────────────────────
 
 export async function fetchComplaints(filters = {}) {
-  const response = await api.get("/campus/complaints", { params: filters });
+  const response = await api.get("/campus/complaints/", { params: filters });
   return response.data;
 }
 
 export async function createComplaint(data) {
-  const response = await api.post("/campus/complaints", data);
+  const response = await api.post("/campus/complaints/", data);
   return response.data;
 }
 
@@ -404,7 +404,7 @@ export async function fetchPolls() {
 }
 
 export async function createPoll(question, options, category = "campus") {
-  const response = await api.post("/campus/polls", { question, options, category });
+  const response = await api.post("/campus/polls/", { question, options, category });
   return response.data;
 }
 
@@ -448,7 +448,7 @@ export async function fetchAnnouncements() {
 
 export async function fetchFaculty(department = null) {
   const params = department ? { department } : {};
-  const response = await api.get("/campus/faculty", { params });
+  const response = await api.get("/campus/faculty/", { params });
   return response.data;
 }
 
@@ -462,7 +462,7 @@ export async function fetchLostFound(itemType = null) {
 }
 
 export async function createLostFoundItem(data) {
-  const response = await api.post("/campus/lost-found", data);
+  const response = await api.post("/campus/lost-found/", data);
   return response.data;
 }
 
@@ -510,17 +510,17 @@ export async function fetchMyFees() {
 }
 
 export async function fetchFeeSummary() {
-  const response = await api.get("/campus/fees/summary");
+  const response = await api.get("/campus/fees/summary/");
   return response.data;
 }
 
 export async function makePayment(data) {
-  const response = await api.post("/campus/fees/pay", data);
+  const response = await api.post("/campus/fees/pay/", data);
   return response.data;
 }
 
 export async function fetchPaymentHistory() {
-  const response = await api.get("/campus/fees/payments");
+  const response = await api.get("/campus/fees/payments/");
   return response.data;
 }
 
@@ -528,12 +528,12 @@ export async function fetchPaymentHistory() {
 
 export async function fetchBooks(search = "") {
   const params = search ? { search } : {};
-  const response = await api.get("/user/library/books", { params });
+  const response = await api.get("/user/library/books/", { params });
   return response.data;
 }
 
 export async function fetchMyIssuedBooks() {
-  const response = await api.get("/user/library/my-books");
+  const response = await api.get("/user/library/my-books/");
   return response.data;
 }
 
@@ -545,12 +545,12 @@ export async function fetchPlacementDrives() {
 }
 
 export async function applyToDrive(driveId) {
-  const response = await api.post(`/campus/placement/apply/${driveId}`);
+  const response = await api.post(`/campus/placement/apply/${driveId}/`);
   return response.data;
 }
 
 export async function fetchMyApplications() {
-  const response = await api.get("/campus/placement/my-applications");
+  const response = await api.get("/campus/placement/my-applications/");
   return response.data;
 }
 
@@ -559,113 +559,113 @@ export async function fetchMyApplications() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export async function fetchFacultyDashboard() {
-  const response = await api.get("/faculty-portal/dashboard");
+  const response = await api.get("/faculty-portal/dashboard/");
   return response.data;
 }
 
 export async function fetchFacultyTimetable() {
-  const response = await api.get("/faculty-portal/timetable");
+  const response = await api.get("/faculty-portal/timetable/");
   return response.data;
 }
 
 export async function markAttendance(data) {
-  const response = await api.post("/faculty-portal/attendance/mark", data);
+  const response = await api.post("/faculty-portal/attendance/mark/", data);
   return response.data;
 }
 
 export async function fetchAttendanceDefaulters() {
-  const response = await api.get("/faculty-portal/attendance/defaulters");
+  const response = await api.get("/faculty-portal/attendance/defaulters/");
   return response.data;
 }
 
 export async function fetchPendingAmendments() {
-  const response = await api.get("/faculty-portal/hod/attendance/pending");
+  const response = await api.get("/faculty-portal/hod/attendance/pending/");
   return response.data;
 }
 
 export async function approveAmendment(reqId, approve = true, remarks = "") {
-  const response = await api.put(`/faculty-portal/hod/attendance/approve/${reqId}`, null, {
+  const response = await api.put(`/faculty-portal/hod/attendance/approve/${reqId}/`, null, {
     params: { approve, remarks },
   });
   return response.data;
 }
 
 export async function uploadMarks(data) {
-  const response = await api.post("/faculty-portal/marks/upload", data);
+  const response = await api.post("/faculty-portal/marks/upload/", data);
   return response.data;
 }
 
 export async function publishMarks(subjectId, assessmentType) {
-  const response = await api.post("/faculty-portal/marks/publish", null, {
+  const response = await api.post("/faculty-portal/marks/publish/", null, {
     params: { subject_id: subjectId, assessment_type: assessmentType },
   });
   return response.data;
 }
 
 export async function fetchMarkStatistics(subjectId) {
-  const response = await api.get(`/faculty-portal/marks/statistics/${subjectId}`);
+  const response = await api.get(`/faculty-portal/marks/statistics/${subjectId}/`);
   return response.data;
 }
 
 export async function fetchFacultyPendingLeaves() {
-  const response = await api.get("/faculty-portal/leave/pending");
+  const response = await api.get("/faculty-portal/leave/pending/");
   return response.data;
 }
 
 export async function approveFacultyLeave(leaveId) {
-  const response = await api.put(`/faculty-portal/leave/${leaveId}/approve`);
+  const response = await api.put(`/faculty-portal/leave/${leaveId}/approve/`);
   return response.data;
 }
 
 export async function rejectFacultyLeave(leaveId, reason = "") {
-  const response = await api.put(`/faculty-portal/leave/${leaveId}/reject`, null, {
+  const response = await api.put(`/faculty-portal/leave/${leaveId}/reject/`, null, {
     params: { reason },
   });
   return response.data;
 }
 
 export async function fetchHodPendingLeaves() {
-  const response = await api.get("/faculty-portal/hod/leave/pending");
+  const response = await api.get("/faculty-portal/hod/leave/pending/");
   return response.data;
 }
 
 export async function hodApproveLeave(leaveId) {
-  const response = await api.put(`/faculty-portal/hod/leave/${leaveId}/approve`);
+  const response = await api.put(`/faculty-portal/hod/leave/${leaveId}/approve/`);
   return response.data;
 }
 
 export async function createFacultyAnnouncement(data) {
-  const response = await api.post("/faculty-portal/announcements", data);
+  const response = await api.post("/faculty-portal/announcements/", data);
   return response.data;
 }
 
 export async function fetchFacultyAssignments() {
-  const response = await api.get("/faculty-portal/assignments");
+  const response = await api.get("/faculty-portal/assignments/");
   return response.data;
 }
 
 export async function createFacultyAssignment(data) {
-  const response = await api.post("/faculty-portal/assignments", data);
+  const response = await api.post("/faculty-portal/assignments/", data);
   return response.data;
 }
 
 export async function checkPlagiarism(assignmentId) {
-  const response = await api.post(`/faculty-portal/assignments/check-plagiarism/${assignmentId}`);
+  const response = await api.post(`/faculty-portal/assignments/check-plagiarism/${assignmentId}/`);
   return response.data;
 }
 
 export async function fetchFacultyLectureLogs() {
-  const response = await api.get("/faculty-portal/lecture-logs");
+  const response = await api.get("/faculty-portal/lecture-logs/");
   return response.data;
 }
 
 export async function createLectureLog(data) {
-  const response = await api.post("/faculty-portal/lecture-logs", data);
+  const response = await api.post("/faculty-portal/lecture-logs/", data);
   return response.data;
 }
 
 export async function fetchMySubjects() {
-  const response = await api.get("/faculty-portal/my-subjects");
+  const response = await api.get("/faculty-portal/my-subjects/");
   return response.data;
 }
 
@@ -674,28 +674,28 @@ export async function fetchMySubjects() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export async function fetchAdminDashboard() {
-  const response = await api.get("/admin/dashboard/v2");
+  const response = await api.get("/admin/dashboard/v2/");
   return response.data;
 }
 
 export async function fetchAllStudents(dept = null) {
   const params = dept ? { dept } : {};
-  const response = await api.get("/admin/students", { params });
+  const response = await api.get("/admin/students/", { params });
   return response.data;
 }
 
 export async function createStudent(data) {
-  const response = await api.post("/admin/students", data);
+  const response = await api.post("/admin/students/", data);
   return response.data;
 }
 
 export async function fetchAllFaculty() {
-  const response = await api.get("/admin/faculty");
+  const response = await api.get("/admin/faculty/");
   return response.data;
 }
 
 export async function fetchPendingLeaves() {
-  const response = await api.get("/admin/leaves/pending");
+  const response = await api.get("/admin/leaves/pending/");
   return response.data;
 }
 
@@ -705,12 +705,12 @@ export async function updateLeaveStatus(leaveId, status) {
 }
 
 export async function fetchAttendanceReport() {
-  const response = await api.get("/admin/reports/attendance");
+  const response = await api.get("/admin/reports/attendance/");
   return response.data;
 }
 
 export async function fetchFeesReport() {
-  const response = await api.get("/admin/reports/fees");
+  const response = await api.get("/admin/reports/fees/");
   return response.data;
 }
 
@@ -718,12 +718,12 @@ export async function fetchMoodAnalytics(batchYear = null, section = null) {
   const params = {};
   if (batchYear) params.batch_year = batchYear;
   if (section) params.section = section;
-  const response = await api.get("/admin/analytics/mood", { params });
+  const response = await api.get("/admin/analytics/mood/", { params });
   return response.data;
 }
 
 export async function fetchStudentLectureLogs() {
-  const response = await api.get("/academic/lecture-logs/my-logs");
+  const response = await api.get("/academic/lecture-logs/my-logs/");
   return response.data;
 }
 
