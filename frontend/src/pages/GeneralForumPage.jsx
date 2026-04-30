@@ -32,14 +32,14 @@ import {
   ThumbsDown
 } from 'lucide-react'
 
-export default function AnonChatPage() {
+export default function GeneralForumPage() {
   const [posts, setPosts] = useState([])
   const [category, setCategory] = useState("General")
   const [newContent, setNewContent] = useState('')
   const [loading, setLoading] = useState(true)
   const [showMenu, setShowMenu] = useState(false)
-  const [isSending, setIsSending] = useState(false) // Track transmission state
-  const [postCache, setPostCache] = useState({}) // High-speed zone caching
+  const [isSending, setIsSending] = useState(false) 
+  const [postCache, setPostCache] = useState({}) 
 
   const messagesEndRef = useRef(null)
   const scrollContainerRef = useRef(null)
@@ -53,43 +53,56 @@ export default function AnonChatPage() {
   ]
 
   const handleClearChat = () => {
-    if (window.confirm("Are you sure you want to clear your local transmission history?")) {
+    if (window.confirm("Are you sure you want to clear your local history?")) {
       const lastId = posts.length > 0 ? Math.max(...posts.map(p => p.id)) : 0
-      localStorage.setItem(`nexus_last_cleared_id_${category}`, lastId.toString())
+      localStorage.setItem(`forum_last_cleared_id_${category}`, lastId.toString())
       setPosts([])
       setShowMenu(false)
     }
   }
 
   const handleExport = () => {
-    const content = posts.map(p => `[${p.session_hash === "NEXUS_AI_BOT" ? 'ACADEMIC AI' : 'STUDENT'}] ${p.content}`).join('\n\n')
+    const content = posts.map(p => `[${p.session_hash === "NEXUS_AI_BOT" ? 'FORUM AI' : 'STUDENT'}] ${p.content}`).join('\n\n')
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `community_report_${category.toLowerCase()}.txt`
+    a.download = `forum_report_${category.toLowerCase()}.txt`
     a.click()
     setShowMenu(false)
   }
 
   function loadWall(isBackground = false) {
-    if (!isBackground) setLoading(!postCache[category]) // Only show loader if we don't have cached data
+    if (!isBackground) setLoading(!postCache[category])
 
     fetchAnonPosts(category, "recent").then(res => {
       const allPosts = (res?.posts || []).reverse()
-      const lastClearedId = parseInt(localStorage.getItem(`nexus_last_cleared_id_${category}`) || "0")
+      const lastClearedId = parseInt(localStorage.getItem(`forum_last_cleared_id_${category}`) || "0")
       const filtered = lastClearedId > 0 ? allPosts.filter(p => p.id > lastClearedId) : allPosts
 
-      setPosts(filtered)
+      // ── OPTIMIZATION: Only update if content actually changed ────────────────
+      setPosts(current => {
+        const currentIds = current.map(p => p.id).join(',')
+        const newIds = filtered.map(p => p.id).join(',')
+        if (currentIds === newIds) return current // No change, skip state update
+        return filtered
+      })
+      
       setPostCache(prev => ({ ...prev, [category]: filtered }))
       setLoading(false)
     }).catch(() => setLoading(false))
   }
 
   useEffect(() => {
+    // Immediate state switch from cache to prevent "pulling up" to empty state
+    if (postCache[category]) {
+      setPosts(postCache[category])
+    } else {
+      setPosts([])
+    }
+    
     loadWall()
     isFirstLoad.current = true
-    // High-speed sync: 5s for the active sector
     const interval = setInterval(() => loadWall(true), 5000)
     return () => clearInterval(interval)
   }, [category])
@@ -97,10 +110,14 @@ export default function AnonChatPage() {
   useEffect(() => {
     const container = scrollContainerRef.current
     if (container && posts.length > 0) {
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 250
+      
       if (isFirstLoad.current) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
-        isFirstLoad.current = false
+        // Use a slight timeout to ensure layout has stabilized
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+          isFirstLoad.current = false
+        }, 50)
       } else if (isAtBottom) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }
@@ -113,13 +130,12 @@ export default function AnonChatPage() {
     setNewContent('')
     setIsSending(true)
 
-    // OPTIMISTIC UI: Inject local transmission immediately
     const tempId = Date.now()
     const optimisticPost = {
       id: tempId,
       content: content,
       category: category,
-      session_hash: "TRANSMITTING", // Visual indicator for performance
+      session_hash: "TRANSMITTING", 
       created_at: new Date().toISOString(),
       reactions: { like: 0, helpful: 0 },
       is_optimistic: true
@@ -129,7 +145,7 @@ export default function AnonChatPage() {
     try {
       await createAnonPost({ content, category })
       setIsSending(false)
-      loadWall(true) // Silent refresh to finalize node ID
+      loadWall(true) 
     } catch (err) {
       console.error(err)
       setPosts(prev => prev.filter(p => p.id !== tempId))
@@ -147,7 +163,7 @@ export default function AnonChatPage() {
   }
 
   const handleFlag = async (pid) => {
-    if (window.confirm("Report this transmission for moderation review?")) {
+    if (window.confirm("Report this post for moderation review?")) {
       try {
         await flagPost(pid)
         loadWall()
@@ -202,17 +218,17 @@ export default function AnonChatPage() {
   const themeRGB = getRGB(zoneTheme.color)
 
   return (
-    <ErpLayout title="Nexus AI" subtitle="Next-generation intelligence protocol">
+    <ErpLayout title="General Forum" subtitle="Open campus dialogue">
       <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto overflow-hidden bg-black text-white font-sans">
 
-        {/* Professional Sidebar */}
+        {/* Sidebar */}
         <div className="w-80 border-r border-white/5 flex flex-col bg-[#0d0d0f] hidden lg:flex">
           <div className="p-8">
             <div className="flex items-center gap-3 mb-10">
               <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
                 <Shield size={18} className="text-indigo-400" />
               </div>
-              <span className="text-sm font-bold tracking-[0.1em] text-white/90 uppercase">Verified Feed</span>
+              <span className="text-sm font-bold tracking-[0.1em] text-white/90 uppercase">Campus Feed</span>
             </div>
 
             <nav className="space-y-1">
@@ -307,9 +323,8 @@ export default function AnonChatPage() {
             </div>
           </header>
 
-          {/* Feed */}
-          <div className="flex-1 overflow-y-auto px-4 md:px-12 py-8 scrollbar-hide bg-[#09090b]/50" ref={scrollContainerRef}>
-            <AnimatePresence mode="popLayout">
+          <div className="flex-1 overflow-y-auto px-4 md:px-12 py-8 scrollbar-hide bg-[#09090b]/50 relative" ref={scrollContainerRef}>
+            <AnimatePresence mode="wait">
               {posts.length > 0 ? (
                 posts.map((post, idx) => {
                   const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### 🟢");
@@ -326,7 +341,7 @@ export default function AnonChatPage() {
                         <div className="flex items-center gap-3">
                            <div className={`w-2 h-2 rounded-full ${isAI ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-indigo-500/60 shadow-[0_0_8px_rgba(99,102,241,0.3)]'} animate-pulse`} />
                            <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
-                             {isAI ? 'Verified Intelligence' : 'Verified Node'}
+                             {isAI ? 'Forum Intelligence' : 'Verified Student'}
                            </span>
                         </div>
                         <div className="flex items-center gap-2 opacity-30">
@@ -337,7 +352,6 @@ export default function AnonChatPage() {
                         </div>
                       </div>
 
-                      {/* AI Content */}
                       {isAI && (
                         <div className="w-full bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-2xl">
                           <div className="flex items-center gap-3 mb-8 opacity-60">
@@ -345,8 +359,8 @@ export default function AnonChatPage() {
                                <Zap size={16} className="text-white fill-white" />
                              </div>
                              <div className="flex flex-col">
-                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Nexus Intelligence</span>
-                               <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Protocol v4.1 Active</span>
+                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Forum Intelligence</span>
+                               <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Dialogue Support Active</span>
                              </div>
                           </div>
 
@@ -361,7 +375,6 @@ export default function AnonChatPage() {
                             </div>
                           </div>
 
-                          {/* Grok Action Row for AI */}
                           <div className="flex items-center gap-6 mt-10 text-white/20 border-t border-white/5 pt-6">
                             <div className="flex items-center gap-5">
                                <div className="cursor-pointer hover:text-white transition-colors p-1"><Search size={18} /></div>
@@ -375,14 +388,13 @@ export default function AnonChatPage() {
                         </div>
                       )}
 
-                      {/* Peer Message */}
                       {!isAI && (
                         <div className="group relative">
                           <div className={`border rounded-2xl p-6 transition-all ${post.is_mine || post.is_optimistic ? 'bg-indigo-600/10 border-indigo-500/30 ml-auto max-w-[85%]' : 'bg-[#111114] border-white/5 max-w-[85%]'}`}>
                             {post.is_optimistic && (
                               <div className="flex items-center gap-2 mb-3">
                                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Transmitting to Grid...</span>
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Posting...</span>
                               </div>
                             )}
                             <div className={`text-white/70 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium ${post.is_optimistic ? 'opacity-40' : ''}`}>
@@ -396,11 +408,11 @@ export default function AnonChatPage() {
                                     ${post.reaction_count > 0 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-white/20 hover:text-white'}`}
                                 >
                                   <ThumbsUp size={12} />
-                                  <span>{post.reaction_count || 0} Nodes Agree</span>
+                                  <span>{post.reaction_count || 0} Agree</span>
                                 </button>
                                 <button className="flex items-center gap-2 text-white/20 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">
                                   <MessageSquare size={12} />
-                                  <span>{post.reply_count || 0} Responses</span>
+                                  <span>{post.reply_count || 0} Replies</span>
                                 </button>
                               </div>
                               <button 
@@ -416,13 +428,13 @@ export default function AnonChatPage() {
                     </motion.div>
                   )
                 })
-              ) : (
+              ) : !loading && (
                 <div className="h-full flex flex-col items-center justify-center py-32 opacity-10 space-y-6">
                    <div className="w-24 h-24 rounded-full border-2 border-dashed border-white flex items-center justify-center">
                      <Hash size={40} />
                    </div>
                    <div className="text-center">
-                     <h3 className="text-lg font-black uppercase tracking-[0.4em] text-white">Quiet Sector</h3>
+                     <h3 className="text-lg font-black uppercase tracking-[0.4em] text-white">No Posts</h3>
                      <p className="text-[10px] font-bold uppercase tracking-widest mt-2">No transmissions detected in {category}</p>
                    </div>
                 </div>
@@ -431,14 +443,11 @@ export default function AnonChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
           <div className="p-6 md:p-10 border-t border-white/5 bg-[#0d0d0f] z-20">
             <div className="max-w-4xl mx-auto">
-
-              {/* Quick Commands Bar */}
               {quickActions.length > 0 && (
                 <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
-                  <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] whitespace-nowrap mr-2">Quick Commands:</span>
+                  <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] whitespace-nowrap mr-2">Quick Actions:</span>
                   {quickActions.map((action, i) => (
                     <button
                       key={i}
@@ -460,9 +469,9 @@ export default function AnonChatPage() {
                   <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.02]">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: `rgb(${themeRGB})` }} />
-                      <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em]">Institutional Node Active</span>
+                      <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em]">Dialogue Sector Active</span>
                     </div>
-                    <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Channel: {category}</span>
+                    <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Category: {category}</span>
                   </div>
                   <textarea
                     value={newContent}
@@ -473,7 +482,7 @@ export default function AnonChatPage() {
                         handlePost();
                       }
                     }}
-                    placeholder={`Draft transmission to ${category}...`}
+                    placeholder={`Start a dialogue in ${category}...`}
                     className="w-full bg-transparent p-6 text-[15px] text-white placeholder-white/10 focus:outline-none resize-none min-h-[100px] font-medium leading-relaxed"
                   />
                   <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-white/[0.01]">
@@ -494,14 +503,14 @@ export default function AnonChatPage() {
                         boxShadow: `0 4px 20px rgba(${themeRGB}, 0.3)`
                       } : {}}
                     >
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Transmit</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Post Dialogue</span>
                       <Send size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </button>
                   </div>
                 </div>
               </div>
               <p className="mt-6 text-center text-[9px] font-bold text-white/10 uppercase tracking-[0.2em]">
-                All transmissions are encrypted and moderated. Do not share sensitive institutional credentials.
+                This is an open campus dialogue. Please maintain institutional decorum.
               </p>
             </div>
           </div>

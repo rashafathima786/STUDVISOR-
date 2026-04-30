@@ -14,7 +14,7 @@ const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const LeavePage = lazy(() => import("./pages/LeavePage"));
 const TimetablePage = lazy(() => import("./pages/TimetablePage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
-const AnonChatPage = lazy(() => import("./pages/AnonChatPage"));
+const GeneralForumPage = lazy(() => import("./pages/GeneralForumPage"));
 const FeaturesPage = lazy(() => import("./pages/FeaturesPage"));
 const PollsPage = lazy(() => import("./pages/PollsPage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
@@ -91,7 +91,7 @@ function getContextPage(pathname) {
   if (pathname.startsWith("/timetable")) return "timetable";
   if (pathname.startsWith("/lecture-logs")) return "lecture_logs";
   if (pathname.startsWith("/analytics")) return "analytics";
-  if (pathname.startsWith("/campus-wall")) return "campus_wall";
+  if (pathname.startsWith("/forum")) return "general_forum";
   if (pathname.startsWith("/hub")) return "hub";
   if (pathname.startsWith("/polls")) return "polls";
   if (pathname.startsWith("/events")) return "events";
@@ -148,7 +148,7 @@ export default function App() {
           <Route path="/timetable" element={<ProtectedRoute allowedRoles={["student", "faculty", "hod"]}><TimetablePage /></ProtectedRoute>} />
           <Route path="/lecture-logs" element={<ProtectedRoute allowedRoles={["student"]}><LectureLogPage /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute allowedRoles={["student"]}><AnalyticsPage /></ProtectedRoute>} />
-          <Route path="/campus-wall" element={<ProtectedRoute allowedRoles={["student"]}><AnonChatPage /></ProtectedRoute>} />
+          <Route path="/forum" element={<ProtectedRoute allowedRoles={["student"]}><GeneralForumPage /></ProtectedRoute>} />
           <Route path="/hub" element={<ProtectedRoute allowedRoles={["student"]}><FeaturesPage /></ProtectedRoute>} />
           <Route path="/polls" element={<ProtectedRoute allowedRoles={["student"]}><PollsPage /></ProtectedRoute>} />
           <Route path="/events" element={<ProtectedRoute allowedRoles={["student"]}><EventsPage /></ProtectedRoute>} />

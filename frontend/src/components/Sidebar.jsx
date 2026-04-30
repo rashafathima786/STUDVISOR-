@@ -24,7 +24,8 @@ const navData = {
     { to: '/attendance',   icon: <Activity size={18} />,        label: 'MATRIX' },
     { to: '/academics',    icon: <GraduationCap size={18} />,   label: 'ACADEMIA' },
     { to: '/performance',  icon: <ShieldCheck size={18} />,     label: 'PERFORMANCE' },
-    { to: '/campus',       icon: <MessageSquare size={18} />,   label: 'CAMPUS CONNECT' },
+    { to: '/forum',        icon: <MessageSquare size={18} />,   label: 'GENERAL FORUM' },
+    { to: '/campus',       icon: <Activity size={18} />,        label: 'CAMPUS CONNECT' },
     { to: '/services',     icon: <Settings size={18} />,        label: 'SERVICES' },
   ],
   faculty: [

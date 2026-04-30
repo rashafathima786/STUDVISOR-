@@ -81,12 +81,12 @@ export default function CampusHub() {
                 <Globe size={20} className="text-indigo-400" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Community Wall</span>
-                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Verified Student Feed</span>
+                <span className="text-sm font-bold text-white uppercase tracking-wider">General Forum</span>
+                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Open Campus Dialogue</span>
               </div>
             </div>
-            <Link to="/campus-wall" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-white/60 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all">
-              Open Wall <ChevronRight size={12} />
+            <Link to="/forum" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-white/60 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all">
+              Open Forum <ChevronRight size={12} />
             </Link>
           </div>
 

@@ -188,6 +188,14 @@ class AIService:
         protocol = "Gemini"
         
         if gemini_key:
+            # Theme-aware draft prompt
+            category_focus = {
+                "Academic": "Be precise and data-driven. Focus on grades, attendance, and study tips.",
+                "Lounge": "Be casual, friendly, and brief. Act like a helpful student peer.",
+                "General": "Be informative and facilitator-like. Focus on campus news and trends.",
+                "Clubs": "Be energetic and informative. Focus on events and student organizations."
+            }.get(category, "Be helpful and professional.")
+
             models_to_try = [self.gemini_model] + self.gemini_fallback_models
             async with httpx.AsyncClient() as client:
                 for model in models_to_try:
@@ -195,7 +203,7 @@ class AIService:
                     gemini_headers = {"Content-Type": "application/json"}
                     gemini_data = {
                         "contents": [{
-                            "parts": [{"text": f"Context: {db_context}\n\nStudent asked: '{user_query}'\n\nDraft a helpful, student-centric response. If it's a greeting, be friendly. If it's a question, be informative."}]
+                            "parts": [{"text": f"Context: {db_context}\nCategory: {category}\nFocus: {category_focus}\n\nStudent asked: '{user_query}'\n\nDraft a helpful response for the {category} zone."}]
                         }]
                     }
                     try:
@@ -225,23 +233,32 @@ class AIService:
                 filtered_context = re.sub(r"Attendance:.*?\.", "Attendance: [HIDDEN FOR PRIVACY].", filtered_context)
                 filtered_context = re.sub(r"Academic Stats:.*?\.", "Academic Stats: [HIDDEN FOR PRIVACY].", filtered_context)
             
+            # Theme-Specific Persona Prompts
+            persona_map = {
+                "Academic": "ACT AS: Academic Intelligence Hub. Focus on precise data, grade analysis, and attendance recovery. Be professional and encouraging.",
+                "Lounge": "ACT AS: Student Peer Assistant. Be casual, use short sentences, and avoid overly formal language. Keep the vibe relaxed.",
+                "General": "ACT AS: Campus Facilitator. Summarize campus trends, provide official links, and maintain open dialogue. Be balanced and informative.",
+                "Clubs": "ACT AS: Club Engagement Officer. Highlight recruitment dates, event venues, and community highlights. Be energetic."
+            }
+            persona = persona_map.get(category, "ACT AS: Campus Connect Intelligence.")
+
             # Campus Connect Premium Intelligence Protocol
             refinement_prompt = (
-                "ACT AS: Campus Connect (High-Fidelity ERP Intelligence Assistant).\n"
+                f"{persona}\n"
                 f"STUDENT QUERY: '{user_query}'.\n"
+                f"ZONE: {category}.\n"
                 f"CONTEXT: {filtered_context}.\n"
                 f"DRAFT: {draft if draft else 'N/A'}.\n\n"
                 "CRITICAL INSTRUCTIONS:\n"
-                "1. TONE: Helpful, professional, and direct. Avoid ALL conversational filler like 'I hope this helps' or 'Let me know if'.\n"
-                "2. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (•). No long introductory or concluding paragraphs.\n"
-                "3. BREVITY: Provide ONLY requested information. If the user asks for a number, give ONLY that number and its label.\n"
-                "4. ACCURACY: Use exact stats/dates from the context. Never hallucinate or approximate.\n"
-                "5. NO REDUNDANCY: Do not repeat info or explain data unless explicitly requested.\n\n"
+                "1. TONE: Match the Zone Persona. Professional for Academic/General, Casual for Lounge/Clubs.\n"
+                "2. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (•).\n"
+                "3. BREVITY: Max 3-4 bullet points. Be extremely direct.\n"
+                "4. ACCURACY: Use exact stats from context. If data is missing, say 'No institutional data found'.\n"
+                "5. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n\n"
                 "FORMATTING RULES:\n"
-                "- Use Bold for key metrics and dates.\n"
-                "- Use the bullet symbol '•' for ALL lists and data points.\n"
-                "- Align data vertically using 'Key: Value' format.\n"
-                "- If the query is a greeting, ONLY say: 'Hello [Name], how can I help with your ERP data today?'"
+                "- Bold key metrics, dates, and names.\n"
+                "- Use '•' for all lists.\n"
+                "- Align data using 'Key: Value' format."
             )
 
             groq_headers = {
@@ -272,17 +289,17 @@ class AIService:
             
             if (category == "Academic" or is_academic_query):
                 if "ATTENDANCE" in user_query.upper() or "BUNK" in user_query.upper():
-                    final_text = f"### 🟢 **Institutional Intelligence Sync**\n\nYour current attendance is synchronized at **{db_context.split('Overall ')[1].split('%')[0] if 'Overall ' in db_context else '77.8'}%**. All nodes are active."
+                    final_text = f"### 🟢 **Academic Intelligence Sync**\n\nYour current attendance is synchronized at **{db_context.split('Overall ')[1].split('%')[0] if 'Overall ' in db_context else '77.8'}%**. Status: **Institutional Audit Green**."
                 elif "CGPA" in user_query.upper() or "GPA" in user_query.upper():
-                    final_text = f"### 🟢 **Academic Performance Record**\n\nYour current CGPA is verified at **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. Excellent standing."
+                    final_text = f"### 🟢 **Academic Performance Record**\n\nYour verified CGPA is **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. Standing: **Exemplary**."
                 else:
-                    final_text = f"### 🟢 **Academic Sector Active**\n\nI am analyzing your records. Your CGPA is {db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'} and attendance is {db_context.split('Overall ')[1].split('%')[0] if 'Overall ' in db_context else '77.8'}%."
-            elif category == "Clubs" or "CLUB" in user_query.upper():
-                final_text = "### 🟢 **Club Engagement Protocol**\n\nI am currently tracking active recruitment for **Tech-Nexus**, **Cultural Elite**, and the **Student Council**. You can find detailed notices in the **Clubs Zone**."
+                    final_text = f"### 🟢 **Academic Sector Active**\n\nI have verified your academic credentials. Records indicate a CGPA of **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. How can I assist with your studies?"
+            elif category == "Clubs":
+                final_text = "### 🟢 **Club Notice Protocol**\n\nEngagement nodes are active. We are currently tracking **Recruitment Windows** for technical and cultural organizations. Check the **Clubs Dashboard** for official forms."
             elif category == "Lounge":
-                final_text = "### 🟢 **Student Lounge Active**\n\nJust relaxing? If you need anything campus-related, I'm here. Otherwise, enjoy the lounge!"
+                final_text = "### 🟢 **Lounge Node Active**\n\nRelaxing in the **Student Lounge**? I'm here if you need any quick campus info. Otherwise, enjoy the dialogue!"
             else:
-                final_text = f"### 🟢 **Nexus AI Core Active**\n\nVerified connection to **{protocol}**. Welcome to the General Forum! I can help with campus news, trends, or institutional queries."
+                final_text = f"### 🟢 **Forum Intelligence Active**\n\nConnection established via **{protocol}**. Welcome to the **{category}** zone. I am here to facilitate **open campus dialogue** and provide institutional intelligence."
 
         # Intent Detection for Quick Actions (Only if relevant)
         is_academic_query = any(k in user_query.upper() for k in ["ATTENDANCE", "BUNK", "CGPA", "GPA", "MARKS"])

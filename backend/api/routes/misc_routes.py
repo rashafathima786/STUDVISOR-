@@ -66,24 +66,42 @@ def list_posts(
         query = query.order_by(AnonPost.created_at.desc())
         
     posts = query.limit(50).all()
+    post_ids = [p.id for p in posts]
+    
+    # Batch fetch reactions
+    from collections import defaultdict
+    reactions_by_post = defaultdict(lambda: defaultdict(int))
+    total_reactions_by_post = defaultdict(int)
+    
+    if post_ids:
+        all_reactions = db.query(AnonReaction).filter(AnonReaction.post_id.in_(post_ids)).all()
+        for r in all_reactions:
+            reactions_by_post[r.post_id][r.reaction_type] += 1
+            total_reactions_by_post[r.post_id] += 1
+            
+        # Batch fetch reply counts
+        from sqlalchemy import func
+        reply_counts = db.query(AnonPost.parent_id, func.count(AnonPost.id)).filter(
+            AnonPost.parent_id.in_(post_ids)
+        ).group_by(AnonPost.parent_id).all()
+        replies_by_post = dict(reply_counts)
+    else:
+        replies_by_post = {}
+
     result = []
     for p in posts:
-        reactions = db.query(AnonReaction).filter(AnonReaction.post_id == p.id).all()
-        reaction_counts = defaultdict(int)
-        for r in reactions: reaction_counts[r.reaction_type] += 1
-        
         result.append({
             "id": p.id, 
             "content": p.content, 
             "category": p.category, 
-            "reactions": dict(reaction_counts), 
-            "reaction_count": len(reactions),
+            "reactions": dict(reactions_by_post[p.id]), 
+            "reaction_count": total_reactions_by_post[p.id],
             "date": str(p.created_at),
             "created_at": str(p.created_at),
             "is_mine": p.session_hash == current_hash,
             "censored_content": p.censored_content,
             "session_hash": p.session_hash,
-            "reply_count": db.query(AnonPost).filter(AnonPost.parent_id == p.id).count()
+            "reply_count": replies_by_post.get(p.id, 0)
         })
     return {"posts": result}
 
