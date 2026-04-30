@@ -1,5 +1,6 @@
 """Auth routes — login, register, refresh, profile."""
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from backend.app.database import get_db
@@ -33,14 +34,14 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         return {"access_token": token, "refresh_token": refresh, "role": role, "user": {"id": entity_id, "name": name, "department": "Demo Dept"}}
 
     # Try student
-    user = db.query(Student).filter(Student.username == data.username).first()
+    user = db.query(Student).filter(func.lower(Student.username) == data.username.lower()).first()
     if user and verify_password(data.password, user.hashed_password):
         token = create_access_token({"sub": user.username, "role": "student", "entity_id": user.id})
         refresh = create_refresh_token({"sub": user.username, "role": "student", "entity_id": user.id})
         return {"access_token": token, "refresh_token": refresh, "role": "student", "user": {"id": user.id, "name": user.full_name, "department": user.department}}
 
     # Try faculty
-    fac = db.query(Faculty).filter(Faculty.username == data.username).first()
+    fac = db.query(Faculty).filter(func.lower(Faculty.username) == data.username.lower()).first()
     if fac and fac.hashed_password and verify_password(data.password, fac.hashed_password):
         role = "hod" if fac.designation and "HOD" in fac.designation.upper() else "faculty"
         token = create_access_token({"sub": fac.username, "role": role, "entity_id": fac.id})
@@ -48,7 +49,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         return {"access_token": token, "refresh_token": refresh, "role": role, "user": {"id": fac.id, "name": fac.name, "department": fac.department}}
 
     # Try admin
-    adm = db.query(Admin).filter(Admin.username == data.username).first()
+    adm = db.query(Admin).filter(func.lower(Admin.username) == data.username.lower()).first()
     if adm and verify_password(data.password, adm.hashed_password):
         token = create_access_token({"sub": adm.username, "role": "admin", "entity_id": adm.id})
         refresh = create_refresh_token({"sub": adm.username, "role": "admin", "entity_id": adm.id})

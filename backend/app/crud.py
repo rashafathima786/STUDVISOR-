@@ -4,8 +4,10 @@ from .models import Student
 from backend.core.security import hash_password
 
 
+from sqlalchemy import func
+
 def get_student_by_username(db: Session, username: str):
-    return db.query(Student).filter(Student.username == username).first()
+    return db.query(Student).filter(func.lower(Student.username) == username.lower()).first()
 
 def create_student(db: Session, username: str, email: str, password: str, full_name: str):
     student = Student(
