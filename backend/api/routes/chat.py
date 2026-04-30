@@ -36,7 +36,7 @@ async def chat(data: ChatInput, student=Depends(get_current_student), db: Sessio
     }
 
 
-@router.post("/stream")
+@router.post("/stream/")
 async def chat_stream(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """SSE streaming — sends the AI response word-by-word for typewriter effect."""
     result = await process_chat(db, student, data.query)
@@ -61,7 +61,7 @@ async def chat_stream(data: ChatInput, student=Depends(get_current_student), db:
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-@router.get("/history")
+@router.get("/history/")
 def history(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Last 50 chat messages for this student."""
     msgs = db.query(ChatHistory).filter(
@@ -71,7 +71,7 @@ def history(student=Depends(get_current_student), db: Session = Depends(get_db))
                           "context_page": m.context_page, "date": str(m.created_at)} for m in msgs]}
 
 
-@router.delete("/history")
+@router.delete("/history/")
 def clear_history(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Clear chat history for this student."""
     db.query(ChatHistory).filter(ChatHistory.student_id == student.id).delete()
@@ -79,7 +79,7 @@ def clear_history(student=Depends(get_current_student), db: Session = Depends(ge
     return {"message": "Chat history cleared"}
 
 
-@router.get("/suggestions")
+@router.get("/suggestions/")
 def suggestions(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """Context-aware question suggestions based on student state."""
     from backend.app.models import Attendance

@@ -44,7 +44,7 @@ class AnonPostCreate(BaseModel):
     content: str
     category: str = "general"
 
-@anon_chat_router.get("/posts")
+@anon_chat_router.get("/posts/")
 def list_posts(
     category: str = None, 
     sort: str = "recent", 
@@ -87,7 +87,7 @@ def list_posts(
         })
     return {"posts": result}
 
-@anon_chat_router.post("/posts")
+@anon_chat_router.post("/posts/")
 async def create_post(data: AnonPostCreate, student=Depends(get_current_student), db: Session = Depends(get_db)):
     from backend.services.sentiment_service import sentiment_service
     from backend.services.anonymity_service import compute_anon_id
@@ -182,7 +182,7 @@ async def create_post(data: AnonPostCreate, student=Depends(get_current_student)
 class ReactionCreate(BaseModel):
     reaction_type: str
 
-@anon_chat_router.post("/posts/{pid}/react")
+@anon_chat_router.post("/posts/{pid}/react/")
 def react(pid: int, data: ReactionCreate, student=Depends(get_current_student), db: Session = Depends(get_db)):
     from backend.services.anonymity_service import compute_anon_id
     session_hash = compute_anon_id(student.id)
@@ -208,7 +208,7 @@ def react(pid: int, data: ReactionCreate, student=Depends(get_current_student), 
     db.commit()
     return {"message": "Reaction added"}
 
-@anon_chat_router.post("/posts/{pid}/flag")
+@anon_chat_router.post("/posts/{pid}/flag/")
 def flag(pid: int, db: Session = Depends(get_db)):
     post = db.query(AnonPost).filter(AnonPost.id == pid).first()
     if not post:

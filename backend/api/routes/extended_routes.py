@@ -12,12 +12,12 @@ import json, asyncio, csv, io
 # ─── PLACEMENT ───────────────────────────────────────────────────────────────
 placement_router = APIRouter(prefix="/placement", tags=["Placement"])
 
-@placement_router.get("/drives")
+@placement_router.get("/drives/")
 def list_drives(db: Session = Depends(get_db)):
     drives = db.query(PlacementDrive).filter(PlacementDrive.status == "Open").all()
     return {"drives": [{"id": d.id, "company": d.company_name, "role": d.role_title, "package": d.package_lpa, "min_cgpa": d.eligibility_cgpa, "date": d.drive_date} for d in drives]}
 
-@placement_router.post("/apply/{drive_id}")
+@placement_router.post("/apply/{drive_id}/")
 def apply(drive_id: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
     drive = db.query(PlacementDrive).filter(PlacementDrive.id == drive_id).first()
     if not drive: raise HTTPException(404, "Drive not found")
@@ -27,7 +27,7 @@ def apply(drive_id: int, student=Depends(get_current_student), db: Session = Dep
     db.commit()
     return {"message": f"Applied to {drive.company_name}"}
 
-@placement_router.get("/my-applications")
+@placement_router.get("/my-applications/")
 def my_apps(student=Depends(get_current_student), db: Session = Depends(get_db)):
     apps = db.query(PlacementApplication).filter(PlacementApplication.student_id == student.id).all()
     result = []
@@ -39,13 +39,13 @@ def my_apps(student=Depends(get_current_student), db: Session = Depends(get_db))
 # ─── COURSES ─────────────────────────────────────────────────────────────────
 courses_router = APIRouter(prefix="/courses", tags=["Courses"])
 
-@courses_router.get("/available")
+@courses_router.get("/available/")
 def available(student=Depends(get_current_student), db: Session = Depends(get_db)):
     subjects = db.query(Subject).filter(Subject.semester == student.semester).all()
     enrolled = {e.subject_id for e in db.query(CourseEnrollment).filter(CourseEnrollment.student_id == student.id, CourseEnrollment.status == "Enrolled").all()}
     return {"subjects": [{"id": s.id, "code": s.code, "name": s.name, "credits": s.credits, "enrolled": s.id in enrolled} for s in subjects]}
 
-@courses_router.post("/enroll")
+@courses_router.post("/enroll/")
 def enroll(subject_id: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
     subj = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subj: raise HTTPException(404, "Subject not found")
@@ -56,7 +56,7 @@ def enroll(subject_id: int, student=Depends(get_current_student), db: Session = 
 # ─── INTERNSHIPS ─────────────────────────────────────────────────────────────
 internships_router = APIRouter(prefix="/internships", tags=["Internships"])
 
-@internships_router.get("/my")
+@internships_router.get("/my/")
 def my_internships(student=Depends(get_current_student), db: Session = Depends(get_db)):
     interns = db.query(Internship).filter(Internship.student_id == student.id).all()
     return {"internships": [{"id": i.id, "company": i.company_name, "role": i.role, "stipend": i.stipend, "status": i.status} for i in interns]}
@@ -64,23 +64,23 @@ def my_internships(student=Depends(get_current_student), db: Session = Depends(g
 # ─── CAMPUS MODULES (Clubs, Hostel, Transport, Scholarships, DM) ────────────
 campus_router = APIRouter(tags=["Campus"])
 
-@campus_router.get("/clubs")
+@campus_router.get("/clubs/")
 def clubs(db: Session = Depends(get_db)):
     return {"clubs": []}  # Populated via seed
 
-@campus_router.get("/hostel/my-room")
+@campus_router.get("/hostel/my-room/")
 def my_room(student=Depends(get_current_student)):
     return {"room": None}
 
-@campus_router.get("/transport/routes")
+@campus_router.get("/transport/routes/")
 def bus_routes(db: Session = Depends(get_db)):
     return {"routes": []}
 
-@campus_router.get("/scholarships")
+@campus_router.get("/scholarships/")
 def scholarships(db: Session = Depends(get_db)):
     return {"scholarships": []}
 
-@campus_router.get("/messages/inbox")
+@campus_router.get("/messages/inbox/")
 def inbox(student=Depends(get_current_student)):
     return {"messages": []}
 
@@ -127,7 +127,7 @@ async def stream_chat(query: str = ""):
 # ─── EXPORT ──────────────────────────────────────────────────────────────────
 export_router = APIRouter(prefix="/export", tags=["Export"])
 
-@export_router.get("/attendance/csv")
+@export_router.get("/attendance/csv/")
 def export_attendance(student=Depends(get_current_student), db: Session = Depends(get_db)):
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     output = io.StringIO()
@@ -140,12 +140,12 @@ def export_attendance(student=Depends(get_current_student), db: Session = Depend
 # ─── ADMIN ANALYTICS ────────────────────────────────────────────────────────
 admin_analytics_router = APIRouter(prefix="/admin/analytics", tags=["Admin Analytics"])
 
-@admin_analytics_router.get("/at-risk-students")
+@admin_analytics_router.get("/at-risk-students/")
 def at_risk(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     from backend.services.predictive_service import predictive_service
     return {"data": predictive_service.batch_risk_assessment(db)}
 
-@admin_analytics_router.get("/audit-logs")
+@admin_analytics_router.get("/audit-logs/")
 def audit_logs(_=Depends(require_role("admin")), db: Session = Depends(get_db)):
     logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(100).all()
     return {"logs": [{"actor": l.actor_username, "action": l.action, "resource": l.resource_type, "time": str(l.timestamp)} for l in logs]}

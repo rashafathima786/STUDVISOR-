@@ -21,7 +21,7 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
 
-@router.post("/login")
+@router.post("/login/")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     # Demo logic
     if data.username.lower() == "demo" and data.password.lower() == "demo":
@@ -57,7 +57,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@router.post("/register")
+@router.post("/register/")
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
     if get_student_by_username(db, data.username):
         raise HTTPException(400, "Username already exists")
@@ -65,7 +65,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     token = create_access_token({"sub": student.username, "role": "student", "entity_id": student.id})
     return {"access_token": token, "role": "student", "user": {"id": student.id, "name": student.full_name}}
 
-@router.post("/refresh")
+@router.post("/refresh/")
 def refresh_token(token: str, db: Session = Depends(get_db)):
     payload = decode_token(token)
     if not payload or payload.get("type") != "refresh":
@@ -73,6 +73,6 @@ def refresh_token(token: str, db: Session = Depends(get_db)):
     new_token = create_access_token({"sub": payload["sub"], "role": payload["role"], "entity_id": payload["entity_id"]})
     return {"access_token": new_token}
 
-@router.get("/student/me")
+@router.get("/student/me/")
 def student_profile(student=Depends(get_current_student)):
     return {"id": student.id, "username": student.username, "full_name": student.full_name, "email": student.email, "department": student.department, "semester": student.semester, "merit_points": student.merit_points, "merit_tier": student.merit_tier, "batch_year": student.batch_year, "section": student.section, "roll_number": student.roll_number}
