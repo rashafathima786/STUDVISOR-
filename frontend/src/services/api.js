@@ -2,9 +2,12 @@ import axios from "axios";
 import { getToken, saveToken } from "../utils/auth";
 
 let base = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-// Fix Mixed Content: Upgrade http to https for production Railway URLs
-if (base.includes("up.railway.app") && base.startsWith("http://")) {
+// Fix Mixed Content: Force HTTPS for production Railway URLs
+if (base.includes("up.railway.app")) {
   base = base.replace("http://", "https://");
+  if (!base.startsWith("https://")) {
+    base = "https://" + base.replace("https://", "");
+  }
 }
 export const API_BASE_URL = base;
 
@@ -109,12 +112,12 @@ export async function fetchProfile() {
 // ── ATTENDANCE ──────────────────────────────────────────────────────────────
 
 export async function fetchOverallAttendance() {
-  const response = await api.get("/academic/attendance/overall");
+  const response = await api.get("/academic/attendance/overall/");
   return response.data;
 }
 
 export async function fetchSubjectAttendance() {
-  const response = await api.get("/academic/attendance/subject-wise");
+  const response = await api.get("/academic/attendance/subject-wise/");
   return response.data;
 }
 
@@ -143,7 +146,7 @@ export async function fetchHeatmap(year = 2026, month = 4) {
 // ── MARKS ───────────────────────────────────────────────────────────────────
 
 export async function fetchMarks() {
-  const response = await api.get("/academic/marks");
+  const response = await api.get("/academic/marks/");
   return response.data;
 }
 
@@ -263,33 +266,33 @@ function parseSseEvent(rawEvent) {
 // ── NOTIFICATIONS ───────────────────────────────────────────────────────────
 
 export async function fetchNotifications() {
-  const response = await api.get("/user/notifications");
+  const response = await api.get("/user/notifications/");
   return response.data;
 }
 
 // ── MERIT ───────────────────────────────────────────────────────────────────
 
 export async function fetchMeritStatus() {
-  const response = await api.get("/user/merit/my");
+  const response = await api.get("/user/merit/my/");
   return response.data;
 }
 
 // ── TIMETABLE ───────────────────────────────────────────────────────────────
 
 export async function fetchTimetable() {
-  const response = await api.get("/academic/timetable");
+  const response = await api.get("/academic/timetable/");
   return response.data;
 }
 
 export async function fetchTodaySchedule() {
-  const response = await api.get("/academic/timetable/today");
+  const response = await api.get("/academic/timetable/today/");
   return response.data;
 }
 
 // ── ANALYTICS ───────────────────────────────────────────────────────────────
 
 export async function fetchPerformanceAnalytics() {
-  const response = await api.get("/analytics/performance");
+  const response = await api.get("/analytics/performance/");
   return response.data;
 }
 
@@ -301,7 +304,7 @@ export async function predictCgpa(expectedMarks) {
 // ── ASSIGNMENTS ─────────────────────────────────────────────────────────────
 
 export async function fetchAssignments() {
-  const response = await api.get("/academic/assignments");
+  const response = await api.get("/academic/assignments/");
   return response.data;
 }
 
@@ -313,19 +316,19 @@ export async function submitAssignment(assignmentId) {
 // ── EXAMS ───────────────────────────────────────────────────────────────────
 
 export async function fetchExams() {
-  const response = await api.get("/academic/exams");
+  const response = await api.get("/academic/exams/");
   return response.data;
 }
 
 export async function fetchUpcomingExams() {
-  const response = await api.get("/academic/exams/upcoming");
+  const response = await api.get("/academic/exams/upcoming/");
   return response.data;
 }
 
 // ── SYLLABUS ────────────────────────────────────────────────────────────────
 
 export async function fetchSyllabus() {
-  const response = await api.get("/academic/syllabus");
+  const response = await api.get("/academic/syllabus/");
   return response.data;
 }
 
@@ -338,7 +341,7 @@ export async function toggleSyllabusTopic(topicId) {
 
 export async function fetchNotes(subjectId = null) {
   const params = subjectId ? { subject_id: subjectId } : {};
-  const response = await api.get("/academic/notes", { params });
+  const response = await api.get("/academic/notes/", { params });
   return response.data;
 }
 
@@ -357,7 +360,7 @@ export async function rateNote(noteId, isHelpful) {
 export async function fetchAnonPosts(category = null, sort = "recent") {
   const params = { sort };
   if (category && category !== "all") params.category = category;
-  const response = await api.get("/campus/anon/posts", { params });
+  const response = await api.get("/campus/anon/posts/", { params });
   return response.data;
 }
 
@@ -396,7 +399,7 @@ export async function upvoteComplaint(complaintId) {
 // ── POLLS ───────────────────────────────────────────────────────────────────
 
 export async function fetchPolls() {
-  const response = await api.get("/campus/polls");
+  const response = await api.get("/campus/polls/");
   return response.data;
 }
 
@@ -413,19 +416,19 @@ export async function votePoll(pollId, optionId) {
 // ── HELPDESK ───────────────────────────────────────────────────────────────
 
 export async function fetchFaqs() {
-  const response = await api.get("/campus/helpdesk/faqs");
+  const response = await api.get("/campus/helpdesk/faqs/");
   return response.data;
 }
 
 export async function fetchHelpdeskStats() {
-  const response = await api.get("/campus/helpdesk/stats");
+  const response = await api.get("/campus/helpdesk/stats/");
   return response.data;
 }
 
 // ── EVENTS ──────────────────────────────────────────────────────────────────
 
 export async function fetchEvents() {
-  const response = await api.get("/campus/events");
+  const response = await api.get("/campus/events/");
   return response.data;
 }
 
@@ -437,7 +440,7 @@ export async function rsvpEvent(eventId) {
 // ── ANNOUNCEMENTS ───────────────────────────────────────────────────────────
 
 export async function fetchAnnouncements() {
-  const response = await api.get('/campus/announcements');
+  const response = await api.get('/campus/announcements/');
   return response.data;
 }
 
@@ -454,7 +457,7 @@ export async function fetchFaculty(department = null) {
 export async function fetchLostFound(itemType = null) {
   const params = {};
   if (itemType) params.item_type = itemType;
-  const response = await api.get("/campus/lost-found", { params });
+  const response = await api.get("/campus/lost-found/", { params });
   return response.data;
 }
 
@@ -471,14 +474,14 @@ export async function claimLostFoundItem(itemId) {
 // ── ACHIEVEMENTS ────────────────────────────────────────────────────────────
 
 export async function fetchAchievements() {
-  const response = await api.get("/user/achievements/my");
+  const response = await api.get("/user/achievements/my/");
   return response.data;
 }
 
 // ── LEADERBOARD ─────────────────────────────────────────────────────────────
 
 export async function fetchLeaderboard(category = "merit") {
-  const response = await api.get("/user/leaderboard", { params: { category } });
+  const response = await api.get("/user/leaderboard/", { params: { category } });
   return response.data;
 }
 
@@ -490,19 +493,19 @@ export async function fetchSemesterGPA(semester) {
 }
 
 export async function fetchCGPA() {
-  const response = await api.get("/academic/gpa/cgpa");
+  const response = await api.get("/academic/gpa/cgpa/");
   return response.data;
 }
 
 export async function fetchTranscript() {
-  const response = await api.get("/academic/gpa/transcript");
+  const response = await api.get("/academic/gpa/transcript/");
   return response.data;
 }
 
 // ── FEE MANAGEMENT ──────────────────────────────────────────────────────────
 
 export async function fetchMyFees() {
-  const response = await api.get("/campus/fees/my-fees");
+  const response = await api.get("/campus/fees/my-fees/");
   return response.data;
 }
 
