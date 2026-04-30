@@ -34,6 +34,6 @@ Studvisor uses a multi-factor algorithm to predict student outcomes:
 
 ## 🛠️ Tech Stack Recap
 
--   **Backend**: FastAPI, SQLAlchemy, PostgreSQL, Alembic.
+-   **Backend**: FastAPI, SQLAlchemy, **PostgreSQL (Consolidated Source of Truth)**, Alembic.
 -   **Frontend**: React 19, Vite, Zustand, Framer Motion.
 -   **Infrastructure**: Docker, Multi-stage builds, Nginx.
