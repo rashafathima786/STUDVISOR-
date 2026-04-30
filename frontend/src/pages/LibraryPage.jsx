@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import ErpLayout from '../components/ErpLayout'
 import { motion, AnimatePresence } from 'framer-motion'
+import { API_BASE_URL } from '../services/api'
 import { 
   BookOpen, 
   Search, 
@@ -17,7 +18,7 @@ import {
   Zap
 } from 'lucide-react'
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 
 export default function LibraryPage() {
   const [tab, setTab] = useState('catalog')
@@ -31,8 +32,8 @@ export default function LibraryPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/library/catalog`, { headers }).then(r => r.json()).catch(() => ({ books: [] })),
-      fetch(`${API}/library/my-books`, { headers }).then(r => r.json()).catch(() => ({ issued_books: [] })),
+      fetch(`${API_BASE_URL}/library/catalog`, { headers }).then(r => r.json()).catch(() => ({ books: [] })),
+      fetch(`${API_BASE_URL}/library/my-books`, { headers }).then(r => r.json()).catch(() => ({ issued_books: [] })),
     ]).then(([catalogRes, myRes]) => {
       setBooks(catalogRes.books || [])
       setMyBooks(myRes.issued_books || [])
@@ -41,13 +42,13 @@ export default function LibraryPage() {
   }, [])
 
   const searchBooks = () => {
-    fetch(`${API}/library/catalog?q=${encodeURIComponent(query)}`, { headers })
+    fetch(`${API_BASE_URL}/library/catalog?q=${encodeURIComponent(query)}`, { headers })
       .then(r => r.json()).then(res => setBooks(res.books || []))
   }
 
   const issueBook = async (bookId) => {
     try {
-      const res = await fetch(`${API}/library/issue/${bookId}`, { method: 'POST', headers })
+      const res = await fetch(`${API_BASE_URL}/library/issue/${bookId}`, { method: 'POST', headers })
       const data = await res.json()
       alert(data.message || data.detail)
     } catch (err) {

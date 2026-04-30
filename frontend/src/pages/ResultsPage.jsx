@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ErpLayout from '../components/ErpLayout'
-import { fetchMarks } from '../services/api'
+import { fetchMarks, API_BASE_URL } from '../services/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Download, 
@@ -77,14 +77,14 @@ export default function ResultsPage() {
 
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/reports/marksheet`, '_blank')}
+              onClick={() => window.open(`${API_BASE_URL}/reports/marksheet`, '_blank')}
               className="px-6 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-xl"
             >
               <FileText size={18} />
               Marksheet
             </button>
             <button 
-              onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/reports/bonafide`, '_blank')}
+              onClick={() => window.open(`${API_BASE_URL}/reports/bonafide`, '_blank')}
               className="px-8 py-3.5 rounded-2xl bg-white text-black hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-2xl"
             >
               <Award size={18} />
