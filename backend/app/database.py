@@ -5,7 +5,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./studvisor.db")
+from backend.core.config import get_settings
+settings = get_settings()
+DATABASE_URL = settings.DATABASE_URL.strip()
 
 # Automatically transform postgresql:// to postgresql+psycopg:// for SQLAlchemy 2.0 + psycopg 3
 if DATABASE_URL.startswith("postgresql://"):

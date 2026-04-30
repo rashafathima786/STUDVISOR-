@@ -12,7 +12,8 @@ import {
   Users,
   Cpu,
   History,
-  FileText
+  FileText,
+  Zap
 } from 'lucide-react';
 import useAuthStore from '../stores/authStore';
 import useUIStore from '../stores/uiStore';
@@ -23,7 +24,7 @@ const navData = {
     { to: '/attendance',   icon: <Activity size={18} />,        label: 'MATRIX' },
     { to: '/academics',    icon: <GraduationCap size={18} />,   label: 'ACADEMIA' },
     { to: '/performance',  icon: <ShieldCheck size={18} />,     label: 'PERFORMANCE' },
-    { to: '/campus',       icon: <MessageSquare size={18} />,   label: 'CAMPUS LIFE' },
+    { to: '/campus',       icon: <MessageSquare size={18} />,   label: 'CAMPUS CONNECT' },
     { to: '/services',     icon: <Settings size={18} />,        label: 'SERVICES' },
   ],
   faculty: [
@@ -39,6 +40,7 @@ const navData = {
     { to: '/admin/students',  icon: <Users size={18} />,           label: 'STUDENTS' },
     { to: '/admin/faculty',   icon: <Cpu size={18} />,             label: 'FACULTY' },
     { to: '/admin/analytics', icon: <Activity size={18} />,        label: 'INTEL' },
+    { to: '/admin/ai-core',   icon: <Zap size={18} />,             label: 'INTEL FLEET' },
     { to: '/admin/audit',     icon: <History size={18} />,         label: 'AUDIT' },
   ]
 };
