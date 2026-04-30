@@ -15,6 +15,9 @@ class LoginRequest(BaseModel):
     password: str
     role: str = None
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
 class RegisterRequest(BaseModel):
     username: str
     email: str
@@ -66,12 +69,13 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     return {"access_token": token, "role": "student", "user": {"id": student.id, "name": student.full_name}}
 
 @router.post("/refresh/")
-def refresh_token(token: str, db: Session = Depends(get_db)):
-    payload = decode_token(token)
+def refresh_token(data: RefreshRequest, db: Session = Depends(get_db)):
+    payload = decode_token(data.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(401, "Invalid refresh token")
-    new_token = create_access_token({"sub": payload["sub"], "role": payload["role"], "entity_id": payload["entity_id"]})
-    return {"access_token": new_token}
+    new_access = create_access_token({"sub": payload["sub"], "role": payload["role"], "entity_id": payload["entity_id"]})
+    new_refresh = create_refresh_token({"sub": payload["sub"], "role": payload["role"], "entity_id": payload["entity_id"]})
+    return {"access_token": new_access, "refresh_token": new_refresh}
 
 @router.get("/student/me/")
 def student_profile(student=Depends(get_current_student)):

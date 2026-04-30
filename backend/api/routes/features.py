@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from collections import defaultdict
 from pydantic import BaseModel
 from typing import Optional, Dict
-from backend.core.security import get_current_student, require_role
+from backend.core.security import get_current_student, get_current_user, require_role
 from backend.app.database import get_db
 from backend.app.models import *
 
@@ -128,8 +128,13 @@ def create_complaint(data: ComplaintCreate, student=Depends(get_current_student)
 
 # ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
 @notification_router.get("/")
-def list_notifs(student=Depends(get_current_student), db: Session = Depends(get_db)):
-    notifs = db.query(Notification).filter(Notification.user_id == student.id).order_by(Notification.created_at.desc()).limit(50).all()
+def list_notifs(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    user_id = user.get("entity_id")
+    user_role = user.get("role")
+    notifs = db.query(Notification).filter(
+        Notification.user_id == user_id,
+        Notification.user_role == user_role
+    ).order_by(Notification.created_at.desc()).limit(50).all()
     return {"notifications": [{"id": n.id, "title": n.title, "body": n.body, "type": n.type, "read": n.read_at is not None, "created_at": str(n.created_at)} for n in notifs]}
 
 # ─── MERIT ───────────────────────────────────────────────────────────────────

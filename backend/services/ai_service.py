@@ -10,16 +10,22 @@ import httpx
 
 class AIService:
     def __init__(self):
-        self.groq_model = "llama-3.3-70b-versatile"
+        self.groq_model = "openai/gpt-oss-120b"
         self.anthropic_model = "claude-3-sonnet-20240229"
-        self.gemini_model = "gemini-3-flash"  # Latest model as per user request
-        self.gemini_fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        self.gemini_model = "gemini-3-flash-preview"  # Latest working model
+        self.gemini_fallback_models = [
+            "gemini-3.0-flash-preview", 
+            "gemini-2.5-flash", 
+            "gemini-2.0-flash", 
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-pro-latest" # Pro might still be active even if Flash is deprecated
+        ]
         self._response_cache = {} # High-speed AI response caching
         # Verified Performance Fleet (Ordered by Speed/Efficiency)
         self.performance_fleet = [
+            "gemini-3-flash-preview",  # Advanced Node (Verified Active)
             "gemini-2.0-flash-lite",   # Fast Lite Node
             "gemini-2.5-flash",        # Balanced Node
-            "gemini-3-flash-preview",  # Advanced Node
             "gemma-3-12b-it"           # High-Capacity Local Node
         ]
         self.api_key = os.getenv("ANTHROPIC_API_KEY") 
@@ -94,10 +100,13 @@ class AIService:
                         if response.status_code == 200:
                             result = response.json()
                             return result["candidates"][0]["content"]["parts"][0]["text"]
+                        elif response.status_code in [429, 503, 500]:
+                            print(f"[AI LIMIT] Gemini {model} error ({response.status_code}). Falling back...")
+                            continue
                         else:
-                            print(f"[AI] Model {model} failed: {response.status_code}")
+                            print(f"[AI ERROR] Model {model} failed: {response.status_code}")
                     except Exception as e:
-                        print(f"[AI ERROR] Gemini {model} Exception: {e}")
+                        print(f"[AI EXCEPTION] Gemini {model}: {e}")
 
         # 2. Groq (High Speed)
         if groq_key:
@@ -194,10 +203,13 @@ class AIService:
                         if resp.status_code == 200:
                             draft = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
                             break
+                        elif resp.status_code in [429, 503, 500]:
+                            print(f"[AI LIMIT] Draft Model {model} error ({resp.status_code}). Trying next fallback...")
+                            continue
                         else:
-                            print(f"[AI] Draft Model {model} failed: {resp.status_code}")
+                            print(f"[AI ERROR] Draft Model {model} failed: {resp.status_code}")
                     except Exception as e:
-                        print(f"[AI] Gemini Draft failed for {model}: {e}")
+                        print(f"[AI EXCEPTION] Gemini Draft failed for {model}: {e}")
 
         final_text = draft # Default to draft if refinement fails
 
@@ -220,15 +232,16 @@ class AIService:
                 f"CONTEXT: {filtered_context}.\n"
                 f"DRAFT: {draft if draft else 'N/A'}.\n\n"
                 "CRITICAL INSTRUCTIONS:\n"
-                "1. TONE: Helpful, professional, and conversational. Avoid clinical or robotic phrasing.\n"
-                "2. STRUCTURE: Use clear paragraphs and bullet points where appropriate. No forced verticality.\n"
-                "3. PERSONALIZATION: Address the student by name if provided in context.\n"
-                "4. ACCURACY: Use the exact data provided in the context to answer precisely.\n"
-                "5. BREVITY: Be concise but thorough. Ensure the user feels supported, not just informed.\n\n"
+                "1. TONE: Helpful, professional, and direct. Avoid ALL conversational filler like 'I hope this helps' or 'Let me know if'.\n"
+                "2. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (•). No long introductory or concluding paragraphs.\n"
+                "3. BREVITY: Provide ONLY requested information. If the user asks for a number, give ONLY that number and its label.\n"
+                "4. ACCURACY: Use exact stats/dates from the context. Never hallucinate or approximate.\n"
+                "5. NO REDUNDANCY: Do not repeat info or explain data unless explicitly requested.\n\n"
                 "FORMATTING RULES:\n"
-                "- Use Markdown for emphasis (bold, italic).\n"
-                "- Use emojis sparingly to maintain a premium feel.\n"
-                "- If the query is a greeting, provide a warm, personalized welcome and ask how to help."
+                "- Use Bold for key metrics and dates.\n"
+                "- Use the bullet symbol '•' for ALL lists and data points.\n"
+                "- Align data vertically using 'Key: Value' format.\n"
+                "- If the query is a greeting, ONLY say: 'Hello [Name], how can I help with your ERP data today?'"
             )
 
             groq_headers = {
@@ -245,7 +258,9 @@ class AIService:
                     resp = await client.post("https://api.groq.com/openai/v1/chat/completions", headers=groq_headers, json=groq_data, timeout=10.0)
                     if resp.status_code == 200:
                         final_text = resp.json()["choices"][0]["message"]["content"]
-                        protocol = "Gemini 2.5 Flash (Turing-5 Optimized)"
+                        protocol = "GPT-OSS 120B (Groq Hyper-Drive)"
+                    else:
+                        print(f"[AI LIMIT] Groq failed with {resp.status_code}: {resp.text[:100]}")
             except Exception as e:
                 print(f"[AI ERROR] Groq Refinement Exception: {e}")
                 pass
