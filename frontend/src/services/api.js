@@ -1,8 +1,12 @@
 import axios from "axios";
 import { getToken, saveToken } from "../utils/auth";
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+let base = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+// Fix Mixed Content: Upgrade http to https for production Railway URLs
+if (base.includes("up.railway.app") && base.startsWith("http://")) {
+  base = base.replace("http://", "https://");
+}
+export const API_BASE_URL = base;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
