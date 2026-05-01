@@ -219,7 +219,7 @@ export default function GeneralForumPage() {
 
   return (
     <ErpLayout title="General Forum" subtitle="Open campus dialogue">
-      <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto overflow-hidden bg-black text-white font-sans">
+      <div className="wrapper flex h-[calc(100vh-120px)] overflow-hidden bg-black text-white font-sans">
 
         {/* Sidebar */}
         <div className="w-80 border-r border-white/5 flex flex-col bg-[#0d0d0f] hidden lg:flex">

@@ -76,7 +76,10 @@ export default function Sidebar({ onLogout }) {
               <GraduationCap className="text-white" size={28} strokeWidth={2.5} />
             </div>
             <div className="flex flex-col">
-              <h2 className="text-2xl font-bold text-on-surface tracking-tight leading-none" style={{ fontFamily: 'var(--font-jakarta)' }}>
+              <h2 className="font-bold text-on-surface tracking-tight leading-none" style={{ 
+                fontFamily: 'var(--font-jakarta)',
+                fontSize: 'clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem)'
+              }}>
                 Studvisor
               </h2>
               <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mt-2">

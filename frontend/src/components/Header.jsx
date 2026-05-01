@@ -68,11 +68,17 @@ export default function Header({ title, subtitle }) {
           <Menu size={20} />
         </button>
         <div className="animate-fade-in-up">
-          <h1 className="text-lg md:text-xl font-bold text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>
+          <h1 className="text-on-surface tracking-tight" style={{ 
+            fontFamily: 'var(--font-jakarta)',
+            fontSize: 'clamp(1rem, 0.9rem + 0.5vw, 1.25rem)',
+            fontWeight: 800
+          }}>
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[9px] md:text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60 line-clamp-1 max-w-[150px] md:max-w-none">
+            <p className="font-bold text-on-surface-variant uppercase tracking-widest opacity-60 line-clamp-1 max-w-[150px] md:max-w-none" style={{
+              fontSize: 'clamp(0.5rem, 0.45rem + 0.2vw, 0.65rem)'
+            }}>
               {subtitle}
             </p>
           )}

@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
+    GEMINI_API_KEY_2: Optional[str] = None
+    GEMINI_API_KEY_3: Optional[str] = None
     AI_MODEL: str = "llama3"
     AI_MAX_TOKENS: int = 2048
     AI_TEMPERATURE: float = 0.3

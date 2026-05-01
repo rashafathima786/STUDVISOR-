@@ -38,7 +38,7 @@ export default function ErpLayout({ title, subtitle, children }) {
         <Header title={title} subtitle={subtitle} />
 
         {/* Dynamic Page Content with Entrance Animation */}
-        <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full animate-fade-in-up">
+        <div className="flex-1 wrapper w-full animate-fade-in-up mt-4">
           {children}
         </div>
         

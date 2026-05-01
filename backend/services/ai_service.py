@@ -10,26 +10,74 @@ import httpx
 
 class AIService:
     def __init__(self):
+        # User-Prioritized Model Fleet
+        self.gemini_model = "gemini-3-flash-preview"
+        self.performance_fleet = [
+            "gemini-3-flash-preview",  # Gemini 3 Flash
+            "gemini-2.0-flash-lite",   # Gemini 2.5 Flash Lite (Mapped to 2.0-lite)
+            "gemini-2.5-flash",        # Gemini 2.5 Flash
+            "gemini-1.5-flash"         # Legacy Fallback
+        ]
+        
         self.groq_model = "openai/gpt-oss-120b"
         self.anthropic_model = "claude-3-sonnet-20240229"
-        self.gemini_model = "gemini-3-flash-preview"  # Latest working model
-        self.gemini_fallback_models = [
-            "gemini-3.0-flash-preview", 
-            "gemini-2.5-flash", 
-            "gemini-2.0-flash", 
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-pro-latest" # Pro might still be active even if Flash is deprecated
-        ]
         self._response_cache = {} # High-speed AI response caching
-        # Verified Performance Fleet (Ordered by Speed/Efficiency)
-        self.performance_fleet = [
-            "gemini-3-flash-preview",  # Advanced Node (Verified Active)
-            "gemini-2.0-flash-lite",   # Fast Lite Node
-            "gemini-2.5-flash",        # Balanced Node
-            "gemma-3-12b-it"           # High-Capacity Local Node
-        ]
+        
         self.api_key = os.getenv("ANTHROPIC_API_KEY") 
         self.model = self.anthropic_model
+
+    async def _call_gemini_api(self, prompt: str, stream: bool = False):
+        """Robust helper to call Gemini with automatic API key rotation and model cycling."""
+        from backend.core.config import get_settings
+        settings = get_settings()
+        
+        # Collect all active Gemini keys
+        gemini_keys = [
+            settings.GEMINI_API_KEY,
+            settings.GEMINI_API_KEY_2,
+            settings.GEMINI_API_KEY_3
+        ]
+        active_keys = [k for k in gemini_keys if k]
+        
+        if not active_keys:
+            return None
+
+        async with httpx.AsyncClient() as client:
+            for api_key in active_keys:
+                key_index = active_keys.index(api_key) + 1
+                for model in self.performance_fleet:
+                    method = "streamGenerateContent" if stream else "generateContent"
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:{method}?key={api_key}"
+                    headers = {"Content-Type": "application/json"}
+                    data = {
+                        "contents": [{
+                            "parts": [{"text": prompt}]
+                        }]
+                    }
+                    try:
+                        if stream:
+                            response = await client.post(url, headers=headers, json=data, timeout=30.0)
+                            if response.status_code == 200:
+                                return response
+                        else:
+                            response = await client.post(url, headers=headers, json=data, timeout=30.0)
+                            if response.status_code == 200:
+                                result = response.json()
+                                return result["candidates"][0]["content"]["parts"][0]["text"]
+                        
+                        if response.status_code in [429, 503, 500]:
+                            print(f"[AI FALLBACK] Key #{key_index} | Model {model} hit limit ({response.status_code}). Cycling...")
+                            continue
+                        else:
+                            print(f"[AI ERROR] Key #{key_index} | Model {model} error: {response.status_code}")
+                            continue
+                    except Exception as e:
+                        print(f"[AI EXCEPTION] Key #{key_index} | Model {model} failed: {e}")
+                        continue
+                
+                print(f"[AI CRITICAL] API Key #{key_index} exhausted all models. Trying next key...")
+        
+        return None
 
     async def get_welcome_package(self, db_context: str, user_name: str) -> Dict:
         """Generates a personalized welcome message and quick actions."""
@@ -44,15 +92,15 @@ class AIService:
 
         # Base actions
         actions = [
-            {"label": "📊 Attendance Summary", "query": "show my attendance summary", "category": "attendance"},
-            {"label": "📅 Next Holiday", "query": "when is the next holiday", "category": "calendar"},
+            {"label": "\U0001f4ca Attendance Summary", "query": "show my attendance summary", "category": "attendance"},
+            {"label": "\U0001f4c5 Next Holiday", "query": "when is the next holiday", "category": "calendar"},
         ]
 
         # Contextual actions
         if att_pct < 75:
-            actions.insert(0, {"label": "⚠️ Attendance Recovery", "query": "how to recover my attendance", "category": "critical"})
+            actions.insert(0, {"label": "\u26a0\ufe0f Attendance Recovery", "query": "how to recover my attendance", "category": "critical"})
         if exams_count > 0:
-            actions.append({"label": "📝 Exam Schedule", "query": "show my upcoming exams", "category": "academic"})
+            actions.append({"label": "\U0001f4dd Exam Schedule", "query": "show my upcoming exams", "category": "academic"})
         
         hour = asyncio.get_event_loop().time() # Mocking time for greeting
         
@@ -76,37 +124,18 @@ class AIService:
         }
 
     async def chat(self, system_prompt: str, user_query: str) -> str:
-        """Standard non-streaming chat. Priority: Gemini -> Groq -> Anthropic -> Ollama -> Mock."""
+        """Standard non-streaming chat. Priority: Gemini Fleet -> Groq -> Anthropic -> Ollama -> Mock."""
         from backend.core.config import get_settings
         settings = get_settings()
         gemini_key = settings.GEMINI_API_KEY
         groq_key = settings.GROQ_API_KEY
         anthropic_key = settings.ANTHROPIC_API_KEY
         
-        # 1. Gemini (Google AI)
-        if gemini_key:
-            models_to_try = [self.gemini_model] + self.gemini_fallback_models
-            async with httpx.AsyncClient() as client:
-                for model in models_to_try:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
-                    headers = {"Content-Type": "application/json"}
-                    data = {
-                        "contents": [{
-                            "parts": [{"text": f"System: {system_prompt}\nUser: {user_query}"}]
-                        }]
-                    }
-                    try:
-                        response = await client.post(url, headers=headers, json=data, timeout=30.0)
-                        if response.status_code == 200:
-                            result = response.json()
-                            return result["candidates"][0]["content"]["parts"][0]["text"]
-                        elif response.status_code in [429, 503, 500]:
-                            print(f"[AI LIMIT] Gemini {model} error ({response.status_code}). Falling back...")
-                            continue
-                        else:
-                            print(f"[AI ERROR] Model {model} failed: {response.status_code}")
-                    except Exception as e:
-                        print(f"[AI EXCEPTION] Gemini {model}: {e}")
+        # 1. Gemini Fleet (Automatic Cycling)
+        prompt = f"System: {system_prompt}\nUser: {user_query}"
+        gemini_response = await self._call_gemini_api(prompt)
+        if gemini_response:
+            return gemini_response
 
         # 2. Groq (High Speed)
         if groq_key:
@@ -132,7 +161,7 @@ class AIService:
             except Exception as e:
                 print(f"[AI ERROR] Groq Exception: {e}")
 
-        # 2. Anthropic
+        # 3. Anthropic
         if anthropic_key:
             headers = {
                 "x-api-key": anthropic_key,
@@ -153,7 +182,7 @@ class AIService:
             except Exception as e:
                 print(f"Anthropic error: {e}")
 
-        # 3. Fallback to Ollama (local)
+        # 4. Fallback to Ollama (local)
         ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
         try:
             async with httpx.AsyncClient() as client:
@@ -171,7 +200,7 @@ class AIService:
         return f"[MOCK AI] Analyzing: {user_query[:50]}..."
 
     async def ensemble_chat(self, user_query: str, db_context: str, category: str = "General") -> Dict:
-        # ── INTELLIGENCE FAST-PASS (CACHE CHECK) ──────────────────────────
+        # -- INTELLIGENCE FAST-PASS (CACHE CHECK) --
         cache_key = f"{user_query.strip().lower()}_{db_context[:100]}"
         if cache_key in self._response_cache:
             print(f"[AI CACHE HIT] Serving cached response for node speed.")
@@ -182,7 +211,7 @@ class AIService:
         gemini_key = settings.GEMINI_API_KEY
         groq_key = settings.GROQ_API_KEY
 
-        # Step 1: Creative Draft (Gemini)
+        # Step 1: Creative Draft (Gemini Fleet)
         draft = ""
         actions = []
         protocol = "Gemini"
@@ -196,33 +225,13 @@ class AIService:
                 "Clubs": "Be energetic and informative. Focus on events and student organizations."
             }.get(category, "Be helpful and professional.")
 
-            models_to_try = [self.gemini_model] + self.gemini_fallback_models
-            async with httpx.AsyncClient() as client:
-                for model in models_to_try:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
-                    gemini_headers = {"Content-Type": "application/json"}
-                    gemini_data = {
-                        "contents": [{
-                            "parts": [{"text": f"Context: {db_context}\nCategory: {category}\nFocus: {category_focus}\n\nStudent asked: '{user_query}'\n\nDraft a helpful response for the {category} zone."}]
-                        }]
-                    }
-                    try:
-                        resp = await client.post(url, headers=gemini_headers, json=gemini_data, timeout=15.0)
-                        if resp.status_code == 200:
-                            draft = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                            break
-                        elif resp.status_code in [429, 503, 500]:
-                            print(f"[AI LIMIT] Draft Model {model} error ({resp.status_code}). Trying next fallback...")
-                            continue
-                        else:
-                            print(f"[AI ERROR] Draft Model {model} failed: {resp.status_code}")
-                    except Exception as e:
-                        print(f"[AI EXCEPTION] Gemini Draft failed for {model}: {e}")
+            prompt = f"Context: {db_context}\nCategory: {category}\nFocus: {category_focus}\n\nStudent asked: '{user_query}'\n\nDraft a helpful response for the {category} zone."
+            draft = await self._call_gemini_api(prompt)
 
         final_text = draft # Default to draft if refinement fails
 
         if groq_key:
-            # ── PRIVACY GUARD: CONTEXT FILTERING ────────────────────────────────
+            # -- PRIVACY GUARD: CONTEXT FILTERING --
             is_academic_query = any(k in user_query.upper() for k in ["GPA", "CGPA", "ATTENDANCE", "MARKS", "REPORT", "GRADE"])
             
             # Mask sensitive data if not in Academic zone and not an academic query
@@ -251,13 +260,13 @@ class AIService:
                 f"DRAFT: {draft if draft else 'N/A'}.\n\n"
                 "CRITICAL INSTRUCTIONS:\n"
                 "1. TONE: Match the Zone Persona. Professional for Academic/General, Casual for Lounge/Clubs.\n"
-                "2. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (•).\n"
+                "2. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (-).\n"
                 "3. BREVITY: Max 3-4 bullet points. Be extremely direct.\n"
                 "4. ACCURACY: Use exact stats from context. If data is missing, say 'No institutional data found'.\n"
-                "5. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n\n"
+                f"5. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n\n"
                 "FORMATTING RULES:\n"
                 "- Bold key metrics, dates, and names.\n"
-                "- Use '•' for all lists.\n"
+                "- Use '-' for all lists.\n"
                 "- Align data using 'Key: Value' format."
             )
 
@@ -289,17 +298,17 @@ class AIService:
             
             if (category == "Academic" or is_academic_query):
                 if "ATTENDANCE" in user_query.upper() or "BUNK" in user_query.upper():
-                    final_text = f"### 🟢 **Academic Intelligence Sync**\n\nYour current attendance is synchronized at **{db_context.split('Overall ')[1].split('%')[0] if 'Overall ' in db_context else '77.8'}%**. Status: **Institutional Audit Green**."
+                    final_text = f"### \U0001f7e2 **Academic Intelligence Sync**\n\nYour current attendance is synchronized at **{db_context.split('Overall ')[1].split('%')[0] if 'Overall ' in db_context else '77.8'}%**. Status: **Institutional Audit Green**."
                 elif "CGPA" in user_query.upper() or "GPA" in user_query.upper():
-                    final_text = f"### 🟢 **Academic Performance Record**\n\nYour verified CGPA is **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. Standing: **Exemplary**."
+                    final_text = f"### \U0001f7e2 **Academic Performance Record**\n\nYour verified CGPA is **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. Standing: **Exemplary**."
                 else:
-                    final_text = f"### 🟢 **Academic Sector Active**\n\nI have verified your academic credentials. Records indicate a CGPA of **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. How can I assist with your studies?"
+                    final_text = f"### \U0001f7e2 **Academic Sector Active**\n\nI have verified your academic credentials. Records indicate a CGPA of **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. How can I assist with your studies?"
             elif category == "Clubs":
-                final_text = "### 🟢 **Club Notice Protocol**\n\nEngagement nodes are active. We are currently tracking **Recruitment Windows** for technical and cultural organizations. Check the **Clubs Dashboard** for official forms."
+                final_text = "### \U0001f7e2 **Club Notice Protocol**\n\nEngagement nodes are active. We are currently tracking **Recruitment Windows** for technical and cultural organizations. Check the **Clubs Dashboard** for official forms."
             elif category == "Lounge":
-                final_text = "### 🟢 **Lounge Node Active**\n\nRelaxing in the **Student Lounge**? I'm here if you need any quick campus info. Otherwise, enjoy the dialogue!"
+                final_text = "### \U0001f7e2 **Lounge Node Active**\n\nRelaxing in the **Student Lounge**? I'm here if you need any quick campus info. Otherwise, enjoy the dialogue!"
             else:
-                final_text = f"### 🟢 **Forum Intelligence Active**\n\nConnection established via **{protocol}**. Welcome to the **{category}** zone. I am here to facilitate **open campus dialogue** and provide institutional intelligence."
+                final_text = f"### \U0001f7e2 **Forum Intelligence Active**\n\nConnection established via **{protocol}**. Welcome to the **{category}** zone. I am here to facilitate **open campus dialogue** and provide institutional intelligence."
 
         # Intent Detection for Quick Actions (Only if relevant)
         is_academic_query = any(k in user_query.upper() for k in ["ATTENDANCE", "BUNK", "CGPA", "GPA", "MARKS"])
@@ -324,28 +333,11 @@ class AIService:
         gemini_key = settings.GEMINI_API_KEY
         groq_key = settings.GROQ_API_KEY
 
-        # Creative Draft (Gemini) - Must be sequential as Groq uses it
+        # Creative Draft (Gemini Fleet)
         draft = ""
         if gemini_key:
-            category_focus = {
-                "Academic": "Be precise and data-driven.",
-                "Lounge": "Be casual and brief.",
-                "General": "Be informative.",
-                "Clubs": "Be energetic."
-            }.get(category, "Be helpful.")
-            
-            models_to_try = [self.gemini_model] + self.gemini_fallback_models
-            async with httpx.AsyncClient() as client:
-                for model in models_to_try:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
-                    try:
-                        resp = await client.post(url, json={
-                            "contents": [{"parts": [{"text": f"Context: {db_context}\nCategory: {category}\nDraft a response for: '{user_query}'"}]}]
-                        }, timeout=8.0)
-                        if resp.status_code == 200:
-                            draft = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                            break
-                    except: continue
+            prompt = f"Context: {db_context}\nCategory: {category}\nDraft a response for: '{user_query}'"
+            draft = await self._call_gemini_api(prompt) or ""
 
         # Refinement (Groq) - Streaming
         if groq_key:
@@ -372,30 +364,40 @@ class AIService:
             except: pass
 
         # Fallback Shadow Protocol (Non-streaming but immediate)
-        shadow_text = f"### 🟢 **Shadow Sync Active**\n\nI am processing your query: '{user_query}' via our secondary intelligence node. Please check your **{category}** records for details."
+        shadow_text = f"### \U0001f7e2 **Shadow Sync Active**\n\nI am processing your query: '{user_query}' via our secondary intelligence node. Please check your **{category}** records for details."
         for word in shadow_text.split():
             yield word + " "
             await asyncio.sleep(0.01)
 
     async def chat_stream(self, system_prompt: str, user_query: str) -> AsyncGenerator[str, None]:
-        """Generic streaming chat."""
-        from backend.core.config import get_settings
-        settings = get_settings()
-        gemini_key = settings.GEMINI_API_KEY
-        if not gemini_key:
-            yield "Mock streaming active."
-            return
-
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:streamGenerateContent?key={gemini_key}"
-        async with httpx.AsyncClient() as client:
-            async with client.stream("POST", url, json={
-                "contents": [{"parts": [{"text": f"System: {system_prompt}\nUser: {user_query}"}]}]
-            }, timeout=30.0) as response:
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "): # Simple parsing for Gemini stream
+        """Generic streaming chat with fleet cycling."""
+        prompt = f"System: {system_prompt}\nUser: {user_query}"
+        
+        # Try Gemini fleet first (automatically cycles through models on limits)
+        response = await self._call_gemini_api(prompt, stream=True)
+        if response:
+            try:
+                # Gemini streaming returns JSON array chunks
+                result = response.json()
+                for candidate in result:
+                    try:
+                        text = candidate["candidates"][0]["content"]["parts"][0]["text"]
+                        yield text
+                    except (KeyError, IndexError):
+                        continue
+                return
+            except Exception:
+                # If JSON parsing fails, try line-by-line
+                for line in response.text.split("\n"):
+                    if line.strip():
                         try:
-                            chunk = json.loads(line[6:])
-                            yield chunk["candidates"][0]["content"]["parts"][0]["text"]
+                            chunk = json.loads(line)
+                            text = chunk["candidates"][0]["content"]["parts"][0]["text"]
+                            yield text
                         except: continue
+                return
+
+        # Fallback: mock streaming
+        yield "[AI Fleet Exhausted] All models are currently at capacity. Please try again in a moment."
 
 ai_service = AIService()

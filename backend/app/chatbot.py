@@ -351,6 +351,8 @@ def handle_simulation(db: Session, student: Student, message: str) -> str:
         reply += f"You will still be above the {min_pct}% eligibility criteria even after taking {days} day{'s' if days > 1 else ''} off."
     
     return reply
+
+def handle_cgpa(db: Session, student: Student) -> str:
     result = gpa_service.get_cgpa(db, student.id)
     if not result["semesters"]:
         return "- **CGPA**: Data Unavailable."
@@ -533,6 +535,16 @@ async def process_chat(db: Session, student: Student, message: str) -> dict:
         if "protocol" not in result:
             result["protocol"] = "Deterministic"
         return result
+
+    # Fallback to AI Ensemble (fleet cycling) for unknown intents
+    context = build_student_context(db, student.id)
+    ensemble_result = await ai_service.ensemble_chat(message, context)
+    return {
+        "reply": ensemble_result.get("text", "[AI] Unable to process query."),
+        "actions": ensemble_result.get("actions", []),
+        "protocol": ensemble_result.get("protocol", "Ensemble")
+    }
+
 
 async def process_chat_stream(db: Session, student: Student, message: str) -> AsyncGenerator[Dict, None]:
     """Streaming entry point for the AI chatbot. Yields meta then chunks."""

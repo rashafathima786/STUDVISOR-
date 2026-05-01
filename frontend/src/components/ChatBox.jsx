@@ -301,7 +301,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
   return (
     <div className={`card chatbot-card chatbot-card-premium ${compact ? 'compact-chatbot-card' : ''} ${className}`}>
       <div className="chatbot-header">
-        <h3 className="section-title">Campus Connect</h3>
+        {!compact && <h3 className="section-title">Campus Connect</h3>}
         {!compact ? (
           <p className="chatbot-subtitle">
             Ask about attendance, weakest subject, eligibility, marks, or a quick academic summary.
