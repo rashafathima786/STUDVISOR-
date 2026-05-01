@@ -128,72 +128,125 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-white/[0.02]">
-                  <th className="px-10 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Subject</th>
-                  <th className="px-6 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Code</th>
-                  <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Assessment</th>
-                  <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Score</th>
-                  <th className="px-10 py-6 text-right text-[10px] font-black text-white/30 uppercase tracking-widest">Percentage</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {processedMarks.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-10 py-20 text-center text-white/20 font-bold uppercase tracking-widest italic">
-                      No data synchronized with core system
-                    </td>
+          <div className="flex flex-col">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-white/[0.02]">
+                    <th className="px-10 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Subject</th>
+                    <th className="px-6 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Code</th>
+                    <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Assessment</th>
+                    <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Score</th>
+                    <th className="px-10 py-6 text-right text-[10px] font-black text-white/30 uppercase tracking-widest">Percentage</th>
                   </tr>
-                ) : (
-                  processedMarks.map((item, idx) => (
-                    <motion.tr 
-                      key={idx}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3 + idx * 0.05 }}
-                      className="hover:bg-white/[0.03] transition-colors group"
-                    >
-                      <td className="px-10 py-8">
-                        <div className="flex flex-col">
-                          <span className="text-white font-bold group-hover:text-primary transition-colors">{item.subject_name || item.subject}</span>
-                          <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider mt-1 italic">Confirmed</span>
-                        </div>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {processedMarks.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="px-10 py-20 text-center text-white/20 font-bold uppercase tracking-widest italic">
+                        No data synchronized with core system
                       </td>
-                      <td className="px-6 py-8">
-                        <span className="text-xs font-black text-white/40 tracking-tighter">{item.subject_code}</span>
-                      </td>
-                      <td className="px-6 py-8 text-center">
-                        <span className="px-3 py-1 bg-white/5 rounded-lg border border-white/5 text-[9px] font-black text-white/60 uppercase tracking-widest">
+                    </tr>
+                  ) : (
+                    processedMarks.map((item, idx) => (
+                      <motion.tr 
+                        key={idx}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 + idx * 0.05 }}
+                        className="hover:bg-white/[0.03] transition-colors group"
+                      >
+                        <td className="px-10 py-8">
+                          <div className="flex flex-col">
+                            <span className="text-white font-bold group-hover:text-primary transition-colors">{item.subject_name || item.subject}</span>
+                            <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider mt-1 italic">Confirmed</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-8">
+                          <span className="text-xs font-black text-white/40 tracking-tighter">{item.subject_code}</span>
+                        </td>
+                        <td className="px-6 py-8 text-center">
+                          <span className="px-3 py-1 bg-white/5 rounded-lg border border-white/5 text-[9px] font-black text-white/60 uppercase tracking-widest">
+                            {item.assessment_type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-8 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span className="text-sm font-bold text-white">{item.marks_obtained || item.obtained}</span>
+                            <span className="text-xs text-white/20 font-medium">/ {item.max_marks}</span>
+                          </div>
+                        </td>
+                        <td className="px-10 py-8 text-right">
+                          <div className="flex flex-col items-end">
+                             <span className={`text-lg font-black tracking-tighter ${getScoreColor(item.percentage)}`}>
+                               {item.percentage.toFixed(1)}%
+                             </span>
+                             <div className="w-24 h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+                               <motion.div 
+                                 initial={{ width: 0 }}
+                                 animate={{ width: `${item.percentage}%` }}
+                                 className={`h-full ${item.percentage >= 80 ? 'bg-emerald-400' : item.percentage >= 60 ? 'bg-amber-400' : 'bg-red-400'}`}
+                               />
+                             </div>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card Grid View */}
+            <div className="md:hidden p-4 space-y-4">
+              {processedMarks.length === 0 ? (
+                <div className="px-6 py-12 text-center text-white/20 font-bold uppercase tracking-widest italic text-xs">
+                  No data synchronized
+                </div>
+              ) : (
+                processedMarks.map((item, idx) => (
+                  <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="glass-panel p-6 rounded-3xl border border-white/5"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1 pr-4">
+                        <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{item.subject_code}</span>
+                        <h4 className="text-md font-bold text-white mt-1 leading-tight">{item.subject_name || item.subject}</h4>
+                        <span className="inline-block mt-2 px-2 py-0.5 bg-white/5 rounded-md border border-white/5 text-[8px] font-black text-white/40 uppercase tracking-widest">
                           {item.assessment_type}
                         </span>
-                      </td>
-                      <td className="px-6 py-8 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="text-sm font-bold text-white">{item.marks_obtained || item.obtained}</span>
-                          <span className="text-xs text-white/20 font-medium">/ {item.max_marks}</span>
-                        </div>
-                      </td>
-                      <td className="px-10 py-8 text-right">
-                        <div className="flex flex-col items-end">
-                           <span className={`text-lg font-black tracking-tighter ${getScoreColor(item.percentage)}`}>
-                             {item.percentage.toFixed(1)}%
-                           </span>
-                           <div className="w-24 h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
-                             <motion.div 
-                               initial={{ width: 0 }}
-                               animate={{ width: `${item.percentage}%` }}
-                               className={`h-full ${item.percentage >= 80 ? 'bg-emerald-400' : item.percentage >= 60 ? 'bg-amber-400' : 'bg-red-400'}`}
-                             />
-                           </div>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xl font-black ${getScoreColor(item.percentage)}`}>
+                          {item.percentage.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex justify-between items-center mb-4">
+                      <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">Obtained Score</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-bold text-white">{item.marks_obtained || item.obtained}</span>
+                        <span className="text-xs text-white/20">/ {item.max_marks}</span>
+                      </div>
+                    </div>
+
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${item.percentage}%` }}
+                        className={`h-full ${item.percentage >= 80 ? 'bg-emerald-400' : item.percentage >= 60 ? 'bg-amber-400' : 'bg-red-400'}`} 
+                      />
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 

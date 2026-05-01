@@ -215,62 +215,113 @@ const AttendancePage = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-white/[0.02]">
-                                    <th className="py-6 px-10 text-[10px] font-black text-white/30 uppercase tracking-widest">Identifier</th>
-                                    <th className="py-6 px-8 text-[10px] font-black text-white/30 uppercase tracking-widest">Module Name</th>
-                                    <th className="py-6 px-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Sync Conducted</th>
-                                    <th className="py-6 px-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Active Attended</th>
-                                    <th className="py-6 px-8 text-[10px] font-black text-white/30 uppercase tracking-widest">Efficiency Ratio</th>
-                                    <th className="py-6 px-10 text-[10px] font-black text-white/30 uppercase tracking-widest text-right">Operational Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {subjects.map((s, idx) => (
-                                    <motion.tr 
-                                      key={idx} 
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      transition={{ delay: 0.3 + idx * 0.05 }}
-                                      className="hover:bg-white/[0.03] transition-colors group"
-                                    >
-                                        <td className="py-8 px-10 text-xs font-black text-primary tracking-tighter">{s.code}</td>
-                                        <td className="py-8 px-8">
-                                           <div className="flex flex-col">
-                                             <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight">{s.subject}</span>
-                                             <span className="text-[10px] text-white/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Original</span>
-                                           </div>
-                                        </td>
-                                        <td className="py-8 px-6 text-center text-xs text-white/40 font-black">{s.total}</td>
-                                        <td className="py-8 px-6 text-center text-xs text-white font-black">{s.present}</td>
-                                        <td className="py-8 px-8">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex justify-between items-center pr-2">
-                                                   <span className={`text-lg font-black tracking-tighter ${s.percentage >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                       {s.percentage}%
-                                                   </span>
+                    <div className="flex flex-col">
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-white/[0.02]">
+                                        <th className="py-6 px-10 text-[10px] font-black text-white/30 uppercase tracking-widest">Identifier</th>
+                                        <th className="py-6 px-8 text-[10px] font-black text-white/30 uppercase tracking-widest">Module Name</th>
+                                        <th className="py-6 px-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Sync Conducted</th>
+                                        <th className="py-6 px-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Active Attended</th>
+                                        <th className="py-6 px-8 text-[10px] font-black text-white/30 uppercase tracking-widest">Efficiency Ratio</th>
+                                        <th className="py-6 px-10 text-[10px] font-black text-white/30 uppercase tracking-widest text-right">Operational Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {subjects.map((s, idx) => (
+                                        <motion.tr 
+                                          key={idx} 
+                                          initial={{ opacity: 0 }}
+                                          animate={{ opacity: 1 }}
+                                          transition={{ delay: 0.3 + idx * 0.05 }}
+                                          className="hover:bg-white/[0.03] transition-colors group"
+                                        >
+                                            <td className="py-8 px-10 text-xs font-black text-primary tracking-tighter">{s.code}</td>
+                                            <td className="py-8 px-8">
+                                               <div className="flex flex-col">
+                                                 <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight">{s.subject}</span>
+                                                 <span className="text-[10px] text-white/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Original</span>
+                                               </div>
+                                            </td>
+                                            <td className="py-8 px-6 text-center text-xs text-white/40 font-black">{s.total}</td>
+                                            <td className="py-8 px-6 text-center text-xs text-white font-black">{s.present}</td>
+                                            <td className="py-8 px-8">
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex justify-between items-center pr-2">
+                                                       <span className={`text-lg font-black tracking-tighter ${s.percentage >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                           {s.percentage}%
+                                                       </span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                                        <motion.div 
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${s.percentage}%` }}
+                                                            className={`h-full rounded-full ${s.percentage >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`} 
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
-                                                    <motion.div 
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${s.percentage}%` }}
-                                                        className={`h-full rounded-full ${s.percentage >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`} 
-                                                    />
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="py-8 px-10 text-right">
-                                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border ${s.percentage >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                                {s.percentage >= 75 ? <CheckCircle2 size={12} /> : <ShieldAlert size={12} />}
-                                                {s.percentage >= 75 ? 'Optimal' : 'Critical'}
-                                            </span>
-                                        </td>
-                                    </motion.tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                            <td className="py-8 px-10 text-right">
+                                                <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border ${s.percentage >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                    {s.percentage >= 75 ? <CheckCircle2 size={12} /> : <ShieldAlert size={12} />}
+                                                    {s.percentage >= 75 ? 'Optimal' : 'Critical'}
+                                                </span>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Card Grid View */}
+                        <div className="md:hidden p-4 space-y-4">
+                            {subjects.map((s, idx) => (
+                                <motion.div 
+                                    key={idx}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: idx * 0.1 }}
+                                    className="glass-panel p-6 rounded-3xl border border-white/5"
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">{s.code}</span>
+                                            <h4 className="text-lg font-bold text-white mt-1">{s.subject}</h4>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${s.percentage >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                            {s.percentage >= 75 ? 'Optimal' : 'Critical'}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">Conducted</p>
+                                            <p className="text-xl font-bold text-white">{s.total}</p>
+                                        </div>
+                                        <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">Attended</p>
+                                            <p className="text-xl font-bold text-white">{s.present}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Efficiency</span>
+                                            <span className={`text-xl font-black ${s.percentage >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>{s.percentage}%</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${s.percentage}%` }}
+                                                className={`h-full rounded-full ${s.percentage >= 75 ? 'bg-emerald-400' : 'bg-red-400'}`} 
+                                            />
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
                 </motion.div>
 
