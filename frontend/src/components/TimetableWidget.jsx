@@ -229,6 +229,10 @@ export default function TimetableWidget() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [events, setEvents] = useState(DEFAULT_EVENTS)
   const [dialog, setDialog] = useState(null)
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
+    const d = new Date().getDay()
+    return d === 0 ? 6 : d - 1 // MON=0, SUN=6
+  })
   
   const monday = getMonday(currentDate)
   const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
@@ -277,14 +281,34 @@ export default function TimetableWidget() {
 
       {/* Grid Architecture */}
       <div className="relative bg-[#0a0a0c]/80 backdrop-blur-3xl rounded-[48px] border border-white/10 overflow-hidden shadow-2xl">
+        
+        {/* Mobile View Toggle/Selector */}
+        <div className="md:hidden flex overflow-x-auto scrollbar-hide p-4 bg-white/5 border-b border-white/5 gap-2">
+          {week.map((day, i) => {
+            const { day: label } = dayLabel(day)
+            const isToday = day.toDateString() === new Date().toDateString()
+            const isSelected = i === (selectedDayIndex ?? new Date().getDay() === 0 ? 6 : new Date().getDay() - 1)
+            return (
+              <button
+                key={i}
+                onClick={() => setSelectedDayIndex(i)}
+                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-white/40'}`}
+              >
+                {label} {day.getDate()}
+                {isToday && <div className="mt-1 h-1 w-1 bg-white rounded-full mx-auto" />}
+              </button>
+            )
+          })}
+        </div>
+
         <div className="flex">
           
-          {/* Timeline Sidebar */}
-          <div className="w-24 pt-20 border-r border-white/5 bg-black/40">
+          {/* Timeline Sidebar - Hidden on extreme small if needed, but kept for context */}
+          <div className="w-20 md:w-24 pt-20 border-r border-white/5 bg-black/40">
             {HOUR_LABELS.map((label, i) => (
               <div 
                 key={i} 
-                className="flex items-start justify-center text-[9px] font-black text-white/20 uppercase tracking-tighter"
+                className="flex items-start justify-center text-[8px] md:text-[9px] font-black text-white/20 uppercase tracking-tighter"
                 style={{ height: ROW_HEIGHT }}
               >
                 {label}
@@ -292,56 +316,63 @@ export default function TimetableWidget() {
             ))}
           </div>
 
-          {/* Core Grid Matrix */}
-          <div className="flex-1 grid grid-cols-7 min-w-[1000px] overflow-x-auto scrollbar-hide">
-            {week.map((day, dIdx) => {
-              const { day: label, date } = dayLabel(day)
-              const isToday = day.toDateString() === new Date().toDateString()
-              const dayEvs = events.filter(e => e.dayIndex === dIdx)
+          {/* Core Grid Matrix - Responsive */}
+          <div className="flex-1 overflow-x-auto scrollbar-hide">
+            <div className={`grid ${selectedDayIndex !== null ? 'grid-cols-1' : 'grid-cols-7 min-w-[1000px]'}`}>
+              {week.map((day, dIdx) => {
+                const { day: label, date } = dayLabel(day)
+                const isToday = day.toDateString() === new Date().toDateString()
+                const dayEvs = events.filter(e => e.dayIndex === dIdx)
+                
+                // On mobile, only show the selected day
+                const isVisible = selectedDayIndex === null || selectedDayIndex === dIdx
 
-              return (
-                <div key={dIdx} className={`relative flex flex-col border-r border-white/5 last:border-0 ${isToday ? 'bg-primary/[0.04]' : ''}`}>
-                  
-                  {/* Vertical Column Header */}
-                  <div className="h-20 flex flex-col items-center justify-center border-b border-white/5 relative">
-                    <span className={`text-[10px] font-black tracking-[0.3em] uppercase mb-1.5 ${isToday ? 'text-primary' : 'text-white/20'}`}>
-                      {label}
-                    </span>
-                    <span className={`text-lg font-black ${isToday ? 'text-white' : 'text-white/60'}`}>
-                      {date}
-                    </span>
-                    {isToday && <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary shadow-[0_0_15px_rgba(124,58,237,0.5)]" />}
-                  </div>
+                if (!isVisible) return null
 
-                  {/* Operational Cell Matrix */}
-                  <div 
-                    className="relative cursor-crosshair group/grid" 
-                    style={{ height: (END_HOUR - START_HOUR + 1) * ROW_HEIGHT }}
-                    onClick={(e) => handleCellClick(dIdx, e)}
-                  >
-                    {/* Horizontal Synchronization Lines */}
-                    {HOUR_LABELS.map((_, i) => (
-                      <div 
-                        key={i} 
-                        className="absolute left-0 right-0 border-b border-white/[0.03] transition-colors group-hover/grid:border-white/[0.05]" 
-                        style={{ top: i * ROW_HEIGHT }} 
-                      />
-                    ))}
+                return (
+                  <div key={dIdx} className={`relative flex flex-col border-r border-white/5 last:border-0 ${isToday ? 'bg-primary/[0.04]' : ''} min-w-0`}>
+                    
+                    {/* Vertical Column Header - Hidden on Mobile since we have the tabs */}
+                    <div className="hidden md:flex h-20 flex-col items-center justify-center border-b border-white/5 relative">
+                      <span className={`text-[10px] font-black tracking-[0.3em] uppercase mb-1.5 ${isToday ? 'text-primary' : 'text-white/20'}`}>
+                        {label}
+                      </span>
+                      <span className={`text-lg font-black ${isToday ? 'text-white' : 'text-white/60'}`}>
+                        {date}
+                      </span>
+                      {isToday && <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary shadow-[0_0_15px_rgba(124,58,237,0.5)]" />}
+                    </div>
 
-                    {/* Active Event Nodes */}
-                    <AnimatePresence>
-                      {dayEvs.map(ev => (
-                        <EventPill 
-                          key={ev.id} 
-                          ev={ev} 
-                          onClick={() => setDialog({ event: ev })} 
+                    {/* Operational Cell Matrix */}
+                    <div 
+                      className="relative cursor-crosshair group/grid" 
+                      style={{ height: (END_HOUR - START_HOUR + 1) * ROW_HEIGHT }}
+                      onClick={(e) => handleCellClick(dIdx, e)}
+                    >
+                      {/* Horizontal Synchronization Lines */}
+                      {HOUR_LABELS.map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="absolute left-0 right-0 border-b border-white/[0.03] transition-colors group-hover/grid:border-white/[0.05]" 
+                          style={{ top: i * ROW_HEIGHT }} 
                         />
                       ))}
-                    </AnimatePresence>
+
+                      {/* Active Event Nodes */}
+                      <AnimatePresence>
+                        {dayEvs.map(ev => (
+                          <EventPill 
+                            key={ev.id} 
+                            ev={ev} 
+                            onClick={() => setDialog({ event: ev })} 
+                          />
+                        ))}
+                      </AnimatePresence>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>

@@ -33,6 +33,11 @@
   --font-jakarta: 'Plus Jakarta Sans', sans-serif;
   --font-space: 'Space Grotesk', sans-serif;
 
+  /* Fluid Typography (Inspired by Reference) */
+  --font-size-h1: clamp(2rem, 0.7rem + 5.5vw, 4rem);
+  --font-size-h2: clamp(1.6rem, 1.4rem + 1vw, 2.5rem);
+  --font-size-h3: clamp(1.25rem, 1.1rem + 0.7vw, 1.75rem);
+
   /* Animations */
   --animate-shimmer: shimmer 2s infinite linear;
   --animate-pulse-glow: pulseGlow 2s infinite;
@@ -124,6 +129,16 @@ html, body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1 { font-size: var(--font-size-h1); max-width: 30ch; }
+  h2 { font-size: var(--font-size-h2); max-width: 35ch; }
+  h3 { font-size: var(--font-size-h3); max-width: 40ch; }
+  
+  p {
+    max-width: 65ch;
+    line-height: 1.6;
   }
 
   /* Fluid Typography from Reference */
@@ -262,14 +277,23 @@ html, body {
   /* ── Bento Grid System (used by hub pages) ─────────────────────────── */
   .bento-grid {
     display: grid;
+<<<<<<< HEAD
     grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+=======
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+>>>>>>> ab602ae41d34c7ccd3f32234ca1ebd32539305cd
     gap: 20px;
     width: 100%;
   }
 
+<<<<<<< HEAD
   /* Overriding old media queries for more fluid grid */
   /* @media (max-width: 1024px) { ... } */
   /* @media (max-width: 640px) { ... } */
+=======
+  /* Note: Mobile stacking is now handled by auto-fit, 
+     but we keep media queries for specific adjustments if needed */
+>>>>>>> ab602ae41d34c7ccd3f32234ca1ebd32539305cd
 
   .bento-tile {
     background: var(--surface-container); /* Brighter tile base */
