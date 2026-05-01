@@ -232,22 +232,31 @@ async def student_performance_overview(student=Depends(get_current_student), db:
 
 # ─── ASSIGNMENTS ─────────────────────────────────────────────────────────────
 @assignment_router.get("/")
-def list_assignments(student=Depends(get_current_student), db: Session = Depends(get_db)):
+async def list_assignments(student=Depends(get_current_student), db: Session = Depends(get_db)):
     assignments = db.query(Assignment).order_by(Assignment.due_date.desc()).all()
-    submissions = {s.assignment_id for s in db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == student.id).all()}
+    
+    # 1. Get all submission objects for this student in one query
+    student_subs = db.query(AssignmentSubmission).filter(
+        AssignmentSubmission.student_id == student.id,
+        AssignmentSubmission.assignment_id.in_([a.id for a in assignments])
+    ).all()
+    sub_map = {s.assignment_id: s for s in student_subs}
+    
+    # 2. Get all subject names in one query
+    subject_ids = {a.subject_id for a in assignments if a.subject_id}
+    subjects = db.query(Subject).filter(Subject.id.in_(subject_ids)).all()
+    subject_map = {s.id: s.name for s in subjects}
     
     result = []
     for a in assignments:
-        subj = db.query(Subject).filter(Subject.id == a.subject_id).first()
-        sub = db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id == a.id, AssignmentSubmission.student_id == student.id).first()
-        
+        sub = sub_map.get(a.id)
         result.append({
             "id": a.id,
             "title": a.title,
             "description": a.description,
             "due_date": a.due_date,
             "max_marks": a.max_marks,
-            "subject": subj.name if subj else "General",
+            "subject": subject_map.get(a.subject_id, "General"),
             "status": "Submitted" if sub else "Pending",
             "submitted": sub is not None,
             "submitted_at": str(sub.submitted_at) if sub else None,
@@ -256,14 +265,29 @@ def list_assignments(student=Depends(get_current_student), db: Session = Depends
     return {"assignments": result}
 
 @assignment_router.post("/{aid}/submit/")
-def submit_assignment(aid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
-    if not db.query(Assignment).filter(Assignment.id == aid).first():
+async def submit_assignment(aid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
+    # Check assignment exists
+    assignment = db.query(Assignment).filter(Assignment.id == aid).first()
+    if not assignment:
         raise HTTPException(404, "Assignment not found")
-    existing = db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id == aid, AssignmentSubmission.student_id == student.id).first()
-    if existing: raise HTTPException(400, "Already submitted")
-    db.add(AssignmentSubmission(assignment_id=aid, student_id=student.id))
+        
+    # Check if already submitted
+    existing = db.query(AssignmentSubmission).filter(
+        AssignmentSubmission.assignment_id == aid, 
+        AssignmentSubmission.student_id == student.id
+    ).first()
+    if existing: 
+        raise HTTPException(400, "Already submitted")
+        
+    # Create submission
+    new_submission = AssignmentSubmission(
+        assignment_id=aid, 
+        student_id=student.id,
+        institution_id=student.institution_id
+    )
+    db.add(new_submission)
     db.commit()
-    return {"message": "Assignment submitted"}
+    return {"message": "Assignment submitted", "id": new_submission.id}
 
 # ─── EXAMS ───────────────────────────────────────────────────────────────────
 @exam_router.get("/")

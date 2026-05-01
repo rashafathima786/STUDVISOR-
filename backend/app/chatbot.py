@@ -6,6 +6,7 @@ Context-injected per role via core/ai_context.py.
 from sqlalchemy.orm import Session
 from collections import defaultdict
 import re
+from typing import AsyncGenerator, Dict, List, Optional
 
 from backend.app.models import (
     Student, Attendance, Mark, Subject, LeaveRequest, ExamSchedule,
@@ -533,12 +534,58 @@ async def process_chat(db: Session, student: Student, message: str) -> dict:
             result["protocol"] = "Deterministic"
         return result
 
-    # Fallback: Intelligence Ensemble v2 (Dynamic AI Answering)
-    context = build_student_context(db, student.id)
-    ai_result = await ai_service.ensemble_chat(message, context)
-    return {
-        "reply": ai_result["text"],
-        "actions": ai_result["actions"],
-        "protocol": ai_result["protocol"]
+async def process_chat_stream(db: Session, student: Student, message: str) -> AsyncGenerator[Dict, None]:
+    """Streaming entry point for the AI chatbot. Yields meta then chunks."""
+    from backend.services.ai_service import ai_service
+    from backend.core.ai_context import build_student_context
+
+    emotion = detect_emotion(message)
+    intent = detect_intent(message)
+
+    # Emotion override
+    if emotion == "distressed":
+        res = handle_distressed(student)
+        yield {"type": "meta", "actions": res["actions"], "protocol": "Safety"}
+        yield {"type": "chunk", "token": res["reply"]}
+        return
+
+    handlers = {
+        "greeting": lambda: handle_greeting(student),
+        "help": lambda: handle_help(),
+        "attendance_overall": lambda: handle_attendance_overall(db, student),
+        "attendance_subject": lambda: {"reply": handle_attendance_subject(db, student), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
+        "bunk_check": lambda: {"reply": handle_bunk_check(db, student), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
+        "reach_75": lambda: {"reply": handle_reach_75(db, student), "actions": []},
+        "attendance_recovery": lambda: {"reply": handle_reach_75(db, student), "actions": []},
+        "od_help": lambda: {"reply": handle_od_help(db, student), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
+        "marks": lambda: {"reply": handle_marks(db, student), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
+        "cgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
+        "sgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
+        "best_subject": lambda: {"reply": handle_best_subject(db, student), "actions": []},
+        "weakest_subject": lambda: {"reply": handle_weakest_subject(db, student), "actions": []},
+        "low_marks": lambda: {"reply": handle_low_marks(db, student), "actions": [{"label": "View Marks", "action": "navigate", "payload": "/performance"}]},
+        "academic_comparison": lambda: {"reply": handle_academic_comparison(db, student), "actions": []},
+        "simulation": lambda: {"reply": handle_simulation(db, student, message), "actions": []},
+        "eligibility": lambda: {"reply": handle_eligibility(db, student), "actions": []},
+        "profile": lambda: {"reply": handle_profile(student), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
+        "leave_status": lambda: {"reply": handle_leave_status(db, student), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
+        "exam_schedule": lambda: {"reply": handle_exam_schedule(db, student), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
+        "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
+        "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
+        "thank": lambda: {"reply": handle_thank(student), "actions": []},
+        "missed_today": lambda: {"reply": handle_missed_today(db, student), "actions": []},
     }
+
+    if intent in handlers:
+        result = handlers[intent]()
+        yield {"type": "meta", "actions": result.get("actions", []), "protocol": "Deterministic"}
+        # Deterministic responses are yielded as a single chunk for speed
+        yield {"type": "chunk", "token": result["reply"]}
+        return
+
+    # Fallback to AI Service Stream
+    yield {"type": "meta", "actions": [], "protocol": "Ensemble Stream"}
+    context = build_student_context(db, student.id)
+    async for token in ai_service.ensemble_chat_stream(message, context):
+        yield {"type": "chunk", "token": token}
 

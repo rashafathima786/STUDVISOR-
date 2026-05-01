@@ -24,9 +24,13 @@ def subject_wise(student=Depends(get_current_student), db: Session = Depends(get
     for r in records:
         data[r.subject_id]["total"] += 1
         if r.status == "P": data[r.subject_id]["present"] += 1
+    
+    subject_ids = list(data.keys())
+    subjects = {s.id: s for s in db.query(Subject).filter(Subject.id.in_(subject_ids)).all()} if subject_ids else {}
+    
     result = []
     for sid, d in data.items():
-        subj = db.query(Subject).filter(Subject.id == sid).first()
+        subj = subjects.get(sid)
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 0
         result.append({"subject_id": sid, "subject": subj.name if subj else "?", "code": subj.code if subj else "?", "total": d["total"], "present": d["present"], "percentage": pct, "below_75": pct < 75})
     return {"subjects": sorted(result, key=lambda x: x["percentage"])}
@@ -42,12 +46,15 @@ def heatmap(student=Depends(get_current_student), db: Session = Depends(get_db))
 
 @router.get("/missed-classes/")
 def missed(student=Depends(get_current_student), db: Session = Depends(get_db)):
-    records = db.query(Attendance).filter(Attendance.student_id == student.id, Attendance.status == "A").order_by(Attendance.date.desc()).all()
+    records = db.query(Attendance).filter(Attendance.student_id == student.id, Attendance.status == "A").order_by(Attendance.date.desc()).limit(50).all()
+    subject_ids = list({r.subject_id for r in records})
+    subjects = {s.id: s for s in db.query(Subject).filter(Subject.id.in_(subject_ids)).all()} if subject_ids else {}
+    
     result = []
     for r in records:
-        subj = db.query(Subject).filter(Subject.id == r.subject_id).first()
+        subj = subjects.get(r.subject_id)
         result.append({"date": r.date, "hour": r.hour, "subject": subj.name if subj else "?"})
-    return {"missed": result[:50]}
+    return {"missed": result}
 
 @router.get("/bunk-alerts/")
 def bunk_alerts(student=Depends(get_current_student), db: Session = Depends(get_db)):
@@ -57,22 +64,20 @@ def bunk_alerts(student=Depends(get_current_student), db: Session = Depends(get_
         data[r.subject_id]["total"] += 1
         if r.status == "P": data[r.subject_id]["present"] += 1
     
+    subject_ids = list(data.keys())
+    subjects = {s.id: s for s in db.query(Subject).filter(Subject.id.in_(subject_ids)).all()} if subject_ids else {}
+    
     alerts = []
     for sid, d in data.items():
         total = d["total"]
         present = d["present"]
         pct = round(present / total * 100, 1) if total > 0 else 100
         
-        subj = db.query(Subject).filter(Subject.id == sid).first()
+        subj = subjects.get(sid)
         subject_name = subj.name if subj else "Unknown Subject"
-        
-        # Calculation Logic:
-        # Safe Bunks: present / (total + x) >= 0.75  => x <= (present / 0.75) - total
-        # Required to Clear: (present + y) / (total + y) >= 0.75 => y >= 3*total - 4*present
         
         safe_bunks = int((present / 0.75) - total) if total > 0 else 0
         required_to_clear = max(0, 3 * total - 4 * present) if pct < 75 else 0
-        
         level = "optimal" if pct >= 85 else "warning" if pct >= 75 else "critical"
         
         alerts.append({

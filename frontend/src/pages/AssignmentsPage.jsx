@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function AssignmentsPage() {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submittingId, setSubmittingId] = useState(null);
 
   useEffect(() => {
     loadAssignments();
@@ -24,11 +25,16 @@ export default function AssignmentsPage() {
   };
 
   const handleSubmit = async (assignmentId) => {
+    if (submittingId) return;
+    setSubmittingId(assignmentId);
     try {
       await submitAssignment(assignmentId);
       await loadAssignments(); // Reload to show updated status
     } catch (err) {
-      alert("Failed to submit assignment.");
+      const msg = err.response?.data?.message || "Failed to submit assignment.";
+      alert(msg);
+    } finally {
+      setSubmittingId(null);
     }
   };
 
@@ -118,17 +124,21 @@ export default function AssignmentsPage() {
                         </span>
 
                         <button 
-                          onClick={() => !isSubmitted && handleSubmit(assignment.id)}
-                          disabled={isSubmitted}
+                          onClick={() => !isSubmitted && !submittingId && handleSubmit(assignment.id)}
+                          disabled={isSubmitted || (submittingId === assignment.id)}
                           className={`
                             flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300
                             ${isSubmitted 
                               ? 'bg-transparent text-tertiary cursor-default' 
-                              : 'bg-primary text-white hover:shadow-lg hover:shadow-primary/20 active:scale-95 cursor-pointer'}
+                              : submittingId === assignment.id
+                                ? 'bg-primary/50 text-white/50 cursor-not-allowed'
+                                : 'bg-primary text-white hover:shadow-lg hover:shadow-primary/20 active:scale-95 cursor-pointer'}
                           `}
                         >
                           {isSubmitted ? (
                             <><CheckCircle size={18} /> Complete</>
+                          ) : submittingId === assignment.id ? (
+                            <><Clock size={18} className="animate-spin" /> Submitting...</>
                           ) : (
                             <><Send size={18} /> Submit Now</>
                           )}

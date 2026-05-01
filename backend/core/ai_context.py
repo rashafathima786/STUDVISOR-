@@ -21,9 +21,12 @@ def build_student_context(db: Session, student_id: int) -> str:
 
     # Subject-wise attendance
     subj_att = {}
+    subject_ids = list({r.subject_id for r in records})
+    subjects = {s.id: s for s in db.query(Subject).filter(Subject.id.in_(subject_ids)).all()} if subject_ids else {}
+    
     for r in records:
         if r.subject_id not in subj_att:
-            subj = db.query(Subject).filter(Subject.id == r.subject_id).first()
+            subj = subjects.get(r.subject_id)
             subj_att[r.subject_id] = {"name": subj.name if subj else "?", "total": 0, "present": 0}
         subj_att[r.subject_id]["total"] += 1
         if r.status == "P":

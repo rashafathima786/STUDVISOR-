@@ -7,7 +7,7 @@ from typing import Optional
 import json, asyncio
 
 from backend.core.security import get_current_student
-from backend.app.database import get_db
+from backend.app.database import get_db, SessionLocal
 from backend.app.models import ChatHistory
 from backend.app.chatbot import process_chat, detect_emotion
 
@@ -38,27 +38,41 @@ async def chat(data: ChatInput, student=Depends(get_current_student), db: Sessio
 
 @router.post("/stream/")
 async def chat_stream(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
-    """SSE streaming — sends the AI response word-by-word for typewriter effect."""
-    result = await process_chat(db, student, data.query)
-    response = result["reply"]
-    actions = result.get("actions", [])
-    
-    db.add(ChatHistory(student_id=student.id, query=data.query, response=response,
-                       context_page=data.context_page))
-    db.commit()
- 
+    """SSE streaming — sends the AI response in real-time as tokens are generated."""
+    from backend.app.chatbot import process_chat_stream
+
     async def generate():
-        # First send metadata and actions
-        yield f"event: meta\ndata: {json.dumps({'actions': actions, 'protocol': result.get('protocol')})}\n\n"
+        full_response = ""
+        protocol = "Nexus"
+        actions = []
         
-        words = response.split()
-        for i, word in enumerate(words):
-            yield f"event: chunk\ndata: {json.dumps({'token': word + ' ', 'done': i == len(words) - 1})}\n\n"
-            await asyncio.sleep(0.02)
+        async for chunk in process_chat_stream(db, student, data.query):
+            if chunk["type"] == "meta":
+                protocol = chunk.get("protocol", "Nexus")
+                actions = chunk.get("actions", [])
+                yield f"event: meta\ndata: {json.dumps({'actions': actions, 'protocol': protocol})}\n\n"
+            else:
+                token = chunk["token"]
+                full_response += token
+                yield f"event: chunk\ndata: {json.dumps({'token': token, 'done': False})}\n\n"
         
+        # Save to history in background after stream completes
+        asyncio.create_task(asyncio.to_thread(save_chat_history, student.id, data.query, full_response, data.context_page))
+        
+        yield f"event: chunk\ndata: {json.dumps({'token': '', 'done': True})}\n\n"
         yield f"event: done\ndata: {json.dumps({'status': 'finished'})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+def save_chat_history(student_id, query, response, context_page):
+    """Background helper to persist chat history."""
+    db = SessionLocal()
+    try:
+        db.add(ChatHistory(student_id=student_id, query=query, response=response, context_page=context_page))
+        db.commit()
+    finally:
+        db.close()
 
 
 @router.get("/history/")
