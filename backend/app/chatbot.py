@@ -7,8 +7,21 @@ from sqlalchemy.orm import Session
 from collections import defaultdict
 import re
 
-from backend.app.models import Student, Attendance, Mark, Subject, LeaveRequest, ExamSchedule
+from backend.app.models import (
+    Student, Attendance, Mark, Subject, LeaveRequest, ExamSchedule,
+    AcademicPolicy, AcademicTerm, Holiday
+)
 from backend.services.gpa_service import gpa_service, percentage_to_grade
+
+
+# ─── DATABASE HELPERS ───────────────────────────────────────────────────────
+
+def get_policy(db: Session, key: str, default: str) -> str:
+    policy = db.query(AcademicPolicy).filter(AcademicPolicy.policy_key == key).first()
+    return policy.value if policy else default
+
+def get_current_term(db: Session) -> AcademicTerm:
+    return db.query(AcademicTerm).filter(AcademicTerm.is_active == True).first()
 
 
 # ─── INTENT DETECTION ───────────────────────────────────────────────────────
@@ -115,9 +128,10 @@ def handle_attendance_overall(db: Session, student: Student) -> dict:
     dl = total - present - absent
     pct = round(present / total * 100, 1)
 
-    status = "STABLE" if pct >= 85 else "WARNING" if pct >= 75 else "CRITICAL"
+    min_pct = float(get_policy(db, "min_attendance", "75"))
+    status = "STABLE" if pct >= (min_pct + 10) else "WARNING" if pct >= min_pct else "CRITICAL"
     actions = [{"label": "View Full Report", "action": "navigate", "payload": "/attendance"}]
-    if pct < 75:
+    if pct < min_pct:
         actions.append({"label": "Recovery Plan", "query": "how to recover attendance"})
 
     return {
@@ -154,11 +168,13 @@ def handle_attendance_subject(db: Session, student: Student) -> str:
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
+    min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 0
-        status = "OK" if pct >= 75 else "LOW"
+        target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
+        status = "OK" if pct >= target else "LOW"
         lines.append(f"• **{subj.name if subj else '?'}**: {pct}% ({status})")
 
     return "Subject-wise Attendance:\n" + "\n".join(lines)
@@ -175,12 +191,14 @@ def handle_bunk_check(db: Session, student: Student) -> str:
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
+    min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         p, t = d["present"], d["total"]
+        target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
         buffer = 0
-        while (p) / (t + buffer + 1) * 100 >= 75 and buffer < 50:
+        while (p) / (t + buffer + 1) * 100 >= target and buffer < 50:
             buffer += 1
         
         status = "SAFE" if buffer >= 3 else "WARN" if buffer > 0 else "CRIT"
@@ -200,15 +218,17 @@ def handle_reach_75(db: Session, student: Student) -> str:
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
+    min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         p, t = d["present"], d["total"]
         pct = round(p / t * 100, 1) if t > 0 else 100
+        target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
         
-        if pct < 75:
+        if pct < target:
             needed = 0
-            while (p + needed) / (t + needed) * 100 < 75 and needed < 200:
+            while (p + needed) / (t + needed) * 100 < target and needed < 200:
                 needed += 1
             lines.append(f"• **{subj.name if subj else '?'}**: {pct}% (Requires **{needed}** more classes)")
         else:
@@ -259,16 +279,17 @@ def handle_low_marks(db: Session, student: Student) -> str:
     marks = db.query(Mark).filter(Mark.student_id == student.id).all()
     if not marks:
         return "- **LOW MARKS**: No data available."
-
+    pass_pct = float(get_policy(db, "passing_marks", "40"))
     lines = []
     for m in marks:
+        subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
+        threshold = subj.passing_marks if subj and subj.passing_marks else pass_pct
         pct = m.marks_obtained / m.max_marks * 100 if m.max_marks > 0 else 0
-        if pct < 50:
-            subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
-            lines.append(f"• **{subj.name if subj else '?'}**: {m.marks_obtained}/{m.max_marks} ({pct}%) in {m.assessment_type}")
+        if pct < threshold:
+            lines.append(f"• **{subj.name if subj else '?'}**: {m.marks_obtained}/{m.max_marks} ({round(pct,1)}%) in {m.assessment_type}")
 
     if not lines:
-        return "Great news! You have no subjects with less than 50% marks in the current record. 🌟"
+        return f"Great news! You have no subjects with less than {pass_pct}% marks in the current record. 🌟"
     
     return "Here are the subjects where you have lower marks:\n" + "\n".join(lines)
 
@@ -304,13 +325,16 @@ def handle_simulation(db: Session, student: Student, message: str) -> str:
     present = sum(1 for r in records if r.status == "P")
     current_pct = round(present / total * 100, 1)
 
-    # Heuristic: 6 classes per day
-    simulated_absences = days * 6
+    # Use policy for classes per day or default to 6
+    classes_per_day = int(get_policy(db, "classes_per_day", "6"))
+    min_pct = float(get_policy(db, "min_attendance", "75"))
+
+    simulated_absences = days * classes_per_day
     new_total = total + simulated_absences
     new_pct = round(present / new_total * 100, 1)
     drop = round(current_pct - new_pct, 1)
 
-    status = "SAFE" if new_pct >= 75 else "RISKY"
+    status = "SAFE" if new_pct >= min_pct else "RISKY"
     emoji = "✅" if status == "SAFE" else "⚠️"
 
     reply = (
@@ -320,10 +344,10 @@ def handle_simulation(db: Session, student: Student, message: str) -> str:
         f"• Status: {emoji} **{status}**\n\n"
     )
     
-    if new_pct < 75:
-        reply += "Warning: This will push your attendance below the mandatory 75% threshold. I recommend attending all current sessions instead."
+    if new_pct < min_pct:
+        reply += f"Warning: This will push your attendance below the mandatory {min_pct}% threshold. I recommend attending all current sessions instead."
     else:
-        reply += f"You will still be above the 75% eligibility criteria even after taking {days} day{'s' if days > 1 else ''} off."
+        reply += f"You will still be above the {min_pct}% eligibility criteria even after taking {days} day{'s' if days > 1 else ''} off."
     
     return reply
     result = gpa_service.get_cgpa(db, student.id)
@@ -373,11 +397,13 @@ def handle_eligibility(db: Session, student: Student) -> str:
         if r.status == "P":
             data[r.subject_id]["present"] += 1
 
+    min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
         subj = db.query(Subject).filter(Subject.id == sid).first()
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 100
-        status = "ELIGIBLE" if pct >= 75 else "INELIGIBLE"
+        target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
+        status = "ELIGIBLE" if pct >= target else "INELIGIBLE"
         lines.append(f"• **{subj.name if subj else '?'}: {status} ({pct}%)")
 
     return "Exam Eligibility:\n" + "\n".join(lines)
@@ -417,8 +443,14 @@ def handle_exam_schedule(db: Session, student: Student) -> str:
 
 def handle_holiday(db: Session) -> str:
     from datetime import datetime
-    from backend.app.models import AcademicCalendar
     today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Priority 1: Check new Holidays table
+    h = db.query(Holiday).filter(Holiday.date >= today).order_by(Holiday.date).first()
+    if h:
+        return f"- **NEXT HOLIDAY**: {h.name} ({h.date}) [{h.type}]"
+
+    # Priority 2: Fallback to AcademicCalendar
     next_holiday = db.query(AcademicCalendar).filter(AcademicCalendar.date >= today, AcademicCalendar.is_working_day == 0).order_by(AcademicCalendar.date).first()
     if not next_holiday:
         return "- **HOLIDAY**: None Scheduled."

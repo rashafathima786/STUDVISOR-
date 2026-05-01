@@ -101,6 +101,8 @@ class Subject(Base):
     semester = Column(Integer, nullable=False)
     department = Column(String, nullable=True)
     is_lab = Column(Boolean, default=False)
+    passing_marks = Column(Float, nullable=True, default=40.0)
+    min_attendance_override = Column(Float, nullable=True)
 
 
 class Attendance(Base):
@@ -113,6 +115,7 @@ class Attendance(Base):
     date = Column(String, nullable=False)
     hour = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default="P")  # P, A, DL
+    is_od = Column(Boolean, default=False)
     marked_by = Column(Integer, ForeignKey("faculty.id"), nullable=True)
     amended_by = Column(Integer, nullable=True)
     amended_at = Column(DateTime(timezone=True), nullable=True)
@@ -211,6 +214,38 @@ class LectureLog(Base):
     __table_args__ = (
         Index("ix_lecture_subject_date", "subject_id", "date"),
     )
+
+
+class AcademicPolicy(Base):
+    __tablename__ = "academic_policies"
+    institution_id = Column(String, nullable=False, default="default", index=True)
+
+    id = Column(Integer, primary_key=True, index=True)
+    policy_key = Column(String, unique=True, nullable=False) # min_attendance, passing_marks
+    value = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class AcademicTerm(Base):
+    __tablename__ = "academic_terms"
+    institution_id = Column(String, nullable=False, default="default", index=True)
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False) # e.g. Fall 2024
+    start_date = Column(String, nullable=False) # YYYY-MM-DD
+    end_date = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+    institution_id = Column(String, nullable=False, default="default", index=True)
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    type = Column(String, default="Public") # Public, Academic, Restricted
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -15,21 +15,24 @@ db = SessionLocal()
 
 DEPARTMENTS = ["CSE", "ECE", "MECH", "CIVIL", "EEE"]
 SUBJECTS = [
-    ("CS101", "Data Structures", 4, 3, "CSE"),
+    ("CS101", "Data structures", 4, 3, "CSE"),
     ("CS102", "Database Systems", 4, 3, "CSE"),
     ("CS103", "Operating Systems", 3, 4, "CSE"),
-    ("CS104", "Computer Networks", 3, 4, "CSE"),
-    ("CS201", "Machine Learning", 4, 5, "CSE"),
-    ("CS202", "Web Technologies", 3, 5, "CSE"),
-    ("CS203", "Software Engineering", 3, 5, "CSE"),
-    ("CS301", "Cloud Computing", 3, 6, "CSE"),
-    ("EC101", "Digital Electronics", 4, 3, "ECE"),
-    ("EC102", "Signals & Systems", 4, 4, "ECE"),
-    ("MA101", "Engineering Mathematics I", 4, 1, "CSE"),
-    ("MA102", "Engineering Mathematics II", 4, 2, "CSE"),
-    ("PH101", "Engineering Physics", 3, 1, "CSE"),
-    ("CH101", "Engineering Chemistry", 3, 2, "CSE"),
-    ("ME101", "Engineering Graphics", 3, 1, "MECH"),
+    ("CS104", "Computer networks", 3, 4, "CSE"),
+    ("CS201", "Machine learning", 4, 5, "CSE"),
+    ("CS202", "Web technology", 3, 5, "CSE"),
+    ("CS203", "Software testing", 3, 5, "CSE"),
+    ("CS301", "Data analytics", 3, 6, "CSE"),
+    ("CS302", "C programming", 3, 2, "CSE"),
+    ("CS303", "Cyber security", 4, 6, "CSE"),
+    ("CS304", "Computer architecture", 4, 4, "CSE"),
+    ("CS305", "Internet technology", 3, 7, "CSE"),
+    ("CS306", "Mobile application development", 4, 8, "CSE"),
+    ("MA101", "Mathematics I", 4, 1, "CSE"),
+    ("MA102", "Mathematics II", 4, 2, "CSE"),
+    ("PH101", "Physics", 3, 1, "CSE"),
+    ("CH101", "Chemistry", 3, 2, "CSE"),
+    ("ME101", "Graphics", 3, 1, "MECH"),
 ]
 
 FACULTY_NAMES = [
@@ -68,7 +71,7 @@ if not db.query(Admin).first():
 # ─── Subjects ────────────────────────────────────────────────────────────────
 for code, name, credits, sem, dept in SUBJECTS:
     if not db.query(Subject).filter(Subject.code == code).first():
-        db.add(Subject(code=code, institution_id=INST_ID, name=name, credits=credits, semester=sem, department=dept))
+        db.add(Subject(code=code, institution_id=INST_ID, name=name, credits=credits, semester=sem, department=dept, passing_marks=random.choice([40, 50])))
 db.commit()
 print(f"  [OK] {len(SUBJECTS)} subjects seeded")
 
@@ -103,7 +106,8 @@ if not db.query(Attendance).first():
                 d = f"2026-{month:02d}-{(day % 28) + 1:02d}"
                 for hour in [1, 2, 3]:
                     status = random.choices(["P", "A", "DL"], weights=[80, 15, 5])[0]
-                    db.add(Attendance(institution_id=INST_ID, student_id=student.id, subject_id=subj.id, date=d, hour=hour, status=status))
+                    is_od = True if status == "DL" else False
+                    db.add(Attendance(institution_id=INST_ID, student_id=student.id, subject_id=subj.id, date=d, hour=hour, status=status, is_od=is_od))
                     attendance_count += 1
     db.commit()
     print(f"  [OK] {attendance_count} attendance records seeded")
@@ -254,6 +258,36 @@ for subj in subjects[:8]:
                 db.add(TimetableSlot(institution_id=INST_ID, subject_id=subj.id, faculty_id=fac_map.get(subj.id), day=day, hour=hour, room=f"Room {random.randint(101,305)}", section="A", semester=subj.semester))
 db.commit()
 print("  [OK] Timetable seeded")
+
+# ─── Academic Policies ───────────────────────────────────────────────────────
+policies = [
+    ("min_attendance", "75", "Minimum attendance percentage required for exams"),
+    ("passing_marks", "40", "Minimum marks percentage required to pass a subject"),
+    ("classes_per_day", "7", "Average number of classes per day for simulation"),
+]
+for key, val, desc in policies:
+    if not db.query(AcademicPolicy).filter(AcademicPolicy.policy_key == key).first():
+        db.add(AcademicPolicy(institution_id=INST_ID, policy_key=key, value=val, description=desc))
+db.commit()
+print("  [OK] Academic policies seeded")
+
+# ─── Academic Terms ─────────────────────────────────────────────────────────
+if not db.query(AcademicTerm).first():
+    db.add(AcademicTerm(institution_id=INST_ID, name="Even Sem 2026", start_date="2026-01-01", end_date="2026-05-31", is_active=True))
+db.commit()
+print("  [OK] Academic terms seeded")
+
+# ─── Holidays (New Table) ────────────────────────────────────────────────────
+holidays_list = [
+    ("2026-05-01", "May Day", "Public"),
+    ("2026-05-05", "College Anniversary", "Academic"),
+    ("2026-08-15", "Independence Day", "Public"),
+]
+for d, name, htype in holidays_list:
+    if not db.query(Holiday).filter(Holiday.date == d).first():
+        db.add(Holiday(institution_id=INST_ID, date=d, name=name, type=htype))
+db.commit()
+print("  [OK] Holidays (new table) seeded")
 
 db.close()
 print("\n[DONE] Database seeded successfully! Login credentials:")

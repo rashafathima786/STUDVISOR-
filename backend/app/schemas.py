@@ -251,3 +251,23 @@ class AmendmentRequestResponse(BaseModel):
     status: str
     created_at: datetime
 
+
+# ─── ACADEMIC POLICY & PLANNING ──────────────────────────────────────────────
+
+class AcademicPolicyResponse(BaseModel):
+    policy_key: str
+    value: str
+    description: Optional[str] = None
+
+class AcademicTermResponse(BaseModel):
+    id: int
+    name: str
+    start_date: str
+    end_date: str
+    is_active: bool
+
+class HolidayResponse(BaseModel):
+    date: str
+    name: str
+    type: str
+
