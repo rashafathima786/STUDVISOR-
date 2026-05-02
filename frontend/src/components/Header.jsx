@@ -152,7 +152,7 @@ export default function Header({ title, subtitle }) {
             ${isOpen ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' : 'hover:bg-white/5 text-on-surface-variant'}
           `} 
           onClick={toggleChat}
-          title="AI Assistant"
+          title="Studvisor AI"
         >
           <ChatbotLogo size={20} />
         </button>

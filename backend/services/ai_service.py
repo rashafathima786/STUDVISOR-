@@ -111,7 +111,7 @@ class AIService:
             "Example: 'Welcome back! Your attendance is solid, but you have 2 exams coming up.'"
         )
         
-        status_msg = await self.chat("You are a helpful ERP assistant.", welcome_prompt)
+        status_msg = await self.chat("You are Studvisor AI, a helpful ERP assistant.", welcome_prompt)
 
         return {
             "message": status_msg,
@@ -249,9 +249,9 @@ class AIService:
                 "General": "ACT AS: Campus Facilitator. Summarize campus trends, provide official links, and maintain open dialogue. Be balanced and informative.",
                 "Clubs": "ACT AS: Club Engagement Officer. Highlight recruitment dates, event venues, and community highlights. Be energetic."
             }
-            persona = persona_map.get(category, "ACT AS: Campus Connect Intelligence.")
+            persona = persona_map.get(category, "ACT AS: Studvisor AI Intelligence.")
 
-            # Campus Connect Premium Intelligence Protocol
+            # Studvisor AI Premium Intelligence Protocol
             refinement_prompt = (
                 f"{persona}\n"
                 f"STUDENT QUERY: '{user_query}'.\n"

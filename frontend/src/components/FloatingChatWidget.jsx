@@ -67,7 +67,7 @@ export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
           <div className="floating-chat-titlebar">
             <div className="floating-chat-title">
               <ChatbotLogo size={24} />
-              <span>Campus Connect</span>
+              <span>Studvisor AI</span>
             </div>
             <div className="floating-chat-actions">
               <button
@@ -83,7 +83,7 @@ export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
                 type="button"
                 className="floating-chat-icon-btn"
                 onClick={() => setChatOpen(false)}
-                aria-label="Close ERP assistant"
+                aria-label="Close Studvisor AI"
                 title="Close"
               >
                 <X size={18} />
@@ -96,8 +96,8 @@ export default function FloatingChatWidget({ contextPage = 'dashboard' }) {
         <button 
           className="floating-chat-trigger"
           onClick={() => setChatOpen(true)}
-          aria-label="Open ERP assistant"
-          title="Ask AI Assistant"
+          aria-label="Open Studvisor AI"
+          title="Ask Studvisor AI"
         >
           <div className="hidden md:block">
             <ChatbotLogo size={44} mode="logo" />

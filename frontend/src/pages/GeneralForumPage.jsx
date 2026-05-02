@@ -29,7 +29,11 @@ import {
   Zap,
   RotateCcw,
   MoreHorizontal,
-  ThumbsDown
+  ThumbsDown,
+  Plus,
+  ChevronDown,
+  Mic,
+  AudioLines
 } from 'lucide-react'
 
 export default function GeneralForumPage() {
@@ -219,10 +223,10 @@ export default function GeneralForumPage() {
 
   return (
     <ErpLayout title="General Forum" subtitle="Open campus dialogue">
-      <div className="wrapper flex h-[calc(100vh-120px)] overflow-hidden bg-black text-white font-sans">
+      <div className="wrapper flex h-[calc(100vh-140px)] overflow-hidden bg-transparent backdrop-blur-3xl rounded-[2.5rem] border border-white/5 text-white font-sans relative">
 
         {/* Sidebar */}
-        <div className="w-80 border-r border-white/5 flex flex-col bg-[#0d0d0f] hidden lg:flex">
+        <div className="w-80 flex flex-col bg-white/[0.01] backdrop-blur-md hidden lg:flex">
           <div className="p-8">
             <div className="flex items-center gap-3 mb-10">
               <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
@@ -266,64 +270,11 @@ export default function GeneralForumPage() {
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 flex flex-col bg-[#111114] relative">
+          {/* Content Area */}
+          <div className="flex-1 flex flex-col bg-transparent relative">
 
-          <header className={`h-20 border-b border-white/5 flex items-center justify-between px-6 md:px-10 bg-gradient-to-r ${zoneTheme.bg} backdrop-blur-md sticky top-0 z-30 w-full`}>
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-base font-bold text-white/90">{activeChannel.name}</h3>
-                  <span className="w-1 h-1 rounded-full bg-white/10" />
-                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] hidden sm:block">{activeChannel.desc}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className={`w-1.5 h-1.5 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse`} />
-                  <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Encryption Level: Institutional</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-5">
-              <div className="relative">
-                <button
-                  onClick={() => setShowMenu(!showMenu)}
-                  className={`p-2 rounded-lg transition-all duration-200 ${showMenu ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
-                >
-                  <MoreVertical size={20} />
-                </button>
-
-                <AnimatePresence>
-                  {showMenu && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-3 w-60 bg-[#1a1a1e] border border-white/5 rounded-xl shadow-2xl p-2 z-50"
-                      >
-                        <div className="px-4 py-2 border-b border-white/5 mb-1">
-                          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20">Options</p>
-                        </div>
-                        <button onClick={handleExport} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-all">
-                          <Download size={14} /> Export Transcript
-                        </button>
-                        <button onClick={handleClearChat} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all">
-                          <Trash2 size={14} /> Clear Local View
-                        </button>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </header>
-
-          <div className="flex-1 overflow-y-auto px-4 md:px-12 py-8 scrollbar-hide bg-[#09090b]/50 relative" ref={scrollContainerRef}>
+          <div className="flex-1 overflow-y-auto scrollbar-hide bg-transparent relative" ref={scrollContainerRef}>
+            <div className="max-w-4xl mx-auto px-6 py-10 pb-[200px]">
             <AnimatePresence mode="wait">
               {posts.length > 0 ? (
                 posts.map((post, idx) => {
@@ -353,76 +304,53 @@ export default function GeneralForumPage() {
                       </div>
 
                       {isAI && (
-                        <div className="w-full bg-white/[0.02] border border-white/5 rounded-3xl p-8 shadow-2xl">
-                          <div className="flex items-center gap-3 mb-8 opacity-60">
-                             <div className="p-2 bg-white/10 rounded-lg">
-                               <Zap size={16} className="text-white fill-white" />
-                             </div>
-                             <div className="flex flex-col">
-                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Forum Intelligence</span>
-                               <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Dialogue Support Active</span>
-                             </div>
+                        <div className="w-full py-4">
+                          <div className="flex items-center gap-2 mb-6 opacity-40">
+                             <AudioLines size={14} className="text-white" />
+                             <span className="text-[11px] font-medium text-white tracking-tight">Thought for 1s</span>
                           </div>
 
-                          <div className="text-white">
-                            <div className="prose prose-invert prose-p:leading-8 prose-p:mb-8 max-w-none 
-                                prose-headings:text-white/40 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-[0.3em] prose-headings:text-[10px] prose-headings:mb-6
+                          <div className="text-white/90">
+                            <div className="prose prose-invert prose-p:leading-relaxed prose-p:mb-6 max-w-none 
+                                prose-headings:text-white prose-headings:font-bold prose-headings:text-lg prose-headings:mb-4
                                 prose-strong:text-white prose-strong:font-bold
-                                prose-ul:list-disc prose-ul:pl-4 prose-li:mb-2">
+                                prose-ul:list-disc prose-ul:pl-5 prose-li:mb-2 prose-li:text-white/80">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
                               </ReactMarkdown>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-6 mt-10 text-white/20 border-t border-white/5 pt-6">
-                            <div className="flex items-center gap-5">
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><Search size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><Send size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><ThumbsUp size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><ThumbsDown size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><RotateCcw size={18} /></div>
-                               <div className="cursor-pointer hover:text-white transition-colors p-1"><MoreHorizontal size={18} /></div>
-                            </div>
+                          <div className="flex items-center gap-6 mt-8 opacity-20 hover:opacity-100 transition-opacity">
+                             <div className="flex items-center gap-4">
+                                <button className="hover:text-white transition-colors"><Search size={16} /></button>
+                                <button className="hover:text-white transition-colors"><ThumbsUp size={16} /></button>
+                                <button className="hover:text-white transition-colors"><ThumbsDown size={16} /></button>
+                                <button className="hover:text-white transition-colors"><RotateCcw size={16} /></button>
+                             </div>
                           </div>
                         </div>
                       )}
 
                       {!isAI && (
-                        <div className="group relative">
-                          <div className={`border rounded-2xl p-6 transition-all ${post.is_mine || post.is_optimistic ? 'bg-indigo-600/10 border-indigo-500/30 ml-auto max-w-[85%]' : 'bg-[#111114] border-white/5 max-w-[85%]'}`}>
-                            {post.is_optimistic && (
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Posting...</span>
-                              </div>
-                            )}
-                            <div className={`text-white/70 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium ${post.is_optimistic ? 'opacity-40' : ''}`}>
-                              {post.censored_content || post.content}
+                        <div className={`group relative w-full flex ${post.is_mine || post.is_optimistic ? 'justify-end' : 'justify-start'}`}>
+                          {post.is_mine || post.is_optimistic ? (
+                            <div className="bg-white/10 border border-white/5 rounded-full px-5 py-2.5 max-w-[85%] shadow-sm">
+                               <div className="text-white/90 text-[15px] font-medium">
+                                 {post.censored_content || post.content}
+                               </div>
                             </div>
-                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.02]">
-                              <div className="flex items-center gap-6">
-                                <button 
-                                  onClick={() => handleReaction(post.id, 'like')}
-                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest 
-                                    ${post.reaction_count > 0 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-white/20 hover:text-white'}`}
-                                >
-                                  <ThumbsUp size={12} />
-                                  <span>{post.reaction_count || 0} Agree</span>
-                                </button>
-                                <button className="flex items-center gap-2 text-white/20 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">
-                                  <MessageSquare size={12} />
-                                  <span>{post.reply_count || 0} Replies</span>
-                                </button>
-                              </div>
-                              <button 
-                                onClick={() => handleFlag(post.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-white/10 hover:text-rose-500"
-                              >
-                                <EyeOff size={14} />
-                              </button>
+                          ) : (
+                            <div className="max-w-[85%] py-2">
+                               <div className="text-white/80 text-[15px] leading-relaxed font-medium">
+                                 {post.censored_content || post.content}
+                               </div>
+                               <div className="flex items-center gap-4 mt-3 opacity-0 group-hover:opacity-30 transition-opacity">
+                                  <button onClick={() => handleReaction(post.id, 'like')} className="hover:text-white flex items-center gap-1.5 text-[10px] font-bold uppercase"><ThumbsUp size={12} /> {post.reaction_count || 0}</button>
+                                  <button onClick={() => handleFlag(post.id)} className="hover:text-rose-500 transition-colors"><EyeOff size={14} /></button>
+                               </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       )}
                     </motion.div>
@@ -439,79 +367,83 @@ export default function GeneralForumPage() {
                    </div>
                 </div>
               )}
-            </AnimatePresence>
+              </AnimatePresence>
+            </div>
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-6 md:p-10 border-t border-white/5 bg-[#0d0d0f] z-20">
-            <div className="max-w-4xl mx-auto">
+          <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none pb-8">
+            <div className="max-w-4xl mx-auto px-6 pointer-events-auto">
               {quickActions.length > 0 && (
-                <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
-                  <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] whitespace-nowrap mr-2">Quick Actions:</span>
+                <div className="flex items-center justify-center gap-3 mb-6 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
                   {quickActions.map((action, i) => (
                     <button
                       key={i}
                       onClick={() => setNewContent(action.prompt)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all whitespace-nowrap group"
+                      className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.01] border border-white/5 hover:bg-white/[0.1] hover:border-white/10 transition-all whitespace-nowrap group shadow-2xl"
                     >
-                      <span className={`${zoneTheme.text} group-hover:scale-110 transition-transform`}>{action.icon}</span>
-                      <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">{action.label}</span>
+                      <span className={`${zoneTheme.text} opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all`}>{action.icon}</span>
+                      <span className="text-[10px] font-black text-white/30 group-hover:text-white/70 uppercase tracking-[0.2em] transition-colors">{action.label}</span>
                     </button>
                   ))}
                 </div>
               )}
-
               <div className="relative group">
-                <div className="absolute inset-0 blur-2xl opacity-0 group-focus-within:opacity-30 transition-opacity rounded-full"
+                <div className="absolute inset-0 blur-2xl opacity-0 group-focus-within:opacity-20 transition-opacity rounded-full"
                   style={{ backgroundColor: `rgba(${themeRGB}, 0.2)` }} />
-                <div className="relative flex flex-col bg-[#161619] border border-white/10 rounded-2xl overflow-hidden transition-all shadow-2xl focus-within:border-opacity-50"
-                  style={{ borderColor: `rgba(${themeRGB}, 0.2)` }}>
-                  <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.02]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: `rgb(${themeRGB})` }} />
-                      <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em]">Dialogue Sector Active</span>
-                    </div>
-                    <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Category: {category}</span>
-                  </div>
+                
+                <div className="relative flex items-center bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-full px-2 py-2 shadow-2xl focus-within:border-white/20 transition-all">
+                  <button className="p-3 text-white/40 hover:text-white transition-colors">
+                    <Plus size={22} />
+                  </button>
+
                   <textarea
+                    rows={1}
                     value={newContent}
-                    onChange={(e) => setNewContent(e.target.value)}
+                    onChange={(e) => {
+                      setNewContent(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handlePost();
+                        e.target.style.height = 'auto';
                       }
                     }}
-                    placeholder={`Start a dialogue in ${category}...`}
-                    className="w-full bg-transparent p-6 text-[15px] text-white placeholder-white/10 focus:outline-none resize-none min-h-[100px] font-medium leading-relaxed"
+                    placeholder={`How can I help you today?`}
+                    className="flex-1 bg-transparent px-2 py-2 text-[16px] text-white placeholder-white/20 focus:outline-none resize-none overflow-y-auto max-h-40 font-medium leading-relaxed"
                   />
-                  <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-white/[0.01]">
-                    <div className="flex items-center gap-4 opacity-30 hover:opacity-100 transition-opacity">
-                      <button className="text-white/40 hover:text-white"><Hash size={16} /></button>
-                      <button className="text-white/40 hover:text-white"><Shield size={16} /></button>
-                      <button className="text-white/40 hover:text-white"><Clock size={16} /></button>
+
+                  <div className="flex items-center gap-1 sm:gap-3 pr-2">
+                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-white/40 hover:text-white border border-transparent hover:border-white/5">
+                      <span className="text-[11px] font-bold tracking-tight uppercase">Fast</span>
+                      <ChevronDown size={14} />
                     </div>
+
+                    <button className="p-2.5 text-white/40 hover:text-white transition-colors">
+                      <Mic size={20} />
+                    </button>
+
                     <button
                       onClick={handlePost}
                       disabled={!newContent.trim()}
-                      className={`group flex items-center gap-3 px-6 py-2.5 rounded-xl transition-all
-                          ${newContent.trim()
-                          ? 'text-white shadow-lg'
-                          : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
-                      style={newContent.trim() ? {
-                        backgroundColor: `rgb(${themeRGB})`,
-                        boxShadow: `0 4px 20px rgba(${themeRGB}, 0.3)`
-                      } : {}}
+                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300
+                        ${newContent.trim() 
+                          ? 'bg-white text-black scale-100 shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
+                          : 'bg-white/5 text-white/20 scale-95'}`}
                     >
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Post Dialogue</span>
-                      <Send size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      {newContent.trim() ? (
+                        <Send size={20} className="fill-current" />
+                      ) : (
+                        <AudioLines size={20} className="opacity-40" />
+                      )}
                     </button>
                   </div>
                 </div>
               </div>
-              <p className="mt-6 text-center text-[9px] font-bold text-white/10 uppercase tracking-[0.2em]">
-                This is an open campus dialogue. Please maintain institutional decorum.
-              </p>
+              <div ref={messagesEndRef} />
             </div>
           </div>
         </div>

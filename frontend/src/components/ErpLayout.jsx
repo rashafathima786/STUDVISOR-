@@ -25,8 +25,8 @@ export default function ErpLayout({ title, subtitle, children }) {
     <div className="bg-surface text-on-surface min-h-screen flex font-sans antialiased overflow-hidden main-content-wrap">
       {/* Background Ambience (Global) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-          <div className="bg-blob w-[800px] h-[800px] top-[-200px] left-[-200px] bg-primary opacity-[0.015]" />
-          <div className="bg-blob w-[600px] h-[600px] bottom-[-100px] right-[-100px] bg-secondary opacity-[0.01]" />
+          <div className="bg-blob w-[800px] h-[800px] top-[-200px] left-[-200px] bg-primary opacity-[0.04]" />
+          <div className="bg-blob w-[600px] h-[600px] bottom-[-100px] right-[-100px] bg-secondary opacity-[0.03]" />
       </div>
 
       {/* Persistence Sidebar */}

@@ -173,13 +173,13 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
            sender: 'bot', 
            text: `✨ **${greeting}, ${welcome.message.split('!')[0].split(' ').pop() || ''}!** ${welcome.message}`,
            actions: welcome.actions,
-           protocol: 'Campus Connect'
+           protocol: 'Studvisor AI'
          }])
       } else {
         setMessages(
           formatted.length
             ? formatted
-            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm **Campus Connect**, your premium ERP Assistant. I can analyze your attendance, marks, and help you track missing academic items.\n\nType **help** to see everything I can do for you!` }],
+            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm **Studvisor AI**, your premium ERP Assistant. I can analyze your attendance, marks, and help you track missing academic items.\n\nType **help** to see everything I can do for you!` }],
         )
       }
     } catch {
@@ -301,7 +301,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
   return (
     <div className={`card chatbot-card chatbot-card-premium ${compact ? 'compact-chatbot-card' : ''} ${className}`}>
       <div className="chatbot-header">
-        {!compact && <h3 className="section-title">Campus Connect</h3>}
+        {!compact && <h3 className="section-title">Studvisor AI</h3>}
         {!compact ? (
           <p className="chatbot-subtitle">
             Ask about attendance, weakest subject, eligibility, marks, or a quick academic summary.
@@ -378,7 +378,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
 
       <div className="chat-input-box">
         <textarea
-          placeholder="Ask your ERP chatbot here..."
+          placeholder="Ask Studvisor AI here..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
