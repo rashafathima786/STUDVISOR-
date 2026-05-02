@@ -49,8 +49,8 @@ export default function LeaderboardPage() {
       default: return {
         icon: <span className="text-lg font-black text-on-surface-variant/40">{index + 1}</span>,
         glow: "",
-        border: "border-white/5",
-        bg: "bg-white/2",
+        border: "border-border-color",
+        bg: "",
         label: null
       };
     }
@@ -70,7 +70,7 @@ export default function LeaderboardPage() {
               <Trophy size={32} className="text-primary animate-pulse" />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-white tracking-tight">Campus Rankings</h2>
+              <h2 className="text-3xl font-black text-on-surface tracking-tight">Campus Rankings</h2>
               <div className="flex items-center gap-2 text-on-surface-variant/60 text-sm font-medium">
                 <TrendingUp size={14} className="text-tertiary" />
                 <span>Updated in real-time based on cumulative performance</span>
@@ -79,7 +79,7 @@ export default function LeaderboardPage() {
           </div>
           
           <div className="flex gap-2">
-             <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest">
+             <div className="px-4 py-2 rounded-xl bg-surface-container border border-border-color text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest">
                Batch 2024-28
              </div>
              <div className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-bold text-primary uppercase tracking-widest">
@@ -98,10 +98,10 @@ export default function LeaderboardPage() {
             </div>
           ) : leaderboard.length === 0 ? (
             <div className="py-20 glass-panel rounded-3xl flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4 text-white/20">
+              <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center mb-4 text-on-surface-variant/30">
                 <Star size={32} />
               </div>
-              <h3 className="text-xl font-bold text-white">No Rankings Yet</h3>
+              <h3 className="text-xl font-bold text-on-surface">No Rankings Yet</h3>
               <p className="text-on-surface-variant/50 max-w-xs mt-2">Data is being aggregated. Check back shortly for the latest standings.</p>
             </div>
           ) : (
@@ -139,10 +139,10 @@ export default function LeaderboardPage() {
                         <img 
                           src={student.avatar_url} 
                           alt={student.name} 
-                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-white/10 group-hover:border-primary/40 transition-colors"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-border-color group-hover:border-primary/40 transition-colors"
                         />
                       ) : (
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-black text-primary/40 group-hover:text-primary transition-colors">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-surface-container border border-border-color flex items-center justify-center text-2xl font-black text-primary/40 group-hover:text-primary transition-colors">
                           {student.name.charAt(0)}
                         </div>
                       )}
@@ -155,11 +155,11 @@ export default function LeaderboardPage() {
 
                     {/* Student Info */}
                     <div className="flex-grow min-w-0">
-                      <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight group-hover:text-primary transition-colors truncate">
+                      <h3 className="text-lg sm:text-xl font-bold text-on-surface tracking-tight group-hover:text-primary transition-colors truncate">
                         {student.name}
                       </h3>
                       <div className="flex items-center gap-3 mt-1 text-on-surface-variant/50 text-xs sm:text-sm font-medium">
-                        <span className="bg-white/5 px-2 py-0.5 rounded-md border border-white/5">{student.department}</span>
+                        <span className="bg-surface-container px-2 py-0.5 rounded-md border border-border-color">{student.department}</span>
                         <span className="hidden sm:inline opacity-30">•</span>
                         <span>Year {student.year}</span>
                       </div>
@@ -167,7 +167,7 @@ export default function LeaderboardPage() {
 
                     {/* Score */}
                     <div className="text-right flex-shrink-0">
-                      <div className={`text-2xl sm:text-3xl font-black tracking-tighter ${isTop3 ? 'text-white' : 'text-primary'}`}>
+                      <div className={`text-2xl sm:text-3xl font-black tracking-tighter ${isTop3 ? 'text-on-surface' : 'text-primary'}`}>
                         {student.score}
                       </div>
                       <div className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40">

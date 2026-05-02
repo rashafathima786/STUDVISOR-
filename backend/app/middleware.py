@@ -5,7 +5,6 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 logger = logging.getLogger("Studvisor.middleware")
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

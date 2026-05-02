@@ -14,7 +14,7 @@ import {
 function SettingsSection({ title, description, icon: Icon, children }) {
   return (
     <div className="glass-panel rounded-2xl overflow-hidden">
-      <div className="p-6 border-b border-white/5 flex items-center gap-4">
+      <div className="p-6 border-b border-border-color flex items-center gap-4">
         <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
           <Icon size={18} className="text-primary" />
         </div>
@@ -23,7 +23,7 @@ function SettingsSection({ title, description, icon: Icon, children }) {
           {description && <p className="text-xs text-on-surface-variant/60 mt-0.5">{description}</p>}
         </div>
       </div>
-      <div className="divide-y divide-white/5">{children}</div>
+      <div className="divide-y divide-border-color">{children}</div>
     </div>
   );
 }
@@ -64,8 +64,8 @@ function SelectChip({ options, value, onChange }) {
           onClick={() => onChange(opt.value)}
           className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
             value === opt.value
-              ? 'bg-primary text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]'
-              : 'bg-surface-container-high text-on-surface-variant hover:bg-white/10'
+              ? 'bg-primary text-surface shadow-[0_0_12px_rgba(124,58,237,0.3)]'
+              : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
           }`}
         >
           {opt.label}
@@ -150,8 +150,8 @@ export default function SettingsPage() {
         </div>
 
         {/* ── Profile Card (Full Width) ─────────────────────────────────── */}
-        <div className="glass-panel rounded-2xl p-6 flex items-center gap-5">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-[0_0_24px_rgba(124,58,237,0.3)]"
+        <div className="glass-panel rounded-2xl p-6 flex items-center gap-5 border border-border-color">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-surface text-3xl font-bold flex-shrink-0 shadow-[0_0_24px_rgba(124,58,237,0.3)]"
             style={{ fontFamily: 'var(--font-space-grotesk)' }}>
             {user?.full_name?.charAt(0)?.toUpperCase() || 'S'}
           </div>
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                       onClick={() => { setAccentColor(a.value); triggerSaved(); }}
                       title={a.label}
                       style={{ background: a.color }}
-                      className={`w-7 h-7 rounded-full transition-all border-2 ${accentColor === a.value ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                      className={`w-7 h-7 rounded-full transition-all border-2 ${accentColor === a.value ? 'border-on-surface scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
                     />
                   ))}
                 </div>
@@ -275,8 +275,8 @@ export default function SettingsPage() {
                   Active
                 </span>
               </SettingsRow>
-              <SettingsRow label="Change Password" description="Update your login credentials">
-                <button className="px-4 py-2 rounded-xl text-xs font-bold border border-white/10 text-on-surface-variant hover:bg-white/5 transition-colors flex items-center gap-2">
+               <SettingsRow label="Change Password" description="Update your login credentials">
+                <button className="px-4 py-2 rounded-xl text-xs font-bold border border-border-color text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-2">
                   Update <ChevronRight size={12} />
                 </button>
               </SettingsRow>
@@ -284,17 +284,17 @@ export default function SettingsPage() {
 
             {/* ── Quick Links ───────────────────────────────────── */}
             <SettingsSection title="Quick Navigation" description="Jump to key sections" icon={Smartphone}>
-              <div className="grid grid-cols-2 divide-x divide-y divide-white/5 border-b border-white/5">
+              <div className="grid grid-cols-2 divide-x divide-y divide-border-color border-b border-border-color">
                 {[
                   { label: 'Attendance', path: '/attendance' },
                   { label: 'GPA Engine', path: '/gpa' },
                   { label: 'Exam Table', path: '/exams' },
                   { label: 'Leave Req', path: '/leave' },
                 ].map(({ label, path }) => (
-                  <button
+                   <button
                     key={path}
                     onClick={() => navigate(path)}
-                    className="p-5 hover:bg-white/[0.03] transition-colors text-left flex items-center justify-between group"
+                    className="p-5 hover:bg-surface-container transition-colors text-left flex items-center justify-between group"
                   >
                     <span className="text-xs font-bold uppercase tracking-widest text-on-surface/80 group-hover:text-primary transition-colors">{label}</span>
                     <ChevronRight size={14} className="text-on-surface-variant/20 group-hover:text-primary/40 transition-colors" />
@@ -330,12 +330,12 @@ export default function SettingsPage() {
             <h3 className="text-xl font-bold text-on-surface mb-1">System Integrity</h3>
             <p className="text-on-surface-variant/60 text-xs">If interface changes are not reflecting, perform a force sync.</p>
           </div>
-          <button 
+           <button 
             onClick={() => {
               localStorage.clear();
               window.location.reload();
             }}
-            className="px-6 py-2 bg-error text-white font-bold rounded-xl hover:bg-error-container transition-all active:scale-95"
+            className="px-6 py-2 bg-error text-surface font-bold rounded-xl hover:bg-error/80 transition-all active:scale-95"
           >
             FORCE SYNC
           </button>

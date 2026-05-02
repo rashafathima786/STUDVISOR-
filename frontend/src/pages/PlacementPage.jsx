@@ -81,26 +81,26 @@ export default function PlacementPage() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         
         {/* Navigation & Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-2xl">
+            <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20">
               <Briefcase className="text-primary" size={32} />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-white tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Placement Hub</h2>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Active Drive Phase: {drives.length > 0 ? 'Peak' : 'Standby'}</p>
+              <h2 className="text-3xl font-black text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Placement Hub</h2>
+              <p className="text-on-surface-variant/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Active Drive Phase: {drives.length > 0 ? 'Peak' : 'Standby'}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/5 shadow-2xl">
+          <div className="flex items-center gap-2 p-1.5 glass-panel rounded-2xl">
             {['drives', 'applications'].map(t => (
               <button 
                 key={t} 
                 onClick={() => setTab(t)}
                 className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   tab === t 
-                    ? 'bg-primary text-white shadow-lg' 
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                    ? 'bg-primary text-surface shadow-lg shadow-primary/20' 
+                    : 'text-on-surface-variant/40 hover:text-on-surface hover:bg-surface-container'
                 }`}
               >
                 {t === 'drives' ? 'Corporate Drives' : 'Applied Streams'}
@@ -125,16 +125,16 @@ export default function PlacementPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="group relative glass-panel rounded-[40px] p-8 border border-white/5 hover:border-primary/40 transition-all flex flex-col overflow-hidden"
+                  className="group relative glass-panel rounded-[40px] p-8 border border-border-color hover:border-primary/40 transition-all flex flex-col overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
                     <Building size={80} />
                   </div>
 
-                  <div className="flex justify-between items-start mb-8 relative z-10">
+                    <div className="flex justify-between items-start mb-8 relative z-10">
                     <div className="flex items-start gap-4">
                       {d.company_logo_url ? (
-                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center justify-center overflow-hidden">
+                        <div className="w-14 h-14 rounded-2xl bg-surface-container border border-border-color p-2 flex items-center justify-center overflow-hidden shadow-inner">
                           <img src={d.company_logo_url} alt={d.company} className="w-full h-full object-contain" />
                         </div>
                       ) : (
@@ -144,8 +144,7 @@ export default function PlacementPage() {
                       )}
                       <div className="flex flex-col">
                          <h3 className="text-xl font-black text-on-surface tracking-tighter uppercase group-hover:text-primary transition-colors">{d.company}</h3>
-                         {/* Removed role from here to place it prominently below */}
-                         <div className="flex items-center gap-1.5 mt-2 text-white/30">
+                         <div className="flex items-center gap-1.5 mt-2 text-on-surface-variant/30">
                            <MapPin size={10} className="text-primary/60" />
                            <span className="text-[9px] font-bold uppercase tracking-wider">{d.location || 'Remote'}</span>
                          </div>
@@ -155,7 +154,7 @@ export default function PlacementPage() {
                       {d.package_lpa && (
                         <div className="flex flex-col items-end">
                           <span className="text-xl font-black text-emerald-400 tracking-tighter">₹{d.package_lpa}L</span>
-                          <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Base CTC</span>
+                          <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">Base CTC</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
@@ -165,12 +164,12 @@ export default function PlacementPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 mb-6 relative z-10 bg-white/5 p-4 rounded-2xl border border-white/5 group/role transition-all hover:bg-white/[0.08]">
+                  <div className="flex items-center gap-3 mb-6 relative z-10 bg-surface-container/30 p-4 rounded-2xl border border-border-color group/role transition-all hover:bg-surface-container/50">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
                       <Briefcase size={20} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Job Role</span>
+                      <span className="text-[9px] font-black text-on-surface-variant/20 uppercase tracking-[0.2em]">Job Role</span>
                       <span className="text-lg font-black text-on-surface tracking-tight leading-none mt-1 group-hover/role:text-primary transition-colors">{d.role}</span>
                     </div>
                   </div>
@@ -178,7 +177,7 @@ export default function PlacementPage() {
                   {d.requirements && (
                     <div className="flex flex-wrap gap-2 mb-8 relative z-10">
                       {d.requirements.split(',').map((skill, idx) => (
-                        <span key={idx} className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-white/50 uppercase tracking-wider">
+                        <span key={idx} className="px-2 py-1 rounded-md bg-surface-container border border-border-color text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-wider">
                           {skill.trim()}
                         </span>
                       ))}
@@ -186,28 +185,28 @@ export default function PlacementPage() {
                   )}
 
                   <div className="flex flex-col md:grid md:grid-cols-2 gap-4 mb-8 relative z-10">
-                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col gap-1">
-                       <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Eligibility</span>
+                    <div className="p-4 bg-surface-container/20 rounded-2xl border border-border-color flex flex-col gap-1">
+                       <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">Eligibility</span>
                        <div className="flex items-center gap-2">
                          <Target size={12} className="text-primary/60" />
                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-white/80">{d.min_cgpa} CGPA</span>
-                            <span className="text-[9px] font-bold text-white/30 uppercase tracking-tighter">Max {d.backlogs || 0} Backlogs</span>
+                            <span className="text-xs font-bold text-on-surface/80">{d.min_cgpa} CGPA</span>
+                            <span className="text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-tighter">Max {d.backlogs || 0} Backlogs</span>
                           </div>
                        </div>
                     </div>
-                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col gap-1">
-                       <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Deadline</span>
+                    <div className="p-4 bg-surface-container/20 rounded-2xl border border-border-color flex flex-col gap-1">
+                       <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">Deadline</span>
                        <div className="flex items-center gap-2">
                          <Clock size={12} className="text-amber-400/60" />
-                         <span className="text-xs font-bold text-white/80">{d.last_date_apply ? new Date(d.last_date_apply).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'TBA'}</span>
+                         <span className="text-xs font-bold text-on-surface/80">{d.last_date_apply ? new Date(d.last_date_apply).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'TBA'}</span>
                        </div>
                     </div>
                   </div>
 
                   <button 
                     onClick={() => handleApply(d.id)}
-                    className="mt-auto w-full py-5 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-3 relative z-10"
+                    className="mt-auto w-full py-5 rounded-2xl bg-on-surface text-surface font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-3 relative z-10"
                   >
                     Transmit Application
                     <ChevronRight size={16} />
@@ -234,26 +233,27 @@ export default function PlacementPage() {
                  <div className="p-3 bg-emerald-500/10 rounded-2xl">
                    <Target className="text-emerald-400" size={24} />
                  </div>
-                 <h2 className="text-xl font-bold text-white tracking-tight">Synchronized Submissions</h2>
+                 <h2 className="text-xl font-bold text-on-surface tracking-tight">Synchronized Submissions</h2>
               </div>
 
-              <div className="glass-panel rounded-[40px] overflow-hidden border border-white/5 shadow-2xl">
-                <div className="overflow-x-auto">
+              {/* Technical List View for Mobile / Table for Desktop */}
+              <div className="glass-panel rounded-[40px] overflow-hidden shadow-2xl">
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-white/[0.02]">
-                        <th className="px-10 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Corporate Partner</th>
-                        <th className="px-6 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Domain / Role</th>
-                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Compensation</th>
-                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Status</th>
-                        <th className="px-10 py-6 text-right text-[10px] font-black text-white/30 uppercase tracking-widest">Timestamp</th>
+                      <tr className="bg-surface-container/50">
+                        <th className="px-10 py-6 text-left text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Corporate Partner</th>
+                        <th className="px-6 py-6 text-left text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Domain / Role</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Compensation</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Status</th>
+                        <th className="px-10 py-6 text-right text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Timestamp</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-border-color">
                       {applications.length === 0 ? (
                         <tr>
                           <td colSpan="5" className="px-10 py-32 text-center">
-                            <p className="text-white/20 text-sm font-bold uppercase tracking-widest italic">No application streams initiated</p>
+                            <p className="text-on-surface-variant/20 text-sm font-bold uppercase tracking-widest italic">No application streams initiated</p>
                           </td>
                         </tr>
                       ) : (
@@ -265,12 +265,12 @@ export default function PlacementPage() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ delay: idx * 0.05 }}
-                              className="hover:bg-white/[0.03] transition-colors group"
+                              className="hover:bg-surface-container/30 transition-colors group"
                             >
                               <td className="px-10 py-8">
                                  <div className="flex items-center gap-4">
                                    {a.company_logo_url ? (
-                                     <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 p-1.5 flex items-center justify-center overflow-hidden shrink-0">
+                                     <div className="w-10 h-10 rounded-xl bg-surface-container border border-border-color p-1.5 flex items-center justify-center overflow-hidden shrink-0">
                                        <img src={a.company_logo_url} alt={a.company_name} className="w-full h-full object-contain" />
                                      </div>
                                    ) : (
@@ -279,13 +279,13 @@ export default function PlacementPage() {
                                      </div>
                                    )}
                                    <div className="flex flex-col">
-                                     <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight text-lg">{a.company_name}</span>
+                                     <span className="text-on-surface font-bold group-hover:text-primary transition-colors tracking-tight text-lg">{a.company_name}</span>
                                      <span className="text-[11px] text-on-surface-variant/40 font-black uppercase tracking-widest">{a.role_title}</span>
                                    </div>
                                  </div>
                               </td>
                               <td className="px-6 py-8">
-                                 <span className="text-xs font-bold text-white/60">{a.role_title}</span>
+                                 <span className="text-xs font-bold text-on-surface/60">{a.role_title}</span>
                               </td>
                               <td className="px-6 py-8 text-center font-bold text-emerald-400">
                                  {a.package_lpa ? `₹${a.package_lpa} LPA` : 'Competitive'}
@@ -298,7 +298,7 @@ export default function PlacementPage() {
                                 </div>
                               </td>
                               <td className="px-10 py-8 text-right">
-                                 <span className="text-xs font-bold text-white/20">
+                                 <span className="text-xs font-bold text-on-surface/20">
                                    {new Date(a.applied_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                                  </span>
                               </td>
@@ -309,12 +309,59 @@ export default function PlacementPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Technical List */}
+                <div className="md:hidden divide-y divide-border-color">
+                  {applications.length === 0 ? (
+                    <div className="px-6 py-20 text-center">
+                      <p className="text-on-surface-variant/20 text-xs font-black uppercase tracking-widest italic">No streams initiated</p>
+                    </div>
+                  ) : (
+                    applications.map((a, idx) => {
+                      const style = getStatusStyle(a.status);
+                      return (
+                        <div key={a.id || idx} className="p-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                               {a.company_logo_url ? (
+                                 <div className="w-10 h-10 rounded-xl bg-surface-container border border-border-color p-1.5 flex items-center justify-center overflow-hidden shrink-0">
+                                   <img src={a.company_logo_url} alt={a.company_name} className="w-full h-full object-contain" />
+                                 </div>
+                               ) : (
+                                 <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                                   <Building2 className="text-primary" size={18} />
+                                 </div>
+                               )}
+                               <div className="flex flex-col">
+                                 <span className="text-on-surface font-bold tracking-tight text-base leading-none">{a.company_name}</span>
+                                 <span className="text-[9px] text-on-surface-variant/40 font-black uppercase tracking-widest mt-1">{a.role_title}</span>
+                               </div>
+                            </div>
+                            <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-widest ${style.bg} ${style.color} ${style.border}`}>
+                              <style.icon size={10} /> {a.status}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 pt-2">
+                             <div className="flex flex-col gap-1">
+                                <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">Compensation</span>
+                                <span className="text-xs font-bold text-emerald-400">{a.package_lpa ? `₹${a.package_lpa} LPA` : 'Competitive'}</span>
+                             </div>
+                             <div className="flex flex-col gap-1 items-end">
+                                <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">Timestamp</span>
+                                <span className="text-xs font-bold text-on-surface/40">{new Date(a.applied_at).toLocaleDateString()}</span>
+                             </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               {/* Action Note */}
-              <div className="flex items-center gap-4 px-8 py-6 bg-white/5 rounded-[32px] border border-white/5">
+              <div className="flex items-center gap-4 px-8 py-6 glass-panel rounded-[32px] border border-border-color">
                  <ShieldCheck className="text-primary/60" size={20} />
-                 <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Corporate interaction protocols are strictly monitored. Ensure your profile metadata is accurate.</p>
+                 <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.3em]">Corporate interaction protocols are strictly monitored. Ensure your profile metadata is accurate.</p>
               </div>
             </motion.div>
           )}

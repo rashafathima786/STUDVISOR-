@@ -98,7 +98,7 @@ function EventPill({ ev, onClick }) {
           </h4>
         </div>
         
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-border-color">
           <span className="text-[9px] font-bold opacity-50 truncate">{ev.room}</span>
           <span className="text-[9px] font-bold opacity-50 truncate">{ev.type}</span>
         </div>
@@ -129,7 +129,7 @@ function EventDialog({ event, onSave, onDelete, onClose }) {
       <motion.div 
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-lg bg-[#0d0d10] border border-white/10 rounded-[40px] p-10 shadow-2xl overflow-hidden relative"
+        className="w-full max-w-lg glass-panel rounded-[40px] p-10 shadow-2xl overflow-hidden relative"
         onClick={e => e.stopPropagation()}
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -mr-32 -mt-32" />
@@ -137,19 +137,19 @@ function EventDialog({ event, onSave, onDelete, onClose }) {
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-10">
             <div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight">{isNew ? 'New Entry' : 'Edit Entry'}</h3>
-              <p className="text-xs font-bold text-white/40 uppercase tracking-widest mt-1">Academic Protocol v4.1</p>
+              <h3 className="text-2xl font-black text-on-surface uppercase tracking-tight">{isNew ? 'New Entry' : 'Edit Entry'}</h3>
+              <p className="text-xs font-bold text-on-surface-variant/40 uppercase tracking-widest mt-1">Academic Protocol v4.1</p>
             </div>
-            <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all">
-              <X size={20} className="text-white/40" />
+            <button onClick={onClose} className="p-3 bg-surface-container hover:bg-surface-container-high rounded-2xl transition-all">
+              <X size={20} className="text-on-surface-variant/40" />
             </button>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-2">Module Identifier</label>
+              <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-2">Module Identifier</label>
               <input 
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-primary/50 transition-all placeholder:text-white/10"
+                className="w-full bg-surface-container border border-border-color rounded-2xl p-5 text-on-surface font-bold outline-none focus:border-primary/50 transition-all placeholder:text-on-surface-variant/30"
                 placeholder="e.g. QUANTUM COMPUTING"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
@@ -158,41 +158,41 @@ function EventDialog({ event, onSave, onDelete, onClose }) {
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-2">Weekday</label>
+                <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-2">Weekday</label>
                 <select 
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-primary/50 transition-all appearance-none"
+                  className="w-full bg-surface-container border border-border-color rounded-2xl p-5 text-on-surface font-bold outline-none focus:border-primary/50 transition-all appearance-none"
                   value={day}
                   onChange={e => setDay(Number(e.target.value))}
                 >
-                  {DAYS.map((d, i) => <option key={i} value={i} className="bg-[#0d0d10]">{d}</option>)}
+                  {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-2">Category</label>
+                <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-2">Category</label>
                 <select 
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-primary/50 transition-all appearance-none"
+                  className="w-full bg-surface-container border border-border-color rounded-2xl p-5 text-on-surface font-bold outline-none focus:border-primary/50 transition-all appearance-none"
                   value={type}
                   onChange={e => setType(e.target.value)}
                 >
-                  {Object.keys(CATEGORY_STYLES).map(t => <option key={t} value={t} className="bg-[#0d0d10]">{t}</option>)}
+                  {Object.keys(CATEGORY_STYLES).map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
                <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-2">Start Time</label>
+                <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-2">Start Time</label>
                 <input 
                   type="number" step="0.5" min={START_HOUR} max={END_HOUR}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-primary/50 transition-all"
+                  className="w-full bg-surface-container border border-border-color rounded-2xl p-5 text-on-surface font-bold outline-none focus:border-primary/50 transition-all"
                   value={start}
                   onChange={e => setStart(Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-2">Location</label>
+                <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-2">Location</label>
                 <input 
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-primary/50 transition-all"
+                  className="w-full bg-surface-container border border-border-color rounded-2xl p-5 text-on-surface font-bold outline-none focus:border-primary/50 transition-all"
                   placeholder="e.g. HALL-3"
                   value={room}
                   onChange={e => setRoom(e.target.value)}
@@ -254,25 +254,25 @@ export default function TimetableWidget() {
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
               <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Real-time Schedule Sync</span>
            </div>
-           <h2 className="text-5xl font-black text-white tracking-tighter" style={{ fontFamily: 'var(--font-jakarta)' }}>
+           <h2 className="text-5xl font-black text-on-surface tracking-tighter" style={{ fontFamily: 'var(--font-jakarta)' }}>
              {monthYear(monday)}
            </h2>
         </div>
 
-        <div className="flex items-center gap-4 bg-[#121214]/60 backdrop-blur-2xl p-2 rounded-[32px] border border-white/5 shadow-2xl">
+        <div className="flex items-center gap-4 bg-surface-container/80 backdrop-blur-2xl p-2 rounded-[32px] border border-border-color shadow-2xl">
           <button 
             onClick={() => setCurrentDate(addWeeks(currentDate, -1))}
-            className="w-14 h-14 flex items-center justify-center hover:bg-white/5 rounded-2xl text-white/40 hover:text-white transition-all"
+            className="w-14 h-14 flex items-center justify-center hover:bg-surface-container-high rounded-2xl text-on-surface-variant/40 hover:text-on-surface transition-all"
           >
             <ChevronLeft size={24} />
           </button>
-          <div className="px-10 py-3 bg-white/5 rounded-2xl flex flex-col items-center">
-             <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">Navigation</span>
-             <span className="text-xs font-black text-white uppercase tracking-widest">Active Week</span>
+          <div className="px-10 py-3 bg-surface-container-high rounded-2xl flex flex-col items-center">
+             <span className="text-[8px] font-black text-on-surface-variant/30 uppercase tracking-[0.3em] mb-1">Navigation</span>
+             <span className="text-xs font-black text-on-surface uppercase tracking-widest">Active Week</span>
           </div>
           <button 
             onClick={() => setCurrentDate(addWeeks(currentDate, 1))}
-            className="w-14 h-14 flex items-center justify-center hover:bg-white/5 rounded-2xl text-white/40 hover:text-white transition-all"
+            className="w-14 h-14 flex items-center justify-center hover:bg-surface-container-high rounded-2xl text-on-surface-variant/40 hover:text-on-surface transition-all"
           >
             <ChevronRight size={24} />
           </button>
@@ -280,10 +280,10 @@ export default function TimetableWidget() {
       </div>
 
       {/* Grid Architecture */}
-      <div className="relative bg-[#0a0a0c]/80 backdrop-blur-3xl rounded-[48px] border border-white/10 overflow-hidden shadow-2xl">
+      <div className="relative bg-surface/80 backdrop-blur-3xl rounded-[48px] border border-border-color overflow-hidden shadow-2xl">
         
         {/* Mobile View Toggle/Selector */}
-        <div className="md:hidden flex overflow-x-auto scrollbar-hide p-4 bg-white/5 border-b border-white/5 gap-2">
+        <div className="md:hidden flex overflow-x-auto scrollbar-hide p-4 bg-surface-container border-b border-border-color gap-2">
           {week.map((day, i) => {
             const { day: label } = dayLabel(day)
             const isToday = day.toDateString() === new Date().toDateString()
@@ -292,10 +292,10 @@ export default function TimetableWidget() {
               <button
                 key={i}
                 onClick={() => setSelectedDayIndex(i)}
-                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-white/40'}`}
+                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-surface-container text-on-surface-variant/50'}`}
               >
                 {label} {day.getDate()}
-                {isToday && <div className="mt-1 h-1 w-1 bg-white rounded-full mx-auto" />}
+                {isToday && <div className="mt-1 h-1 w-1 bg-primary rounded-full mx-auto" />}
               </button>
             )
           })}
@@ -304,11 +304,11 @@ export default function TimetableWidget() {
         <div className="flex">
           
           {/* Timeline Sidebar - Hidden on extreme small if needed, but kept for context */}
-          <div className="w-20 md:w-24 pt-20 border-r border-white/5 bg-black/40">
+          <div className="w-20 md:w-24 pt-20 border-r border-border-color bg-surface-container/30">
             {HOUR_LABELS.map((label, i) => (
               <div 
                 key={i} 
-                className="flex items-start justify-center text-[8px] md:text-[9px] font-black text-white/20 uppercase tracking-tighter"
+                className="flex items-start justify-center text-[8px] md:text-[9px] font-black text-on-surface-variant/30 uppercase tracking-tighter"
                 style={{ height: ROW_HEIGHT }}
               >
                 {label}
@@ -330,14 +330,14 @@ export default function TimetableWidget() {
                 if (!isVisible) return null
 
                 return (
-                  <div key={dIdx} className={`relative flex flex-col border-r border-white/5 last:border-0 ${isToday ? 'bg-primary/[0.04]' : ''} min-w-0`}>
+                  <div key={dIdx} className={`relative flex flex-col border-r border-border-color last:border-0 ${isToday ? 'bg-primary/[0.04]' : ''} min-w-0`}>
                     
                     {/* Vertical Column Header - Hidden on Mobile since we have the tabs */}
-                    <div className="hidden md:flex h-20 flex-col items-center justify-center border-b border-white/5 relative">
-                      <span className={`text-[10px] font-black tracking-[0.3em] uppercase mb-1.5 ${isToday ? 'text-primary' : 'text-white/20'}`}>
+                    <div className="hidden md:flex h-20 flex-col items-center justify-center border-b border-border-color relative">
+                      <span className={`text-[10px] font-black tracking-[0.3em] uppercase mb-1.5 ${isToday ? 'text-primary' : 'text-on-surface-variant/30'}`}>
                         {label}
                       </span>
-                      <span className={`text-lg font-black ${isToday ? 'text-white' : 'text-white/60'}`}>
+                      <span className={`text-lg font-black ${isToday ? 'text-on-surface' : 'text-on-surface-variant/50'}`}>
                         {date}
                       </span>
                       {isToday && <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary shadow-[0_0_15px_rgba(124,58,237,0.5)]" />}
@@ -353,7 +353,7 @@ export default function TimetableWidget() {
                       {HOUR_LABELS.map((_, i) => (
                         <div 
                           key={i} 
-                          className="absolute left-0 right-0 border-b border-white/[0.03] transition-colors group-hover/grid:border-white/[0.05]" 
+                          className="absolute left-0 right-0 border-b border-border-color/30 transition-colors group-hover/grid:border-border-color/50" 
                           style={{ top: i * ROW_HEIGHT }} 
                         />
                       ))}
@@ -382,7 +382,7 @@ export default function TimetableWidget() {
         whileHover={{ scale: 1.05, rotate: 90 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setDialog({ event: {} })}
-        className="fixed bottom-12 right-12 w-20 h-20 rounded-[32px] bg-primary text-white shadow-[0_20px_50px_rgba(124,58,237,0.3)] flex items-center justify-center z-50 border border-white/20 group"
+        className="fixed bottom-12 right-12 w-20 h-20 rounded-[32px] bg-primary text-white shadow-[0_20px_50px_rgba(124,58,237,0.3)] flex items-center justify-center z-50 border border-primary/40 group"
       >
         <Plus size={32} className="group-hover:scale-110 transition-transform" />
       </motion.button>

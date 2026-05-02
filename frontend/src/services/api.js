@@ -669,6 +669,11 @@ export async function fetchMySubjects() {
   return response.data;
 }
 
+export async function fetchStudentsBySubject(subjectId) {
+  const response = await api.get(`/faculty-portal/students-by-subject/${subjectId}/`);
+  return response.data;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // ADMIN PANEL APIs
 // ══════════════════════════════════════════════════════════════════════════════

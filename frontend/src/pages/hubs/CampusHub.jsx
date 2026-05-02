@@ -73,19 +73,19 @@ export default function CampusHub() {
         animate="visible"
       >
         
-        {/* Community - Professional Bento Tile */}
-        <motion.div variants={itemVariants} className="bento-tile bento-span-2 bento-row-span-2 overflow-hidden flex flex-col" style={{ cursor: 'default', background: '#0d0d0f' }}>
-          <div className="p-6 flex items-center justify-between border-b border-white/5">
+        {/* Community - General Forum Bento Tile */}
+        <motion.div variants={itemVariants} className="bento-tile bento-span-2 bento-row-span-2 overflow-hidden flex flex-col" style={{ cursor: 'default' }}>
+          <div className="p-6 flex items-center justify-between border-b border-border-color">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
                 <Globe size={20} className="text-indigo-400" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-white uppercase tracking-wider">General Forum</span>
-                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Open Campus Dialogue</span>
+                <span className="text-sm font-bold text-on-surface uppercase tracking-wider">General Forum</span>
+                <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">Open Campus Dialogue</span>
               </div>
             </div>
-            <Link to="/forum" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-white/60 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all">
+            <Link to="/forum" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container border border-border-color text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-all">
               Open Forum <ChevronRight size={12} />
             </Link>
           </div>
@@ -102,7 +102,7 @@ export default function CampusHub() {
                       key={post.id || idx}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`p-4 rounded-xl border border-white/5 ${isAI ? 'bg-indigo-500/5' : 'bg-white/[0.02]'}`}
+                      className={`p-4 rounded-xl border border-border-color ${isAI ? 'bg-indigo-500/5' : 'bg-surface-container'}`}
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -111,13 +111,13 @@ export default function CampusHub() {
                            ) : (
                              <UserCheck size={10} className="text-indigo-400" />
                            )}
-                           <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                           <span className="text-[9px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
                              {isAI ? 'Verified Intel' : 'Verified Node'}
                            </span>
                         </div>
-                        <div className="flex items-center gap-1.5 opacity-20">
-                          <Clock size={10} className="text-white" />
-                          <span className="text-[9px] font-bold text-white uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5 opacity-40">
+                          <Clock size={10} className="text-on-surface" />
+                          <span className="text-[9px] font-bold text-on-surface uppercase tracking-widest">
                             {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -126,30 +126,30 @@ export default function CampusHub() {
                       {isAcademic ? (
                         <div className="flex flex-col gap-3">
                           <div className="flex gap-4">
-                            <div className="flex-1 bg-white/5 p-2.5 rounded-lg border border-white/5">
-                              <span className="text-[8px] font-bold text-white/30 uppercase block mb-0.5">Attendance</span>
-                              <span className="text-sm font-black text-white">{post.content.match(/Att\s+([\d.]+)%/)?.[1] || "77.8"}%</span>
+                            <div className="flex-1 bg-surface-container-high p-2.5 rounded-lg border border-border-color">
+                              <span className="text-[8px] font-bold text-on-surface-variant/50 uppercase block mb-0.5">Attendance</span>
+                              <span className="text-sm font-black text-on-surface">{post.content.match(/Att\s+([\d.]+)%/)?.[1] || "77.8"}%</span>
                             </div>
                             <div className="flex-1 bg-indigo-500/10 p-2.5 rounded-lg border border-indigo-500/20">
                               <span className="text-[8px] font-bold text-indigo-400/60 uppercase block mb-0.5">CGPA</span>
                               <span className="text-sm font-black text-indigo-400">{post.content.match(/CGPA\s+([\d.]+)/)?.[1] || "8.82"}</span>
                             </div>
                           </div>
-                          <div className="bg-white/5 p-2 rounded-lg border border-white/5 flex items-center gap-2">
-                            <TrendingUp size={10} className="text-white/20" />
-                            <span className="text-[9px] font-bold text-white/60 truncate">
+                          <div className="bg-surface-container-high p-2 rounded-lg border border-border-color flex items-center gap-2">
+                            <TrendingUp size={10} className="text-on-surface-variant/40" />
+                            <span className="text-[9px] font-bold text-on-surface-variant/60 truncate">
                               Next: {post.content.split("ACTION:")[1]?.split("*")[1]?.trim() || "Review Curriculum"}
                             </span>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-white/80 font-medium leading-relaxed mb-3 line-clamp-2">
+                        <p className="text-sm text-on-surface font-medium leading-relaxed mb-3 line-clamp-2">
                           {post.content.replace(/### 🟢\s*/, '')}
                         </p>
                       )}
                       
                       {!isAcademic && (
-                        <div className="flex items-center gap-4 text-[9px] font-bold text-white/10 uppercase tracking-widest">
+                        <div className="flex items-center gap-4 text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-widest">
                           <span className="flex items-center gap-1.5"><MessageSquare size={10} /> {post.reply_count || 0} Replies</span>
                           <span className="flex items-center gap-1.5"><ThumbsUp size={10} /> {post.reaction_count || 0} Reactions</span>
                         </div>
@@ -158,47 +158,47 @@ export default function CampusHub() {
                   )
                 })
               ) : (
-                <div className="flex flex-col items-center justify-center py-20 opacity-10">
-                  <Globe size={48} className="mb-4" />
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em]">No recent transmissions</p>
+                <div className="flex flex-col items-center justify-center py-20 opacity-20">
+                  <Globe size={48} className="mb-4 text-on-surface" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface">No recent transmissions</p>
                 </div>
               )}
             </AnimatePresence>
           </div>
           
-          <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center gap-3">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
-             <span className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">Institutional Encryption Active</span>
+          <div className="p-6 bg-surface-container/40 border-t border-border-color flex items-center gap-3">
+             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" />
+             <span className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-[0.2em]">Institutional Encryption Active</span>
           </div>
         </motion.div>
 
         {/* Events - Wide Bento Tile */}
         <motion.div variants={itemVariants} className="bento-span-2">
-          <Link to="/events" className="bento-tile overflow-hidden flex flex-col group border-white/5" style={{ height: '100%', background: 'linear-gradient(145deg, #0d0d0f 0%, #111114 100%)' }}>
-            <div className="p-6 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+          <Link to="/events" className="bento-tile overflow-hidden flex flex-col group" style={{ height: '100%' }}>
+            <div className="p-6 flex items-center justify-between border-b border-border-color bg-surface-container/30">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
                   <Calendar size={22} className="text-rose-400" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[11px] font-black text-rose-400/60 uppercase tracking-[0.2em] mb-0.5">Campus Schedule</span>
-                  <span className="text-sm font-bold text-white uppercase tracking-wider">Upcoming Events</span>
+                  <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Upcoming Events</span>
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-rose-500/20 transition-all">
-                <ChevronRight size={16} className="text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-rose-500/20 transition-all">
+                <ChevronRight size={16} className="text-on-surface-variant/30 group-hover:text-on-surface group-hover:translate-x-0.5 transition-all" />
               </div>
             </div>
             
             <div className="flex-1 p-6 flex flex-col justify-center space-y-4">
               {events.length > 0 ? (
                 events.map((event, idx) => (
-                  <div key={event.id || idx} className="flex items-center gap-6 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group/item">
-                    <div className="flex flex-col items-center justify-center bg-[#161619] border border-white/10 rounded-xl w-16 h-16 shadow-lg group-hover/item:border-rose-500/30 transition-colors">
+                  <div key={event.id || idx} className="flex items-center gap-6 p-5 rounded-2xl bg-surface-container border border-border-color hover:bg-surface-container-high transition-all group/item">
+                    <div className="flex flex-col items-center justify-center bg-surface-container-high border border-border-color rounded-xl w-16 h-16 shadow-lg group-hover/item:border-rose-500/30 transition-colors">
                       <span className="text-[10px] font-black text-rose-400 uppercase tracking-tighter">
                         {new Date(event.event_date).toLocaleString('default', { month: 'short' })}
                       </span>
-                      <span className="text-2xl font-black text-white leading-none mt-1">
+                      <span className="text-2xl font-black text-on-surface leading-none mt-1">
                         {new Date(event.event_date).getDate()}
                       </span>
                     </div>
@@ -207,10 +207,10 @@ export default function CampusHub() {
                         <span className="px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-[8px] font-black text-rose-400 uppercase tracking-widest">
                           {event.category || 'Institutional'}
                         </span>
-                        <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest italic">{event.time || '10:00 AM'}</span>
+                        <span className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-widest italic">{event.time || '10:00 AM'}</span>
                       </div>
-                      <span className="text-base font-bold text-white/90 mb-1 group-hover/item:text-white transition-colors">{event.title}</span>
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                      <span className="text-base font-bold text-on-surface mb-1 group-hover/item:text-primary transition-colors">{event.title}</span>
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">
                         <Globe size={10} />
                         <span>{event.venue}</span>
                       </div>
@@ -223,16 +223,16 @@ export default function CampusHub() {
                         <span className="text-[7px] font-black text-emerald-500/60 uppercase tracking-widest">RSVP'd</span>
                       </div>
                     ) : (
-                      <button className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all">RSVP</button>
+                      <button className="px-4 py-2 rounded-lg bg-surface-container border border-border-color text-[9px] font-black text-on-surface-variant/50 uppercase tracking-widest hover:bg-surface-container-high hover:text-on-surface transition-all">RSVP</button>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 opacity-10 space-y-4">
-                  <div className="w-16 h-16 rounded-full border-2 border-dashed border-white flex items-center justify-center">
-                    <Calendar size={24} />
+                <div className="flex flex-col items-center justify-center py-10 opacity-20 space-y-4">
+                  <div className="w-16 h-16 rounded-full border-2 border-dashed border-on-surface flex items-center justify-center">
+                    <Calendar size={24} className="text-on-surface" />
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Sector Clear: No Events</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface">Sector Clear: No Events</p>
                 </div>
               )}
             </div>
@@ -241,40 +241,40 @@ export default function CampusHub() {
 
         {/* Polls */}
         <motion.div variants={itemVariants} className="bento-span-2">
-          <Link to="/polls" className="bento-tile overflow-hidden flex flex-col group border-white/5" style={{ height: '100%', background: 'linear-gradient(145deg, #0d0d0f 0%, #111114 100%)' }}>
-            <div className="p-6 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+          <Link to="/polls" className="bento-tile overflow-hidden flex flex-col group" style={{ height: '100%' }}>
+            <div className="p-6 flex items-center justify-between border-b border-border-color bg-surface-container/30">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.1)]">
                   <BarChart3 size={22} className="text-emerald-400" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[11px] font-black text-emerald-400/60 uppercase tracking-[0.2em] mb-0.5">Campus Voice</span>
-                  <span className="text-sm font-bold text-white uppercase tracking-wider">Active Polls</span>
+                  <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Active Polls</span>
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
-                <ChevronRight size={16} className="text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
+                <ChevronRight size={16} className="text-on-surface-variant/30 group-hover:text-on-surface group-hover:translate-x-0.5 transition-all" />
               </div>
             </div>
             
             <div className="flex-1 p-8 flex flex-col justify-center">
               {polls.length > 0 ? (
-                <div className="p-6 rounded-2xl bg-[#161619] border border-white/5 shadow-2xl relative overflow-hidden group/poll">
-                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover/poll:opacity-20 transition-opacity">
+                <div className="p-6 rounded-2xl bg-surface-container border border-border-color shadow-2xl relative overflow-hidden group/poll">
+                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover/poll:opacity-10 transition-opacity">
                     <Zap size={64} className="text-emerald-500" />
                   </div>
                   <p className="text-[11px] font-black text-emerald-500/60 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Trending Opinion
                   </p>
-                  <p className="text-base font-bold text-white mb-8 leading-relaxed tracking-tight">"{polls[0].question}"</p>
+                  <p className="text-base font-bold text-on-surface mb-8 leading-relaxed tracking-tight">"{polls[0].question}"</p>
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">
+                      <div className="flex justify-between text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest mb-2">
                         <span>Major Consensus</span>
                         <span className="text-emerald-400">60% Agree</span>
                       </div>
-                      <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <div className="h-2.5 w-full bg-surface-container-highest rounded-full overflow-hidden border border-border-color">
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: '60%' }}
@@ -285,22 +285,22 @@ export default function CampusHub() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/5">
+                  <div className="flex items-center justify-between mt-8 pt-6 border-t border-border-color">
                      <div className="flex -space-x-2">
                         {[1,2,3].map(i => (
-                          <div key={i} className="w-6 h-6 rounded-full border-2 border-[#161619] bg-white/10" />
+                          <div key={i} className="w-6 h-6 rounded-full border-2 border-surface bg-surface-container-highest" />
                         ))}
-                        <div className="w-6 h-6 rounded-full border-2 border-[#161619] bg-emerald-500/20 flex items-center justify-center text-[8px] font-black text-emerald-400">
+                        <div className="w-6 h-6 rounded-full border-2 border-surface bg-emerald-500/20 flex items-center justify-center text-[8px] font-black text-emerald-400">
                           +42
                         </div>
                      </div>
-                     <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest italic">Ends in 18 hours</span>
+                     <span className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-widest italic">Ends in 18 hours</span>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 opacity-10 space-y-4">
-                  <BarChart3 size={32} />
-                  <p className="text-[10px] font-bold uppercase tracking-widest">No active ballots</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-20 space-y-4">
+                  <BarChart3 size={32} className="text-on-surface" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface">No active ballots</p>
                 </div>
               )}
             </div>
@@ -309,34 +309,34 @@ export default function CampusHub() {
 
         {/* Lost & Found */}
         <motion.div variants={itemVariants} className="bento-span-1">
-          <Link to="/lost-found" className="bento-tile overflow-hidden flex flex-col group border-white/5" style={{ height: '100%', background: '#0d0d0f' }}>
-            <div className="p-6 flex items-center justify-between border-b border-white/5">
+          <Link to="/lost-found" className="bento-tile overflow-hidden flex flex-col group" style={{ height: '100%' }}>
+            <div className="p-6 flex items-center justify-between border-b border-border-color">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
                   <Search size={20} className="text-amber-400" />
                 </div>
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Inventory</span>
+                <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Inventory</span>
               </div>
-              <ChevronRight size={16} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              <ChevronRight size={16} className="text-on-surface-variant/30 group-hover:text-on-surface group-hover:translate-x-1 transition-all" />
             </div>
             
             <div className="flex-1 p-6 space-y-3">
               {lostFound.length > 0 ? (
                 lostFound.map((item, idx) => (
-                  <div key={item.id || idx} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all">
+                  <div key={item.id || idx} className="flex items-center gap-3 p-3 rounded-xl bg-surface-container border border-border-color hover:bg-surface-container-high transition-all">
                     <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
                       <Hash size={14} className="text-amber-400/60" />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-white truncate">{item.title}</span>
-                      <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{item.location}</span>
+                      <span className="text-[11px] font-bold text-on-surface truncate">{item.title}</span>
+                      <span className="text-[8px] font-bold text-on-surface-variant/40 uppercase tracking-widest">{item.location}</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 opacity-10 space-y-3">
-                  <Search size={24} />
-                  <p className="text-[8px] font-bold uppercase tracking-widest text-center">Protocol Clean: No items</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-20 space-y-3">
+                  <Search size={24} className="text-on-surface" />
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-center text-on-surface">Protocol Clean: No items</p>
                 </div>
               )}
             </div>
@@ -345,22 +345,22 @@ export default function CampusHub() {
 
         {/* Announcements */}
         <motion.div variants={itemVariants} className="bento-span-1">
-          <Link to="/announcements" className="bento-tile overflow-hidden flex flex-col group border-white/5" style={{ height: '100%', background: '#0d0d0f' }}>
-            <div className="p-6 flex items-center justify-between border-b border-white/5">
+          <Link to="/announcements" className="bento-tile overflow-hidden flex flex-col group" style={{ height: '100%' }}>
+            <div className="p-6 flex items-center justify-between border-b border-border-color">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <Megaphone size={20} className="text-primary" />
                 </div>
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Bulletins</span>
+                <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Bulletins</span>
               </div>
-              <ChevronRight size={16} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              <ChevronRight size={16} className="text-on-surface-variant/30 group-hover:text-on-surface group-hover:translate-x-1 transition-all" />
             </div>
             
             <div className="flex-1 p-6 flex flex-col justify-center">
                <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 relative overflow-hidden">
                   <div className="absolute -top-2 -right-2 w-12 h-12 bg-primary/10 blur-xl rounded-full" />
                   <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-2 block">Latest Broadcast</span>
-                  <p className="text-[11px] font-bold text-white/70 line-clamp-3 leading-relaxed">
+                  <p className="text-[11px] font-bold text-on-surface-variant leading-relaxed line-clamp-3">
                     {announcements[0]?.content || "Institutional semester registrations are now open for all departments. Verify your credentials."}
                   </p>
                </div>

@@ -131,7 +131,7 @@ export default function AcademicsHub() {
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="glass-panel w-full max-w-lg p-8 rounded-[40px] relative z-10 border border-white/10 shadow-2xl"
+                className="glass-panel w-full max-w-lg p-8 rounded-[40px] relative z-10 shadow-2xl"
               >
                 <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center gap-4">
@@ -139,29 +139,29 @@ export default function AcademicsHub() {
                       <span className="material-symbols-outlined text-primary">description</span>
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-white tracking-tight">{selectedTask.title}</h3>
+                      <h3 className="text-2xl font-bold text-on-surface tracking-tight">{selectedTask.title}</h3>
                       <p className="text-primary/70 text-xs font-black uppercase tracking-widest">{selectedTask.subject}</p>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedTask(null)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
-                    <span className="material-symbols-outlined text-white/40">close</span>
+                  <button onClick={() => setSelectedTask(null)} className="p-2 hover:bg-surface-container rounded-xl transition-colors">
+                    <span className="material-symbols-outlined text-on-surface-variant/40">close</span>
                   </button>
                 </div>
 
                 <div className="space-y-6">
-                  <div className="p-6 rounded-3xl bg-white/5 border border-white/5">
+                  <div className="p-6 rounded-3xl bg-surface-container border border-border-color">
                     <p className="text-on-surface-variant/80 text-sm leading-relaxed">
                       {selectedTask.description || "No description provided for this assignment."}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                      <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Max Marks</p>
-                      <p className="text-xl font-bold text-white">{selectedTask.max_marks || 100}</p>
+                    <div className="p-4 rounded-2xl bg-surface-container border border-border-color">
+                      <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest mb-1">Max Marks</p>
+                      <p className="text-xl font-bold text-on-surface">{selectedTask.max_marks || 100}</p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                      <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Status</p>
+                    <div className="p-4 rounded-2xl bg-surface-container border border-border-color">
+                      <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest mb-1">Status</p>
                       <p className="text-xl font-bold text-emerald-400">Verified</p>
                     </div>
                   </div>
@@ -199,9 +199,9 @@ export default function AcademicsHub() {
           <div className="hub-tile-preview" style={{ borderTop: 'none', paddingTop: '0', marginTop: '8px' }}>
             <div className="mini-status-list space-y-3">
               {!loading && schedule.length > 0 ? schedule.slice(0, 3).map((slot, i) => (
-                <div key={i} className="mini-status-item p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                <div key={i} className="mini-status-item p-4 bg-surface-container rounded-2xl border border-border-color hover:bg-surface-container-high transition-colors">
                   <span className={`mini-tag ${i % 2 === 0 ? 'violet' : 'blue'} w-[80px] text-center shadow-lg`}>H-{slot.hour}</span>
-                  <span className="text-white font-bold ml-4">{slot.subject}</span>
+                  <span className="text-on-surface font-bold ml-4">{slot.subject}</span>
                   <span className="ml-auto text-xs font-bold text-on-surface-variant/40 tracking-widest uppercase">{slot.room}</span>
                 </div>
               )) : (
@@ -230,7 +230,7 @@ export default function AcademicsHub() {
             </div>
             <div className="flex justify-between mt-4">
               {syllabus.slice(0, 2).map((s, i) => (
-                <span key={i} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 truncate max-w-[120px]">
+                <span key={i} className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/40 truncate max-w-[120px]">
                   {s.subject}: <span className={i === 0 ? "text-tertiary" : "text-secondary"}>80%</span>
                 </span>
               ))}

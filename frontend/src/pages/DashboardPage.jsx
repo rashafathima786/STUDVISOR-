@@ -101,8 +101,8 @@ const DashboardPage = () => {
                             />
                         </div>
                         {/* Mobile Bunkability Summary */}
-                        <div className="md:hidden mt-6 pt-4 border-t border-white/5 flex items-center justify-between z-10">
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Bunk Reserve</span>
+                        <div className="md:hidden mt-6 pt-4 border-t border-border-color flex items-center justify-between z-10">
+                            <span className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">Bunk Reserve</span>
                             <span className={`text-xs font-black uppercase ${attendance?.percentage >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {attendance?.percentage >= 85 ? 'Optimal' : attendance?.percentage >= 75 ? 'Borderline' : 'Critical'}
                             </span>
@@ -232,7 +232,7 @@ const DashboardPage = () => {
 
                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                         {schedule.length > 0 ? schedule.map((slot, idx) => (
-                            <div key={idx} className="min-w-[220px] flex-1 glass-panel-light p-6 rounded-2xl border border-white/5 hover:border-primary/20 transition-all cursor-pointer group">
+                            <div key={idx} className="min-w-[220px] flex-1 glass-panel-light p-6 rounded-2xl border border-border-color hover:border-primary/20 transition-all cursor-pointer group">
                                 <div className="flex justify-between items-start mb-4">
                                     <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
                                         Hour {slot.hour}
@@ -270,11 +270,11 @@ const DashboardPage = () => {
                             onClick={() => navigate(path)}
                             className="glass-panel rounded-2xl p-4 md:p-6 cursor-pointer hover:scale-[1.02] transition-transform group"
                         >
-                            <div className={`p-2 md:p-3 rounded-xl bg-white/5 border border-white/10 w-fit mb-3 md:mb-4 group-hover:bg-primary/20 transition-colors`}>
-                                <span className={`material-symbols-outlined text-white text-lg md:text-xl`} style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+                            <div className={`p-2 md:p-3 rounded-xl bg-surface-container border border-border-color w-fit mb-3 md:mb-4 group-hover:bg-primary/20 transition-colors`}>
+                                <span className={`material-symbols-outlined text-on-surface text-lg md:text-xl`} style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
                             </div>
                             <p className="text-on-surface-variant/60 text-[9px] md:text-[10px] uppercase tracking-widest font-black mb-1">{label}</p>
-                            <p className="text-white font-black text-lg md:text-xl tracking-tighter" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{value}</p>
+                            <p className="text-on-surface font-black text-lg md:text-xl tracking-tighter" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{value}</p>
                         </div>
                     ))}
                 </div>

@@ -9,9 +9,9 @@ from backend.core.security import decode_token
 
 # Define which route prefixes require which roles
 ROLE_ROUTE_MAP = {
-    "/staff/faculty-portal": ("faculty", "hod"),
+    "/faculty-portal": ("faculty", "hod"),
     "/ai/v2/ai/faculty": ("faculty", "hod"),
-    "/staff/admin": ("admin",),
+    "/admin": ("admin",),
     "/ai/v2/ai/admin": ("admin",),
 }
 

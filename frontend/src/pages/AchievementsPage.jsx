@@ -41,9 +41,9 @@ export default function AchievementsPage() {
         badge: "bg-tertiary/10 text-tertiary"
       };
       default: return {
-        icon: <Star size={24} className="text-white/40" />,
-        accent: "border-white/10 bg-white/5",
-        badge: "bg-white/10 text-white/60"
+        icon: <Star size={24} className="text-on-surface-variant/40" />,
+        accent: "border-border-color bg-surface-container",
+        badge: "bg-surface-container-high text-on-surface-variant/60"
       };
     }
   };
@@ -75,14 +75,14 @@ export default function AchievementsPage() {
                 {stat.icon}
               </div>
               <div className="flex items-center gap-4 mb-4">
-                <div className={`p-3 rounded-2xl bg-white/5 border border-white/10 ${stat.color}`}>
+                <div className={`p-3 rounded-2xl bg-surface-container border border-border-color ${stat.color}`}>
                   {stat.icon}
                 </div>
                 <span className="text-xs font-black uppercase tracking-widest text-on-surface-variant/40">
                   {stat.label}
                 </span>
               </div>
-              <div className="text-3xl font-black text-white tracking-tight">
+              <div className="text-3xl font-black text-on-surface tracking-tight">
                 {stat.value}
               </div>
             </motion.div>
@@ -96,10 +96,10 @@ export default function AchievementsPage() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <Award size={22} className="text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-white tracking-tight">Hall of Fame</h2>
+              <h2 className="text-2xl font-bold text-on-surface tracking-tight">Hall of Fame</h2>
             </div>
             <div className="flex gap-2">
-               <button className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 hover:bg-white/10 transition-colors">
+               <button className="px-4 py-2 rounded-xl bg-surface-container border border-border-color text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 hover:bg-surface-container-high transition-colors">
                  Filter By Category
                </button>
             </div>
@@ -121,20 +121,20 @@ export default function AchievementsPage() {
               <div className="absolute top-10 left-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
               <div className="absolute bottom-10 right-10 w-32 h-32 bg-secondary/5 rounded-full blur-3xl" />
               
-              <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-8 relative">
+              <div className="w-24 h-24 rounded-3xl bg-surface-container border border-border-color flex items-center justify-center mb-8 relative">
                 <Award size={48} className="text-on-surface-variant/10" />
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-primary/20">
-                   <Sparkles size={16} className="text-white" />
+                   <Sparkles size={16} className="text-surface" />
                 </div>
               </div>
               
-              <h3 className="text-2xl font-black text-white tracking-tight mb-3">Awaiting Excellence</h3>
+              <h3 className="text-2xl font-black text-on-surface tracking-tight mb-3">Awaiting Excellence</h3>
               <p className="text-on-surface-variant/40 max-w-sm text-sm leading-relaxed mb-10">
                 The Hall of Fame is currently preparing to spotlight new milestones. Stay tuned as we celebrate the next wave of campus distinction.
               </p>
               
-              <button className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 transition-all duration-300">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/60 group-hover:text-white transition-colors">Nominate for Achievement</span>
+              <button className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-surface-container border border-border-color hover:border-primary/40 transition-all duration-300">
+                <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 group-hover:text-on-surface transition-colors">Nominate for Achievement</span>
                 <ChevronRight size={16} className="text-primary group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>
@@ -166,7 +166,7 @@ export default function AchievementsPage() {
                         </div>
                         
                         <div className="space-y-2">
-                          <h3 className="text-xl font-bold text-white tracking-tight leading-tight group-hover:text-primary transition-colors">
+                          <h3 className="text-xl font-bold text-on-surface tracking-tight leading-tight group-hover:text-primary transition-colors">
                             {item.title}
                           </h3>
                           <p className="text-sm text-on-surface-variant/50 line-clamp-3 leading-relaxed">
@@ -175,13 +175,13 @@ export default function AchievementsPage() {
                         </div>
                       </div>
                       
-                      <div className="p-6 bg-white/2 border-t border-white/5">
+                      <div className="p-6 bg-surface-container border-t border-border-color">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-sm">
                             {item.winner_name?.charAt(0)}
                           </div>
                           <div>
-                            <div className="text-sm font-bold text-white">{item.winner_name}</div>
+                            <div className="text-sm font-bold text-on-surface">{item.winner_name}</div>
                             <div className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/30">
                               Awarded {new Date(item.date).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
                             </div>

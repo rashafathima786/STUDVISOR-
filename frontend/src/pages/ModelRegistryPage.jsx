@@ -78,19 +78,19 @@ export default function ModelRegistryPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.1 }}
-              className="bg-[#0d0d0f] border border-white/5 rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden"
+              className="glass-panel rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-4 opacity-5">
                 {stat.icon}
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center">
                   {stat.icon}
                 </div>
-                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">{stat.label}</span>
+                <span className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-[0.2em]">{stat.label}</span>
               </div>
               <div className="flex items-baseline justify-between mt-2">
-                <span className="text-2xl font-black text-white tracking-tighter">{stat.val}</span>
+                <span className="text-2xl font-black text-on-surface tracking-tighter">{stat.val}</span>
                 <span className={`text-[8px] font-black uppercase tracking-widest ${stat.trend.includes('+') ? 'text-rose-400' : 'text-emerald-400'}`}>
                   {stat.trend}
                 </span>
@@ -100,25 +100,25 @@ export default function ModelRegistryPage() {
         </div>
 
         {/* Fleet Controller Interface */}
-        <div className="bg-[#0d0d0f] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="p-8 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 bg-white/[0.01]">
+        <div className="glass-panel rounded-3xl overflow-hidden shadow-2xl">
+          <div className="p-8 border-b border-border-color flex flex-col md:flex-row items-center justify-between gap-6 bg-on-surface/[0.01]">
              <div className="flex items-center gap-6">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
                   <Layers size={24} className="text-indigo-400" />
                 </div>
                 <div className="flex flex-col">
-                  <h3 className="text-lg font-black text-white uppercase tracking-wider">Model Inventory</h3>
-                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.3em]">Institutional Intelligence Fleet</p>
+                  <h3 className="text-lg font-black text-on-surface uppercase tracking-wider">Model Inventory</h3>
+                  <p className="text-[10px] font-bold text-on-surface-variant/30 uppercase tracking-[0.3em]">Institutional Intelligence Fleet</p>
                 </div>
              </div>
 
-             <div className="flex items-center gap-4 bg-[#161619] p-1.5 rounded-xl border border-white/5">
+             <div className="flex items-center gap-4 bg-surface-container p-1.5 rounded-xl border border-border-color">
                 {categories.map(c => (
                   <button 
                     key={c}
                     onClick={() => setFilter(c)}
                     className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all
-                      ${filter === c ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
+                      ${filter === c ? 'bg-indigo-600 text-white shadow-lg' : 'text-on-surface-variant/20 hover:text-on-surface-variant/40'}`}
                   >
                     {c}
                   </button>
@@ -132,7 +132,7 @@ export default function ModelRegistryPage() {
                   placeholder="Search fleet nodes..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-[#161619] border border-white/5 rounded-xl py-3 pl-12 pr-4 text-xs font-bold text-white placeholder-white/10 focus:outline-none focus:border-indigo-500/30 transition-all"
+                  className="w-full bg-surface-container border border-border-color rounded-xl py-3 pl-12 pr-4 text-xs font-bold text-on-surface placeholder-on-surface-variant/10 focus:outline-none focus:border-indigo-500/30 transition-all"
                 />
              </div>
           </div>
@@ -154,14 +154,14 @@ export default function ModelRegistryPage() {
                   <motion.div 
                     key={idx}
                     variants={itemVariants}
-                    className="group bg-[#161619]/40 border border-white/5 rounded-2xl p-6 hover:bg-[#161619] hover:border-white/10 transition-all cursor-default relative overflow-hidden"
+                    className="group bg-surface-container/40 border border-border-color rounded-2xl p-6 hover:bg-surface-container hover:border-border-color/50 transition-all cursor-default relative overflow-hidden"
                   >
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-4">
-                         <div className={`w-2 h-2 rounded-full ${model.status === 'Active' || model.status === 'Live' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse' : 'bg-white/10'}`} />
-                         <span className="text-[10px] font-black text-white uppercase tracking-widest">{model.name}</span>
+                         <div className={`w-2 h-2 rounded-full ${model.status === 'Active' || model.status === 'Live' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse' : 'bg-on-surface/10'}`} />
+                         <span className="text-[10px] font-black text-on-surface uppercase tracking-widest">{model.name}</span>
                       </div>
-                      <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{model.category}</span>
+                      <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">{model.category}</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 mb-8">
@@ -171,9 +171,9 @@ export default function ModelRegistryPage() {
                         { label: "RPD", val: model.rpd, max: "20K" }
                       ].map((m, i) => (
                         <div key={i} className="flex flex-col gap-1.5">
-                          <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{m.label}</span>
-                          <span className="text-xs font-black text-white tracking-tighter">{m.val}</span>
-                          <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                          <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">{m.label}</span>
+                          <span className="text-xs font-black text-on-surface tracking-tighter">{m.val}</span>
+                          <div className="h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
                              <motion.div 
                               initial={{ width: 0 }}
                               animate={{ width: model.status === 'Active' || model.status === 'Live' ? '45%' : '0%' }}
@@ -184,14 +184,14 @@ export default function ModelRegistryPage() {
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                    <div className="flex items-center justify-between pt-6 border-t border-border-color">
                        <div className="flex items-center gap-3">
-                          <div className="px-2 py-0.5 rounded bg-white/5 text-[8px] font-black text-white/40 uppercase tracking-widest">
+                          <div className="px-2 py-0.5 rounded bg-surface-container text-[8px] font-black text-on-surface-variant/40 uppercase tracking-widest">
                             {model.latency}
                           </div>
-                          <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{model.status}</span>
+                          <span className="text-[8px] font-black text-on-surface-variant/20 uppercase tracking-widest">{model.status}</span>
                        </div>
-                       <button className="text-white/10 group-hover:text-white transition-colors">
+                       <button className="text-on-surface-variant/10 group-hover:text-on-surface transition-colors">
                          <ChevronRight size={14} />
                        </button>
                     </div>
@@ -206,18 +206,18 @@ export default function ModelRegistryPage() {
             )}
           </div>
 
-          <div className="p-8 bg-[#09090b] border-t border-white/5 flex items-center justify-between">
+          <div className="p-8 bg-surface-dim border-t border-border-color flex items-center justify-between">
              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                    <div className="w-2 h-2 rounded-full bg-emerald-500/40" />
-                   <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Global Sync: Active</span>
+                   <span className="text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-widest">Global Sync: Active</span>
                 </div>
                 <div className="flex items-center gap-2">
                    <div className="w-2 h-2 rounded-full bg-indigo-500/40" />
-                   <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Encryption: RSA-4096</span>
+                   <span className="text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-widest">Encryption: RSA-4096</span>
                 </div>
              </div>
-             <p className="text-[9px] font-bold text-white/10 uppercase tracking-widest">
+             <p className="text-[9px] font-bold text-on-surface-variant/10 uppercase tracking-widest">
                Authorized Fleet Command Only • Nexus Intelligence V4
              </p>
           </div>
@@ -225,23 +225,23 @@ export default function ModelRegistryPage() {
 
         {/* Deployment Zones */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           <div className="bg-[#0d0d0f] border border-white/5 rounded-3xl p-10 flex flex-col gap-6 relative overflow-hidden group">
+           <div className="glass-panel rounded-3xl p-10 flex flex-col gap-6 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Globe size={120} className="text-indigo-400" />
               </div>
-              <h4 className="text-lg font-black text-white uppercase tracking-wider">Cloud Deployment</h4>
-              <p className="text-sm text-white/40 leading-relaxed font-medium">
+              <h4 className="text-lg font-black text-on-surface uppercase tracking-wider">Cloud Deployment</h4>
+              <p className="text-sm text-on-surface-variant/40 leading-relaxed font-medium">
                 Distributed nodes across multiple regional clusters. High-availability synchronization ensures zero-latency handovers for institutional agents.
               </p>
               <div className="flex items-center gap-6 mt-4">
                  <div className="flex flex-col gap-1">
-                    <span className="text-2xl font-black text-white">42</span>
-                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Edge Nodes</span>
+                    <span className="text-2xl font-black text-on-surface">42</span>
+                    <span className="text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-widest">Edge Nodes</span>
                  </div>
-                 <div className="w-px h-10 bg-white/5" />
+                 <div className="w-px h-10 border-r border-border-color" />
                  <div className="flex flex-col gap-1">
-                    <span className="text-2xl font-black text-white">99.99%</span>
-                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Uptime SLA</span>
+                    <span className="text-2xl font-black text-on-surface">99.99%</span>
+                    <span className="text-[9px] font-bold text-on-surface-variant/30 uppercase tracking-widest">Uptime SLA</span>
                  </div>
               </div>
            </div>
@@ -251,7 +251,7 @@ export default function ModelRegistryPage() {
                 <Zap size={120} className="text-indigo-400" />
               </div>
               <h4 className="text-lg font-black text-indigo-400 uppercase tracking-wider">Ensemble Scaling</h4>
-              <p className="text-sm text-white/40 leading-relaxed font-medium">
+              <p className="text-sm text-on-surface-variant/40 leading-relaxed font-medium">
                 Automatic vertical scaling protocols triggered by Institutional Matrix demands. Real-time reallocation of TPM based on priority academic sectors.
               </p>
               <button className="w-fit px-8 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20 hover:bg-indigo-500 transition-all mt-4">

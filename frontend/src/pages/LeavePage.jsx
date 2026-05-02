@@ -106,43 +106,43 @@ export default function LeavePage() {
                <div className="p-3 bg-primary/10 rounded-2xl">
                  <FileText className="text-primary" size={24} />
                </div>
-               <h2 className="text-xl font-bold text-white tracking-tight">Request Protocol</h2>
+               <h2 className="text-xl font-bold text-on-surface tracking-tight">Request Protocol</h2>
             </div>
             
-            <div className="glass-panel rounded-[40px] p-8 border border-white/5 relative overflow-hidden">
+            <div className="glass-panel rounded-[40px] p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-6 opacity-5">
                 <Send size={80} />
               </div>
               
               <form className="space-y-6 relative z-10" onSubmit={handleSubmit}>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Absence Class</label>
+                  <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-1">Absence Class</label>
                   <select 
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white font-bold outline-none focus:border-primary/50 transition-all appearance-none"
+                    className="w-full bg-surface-container border border-border-color rounded-2xl p-4 text-sm text-on-surface font-bold outline-none focus:border-primary/50 transition-all appearance-none"
                     value={form.leave_type} 
                     onChange={e => setForm({...form, leave_type: e.target.value})}
                   >
-                    <option value="OD" className="bg-[#0d0d10]">ON DUTY (OD)</option>
-                    <option value="Medical" className="bg-[#0d0d10]">MEDICAL RELIEF</option>
-                    <option value="Leave" className="bg-[#0d0d10]">PERSONAL LEAVE</option>
+                    <option value="OD">ON DUTY (OD)</option>
+                    <option value="Medical">MEDICAL RELIEF</option>
+                    <option value="Leave">PERSONAL LEAVE</option>
                   </select>
                 </div>
 
                 <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Commencement</label>
+                    <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-1">Commencement</label>
                     <input 
                       type="date" 
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary/50 transition-all"
+                      className="w-full bg-surface-container border border-border-color rounded-2xl p-4 text-xs text-on-surface font-bold outline-none focus:border-primary/50 transition-all"
                       value={form.from_date} 
                       onChange={e => setForm({...form, from_date: e.target.value})} 
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Conclusion</label>
+                    <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-1">Conclusion</label>
                     <input 
                       type="date" 
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary/50 transition-all"
+                      className="w-full bg-surface-container border border-border-color rounded-2xl p-4 text-xs text-on-surface font-bold outline-none focus:border-primary/50 transition-all"
                       value={form.to_date} 
                       onChange={e => setForm({...form, to_date: e.target.value})} 
                     />
@@ -150,9 +150,9 @@ export default function LeavePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Justification</label>
+                  <label className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.2em] ml-1">Justification</label>
                   <textarea 
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white font-medium outline-none focus:border-primary/50 transition-all placeholder:text-white/10 resize-none"
+                    className="w-full bg-surface-container border border-border-color rounded-2xl p-4 text-sm text-on-surface font-medium outline-none focus:border-primary/50 transition-all placeholder:text-on-surface-variant/30 resize-none"
                     rows={4}
                     placeholder="Provide detailed reasoning for administrative review..."
                     value={form.reason}
@@ -188,23 +188,23 @@ export default function LeavePage() {
                   <div className="p-3 bg-emerald-500/10 rounded-2xl">
                     <History className="text-emerald-400" size={24} />
                   </div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">Active Logs</h2>
+                  <h2 className="text-xl font-bold text-on-surface tracking-tight">Active Logs</h2>
                 </div>
-                <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{leaveRequests.length} Total Records</span>
+                <span className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">{leaveRequests.length} Total Records</span>
               </div>
 
-              <div className="glass-panel rounded-[40px] overflow-hidden border border-white/5">
+              <div className="glass-panel rounded-[40px] overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-white/[0.02]">
-                        <th className="px-8 py-5 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Type</th>
-                        <th className="px-6 py-5 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Temporal Range</th>
-                        <th className="px-6 py-5 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Status</th>
-                        <th className="px-8 py-5 text-right text-[10px] font-black text-white/30 uppercase tracking-widest">Detail</th>
+                      <tr className="bg-surface-container/50">
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Type</th>
+                        <th className="px-6 py-5 text-left text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Temporal Range</th>
+                        <th className="px-6 py-5 text-center text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Status</th>
+                        <th className="px-8 py-5 text-right text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">Detail</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-border-color">
                       {loading ? (
                          <tr><td colSpan="4" className="py-20 text-center animate-pulse"><p className="text-white/20 uppercase font-black text-[10px] tracking-widest">Retrieving Secure Records...</p></td></tr>
                       ) : leaveRequests.length === 0 ? (
@@ -266,12 +266,12 @@ export default function LeavePage() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: idx * 0.1 }}
-                      className="glass-panel rounded-3xl p-6 border border-white/5 hover:border-red-500/20 transition-all group"
+                      className="glass-panel rounded-3xl p-6 hover:border-red-500/20 transition-all group"
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Absence Date</span>
-                          <span className="text-sm font-black text-white mt-1">{day.date}</span>
+                          <span className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em]">Absence Date</span>
+                          <span className="text-sm font-black text-on-surface mt-1">{day.date}</span>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400">
                           <Clock size={18} />
@@ -280,14 +280,14 @@ export default function LeavePage() {
                       
                       <div className="space-y-2">
                         {day.missed_hours.map((item, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5 group-hover:bg-white/[0.05] transition-colors">
-                            <span className="text-[10px] font-bold text-white/60 uppercase">{item.subject_name}</span>
+                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-border-color group-hover:bg-surface-container-high transition-colors">
+                            <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase">{item.subject_name}</span>
                             <span className="text-[10px] font-black text-primary uppercase">{item.hour}HR</span>
                           </div>
                         ))}
                       </div>
                       
-                      <div className="mt-4 flex items-center gap-2 text-white/20">
+                      <div className="mt-4 flex items-center gap-2 text-on-surface-variant/30">
                          <ChevronRight size={12} />
                          <span className="text-[9px] font-black uppercase tracking-widest">Requires OD Coverage</span>
                       </div>

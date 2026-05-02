@@ -46,7 +46,7 @@ export default function PollsPage() {
               <PieChart size={32} className="text-secondary animate-pulse" />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-white tracking-tight">Active Consultations</h2>
+              <h2 className="text-3xl font-black text-on-surface tracking-tight">Active Consultations</h2>
               <div className="flex items-center gap-2 text-on-surface-variant/60 text-sm font-medium mt-1">
                 <Users size={14} className="text-primary" />
                 <span>Your voice directly impacts campus policy and events</span>
@@ -54,7 +54,7 @@ export default function PollsPage() {
             </div>
           </div>
           
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container border border-border-color">
             <BarChart3 size={16} className="text-on-surface-variant/40" />
             <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60">Live Analytics</span>
           </div>
@@ -72,10 +72,10 @@ export default function PollsPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="py-32 glass-panel rounded-[40px] flex flex-col items-center justify-center text-center px-6"
           >
-            <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/10">
-              <PieChart size={40} className="text-white/10" />
+            <div className="w-20 h-20 rounded-3xl bg-surface-container flex items-center justify-center mb-6 border border-border-color">
+              <PieChart size={40} className="text-on-surface-variant/20" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">No Active Polls</h3>
+            <h3 className="text-2xl font-bold text-on-surface mb-2">No Active Polls</h3>
             <p className="text-on-surface-variant/40 max-w-sm text-sm">
               The consensus is clear for now. Check back soon for new campus initiatives and surveys.
             </p>
@@ -93,7 +93,7 @@ export default function PollsPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="glass-panel rounded-[32px] p-8 sm:p-10 border border-white/5 hover:border-white/10 transition-all duration-500"
+                    className="glass-panel rounded-[32px] p-8 sm:p-10 border border-border-color hover:border-primary/20 transition-all duration-500"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-10">
                       <div className="space-y-3 max-w-xl">
@@ -105,12 +105,12 @@ export default function PollsPage() {
                             <Calendar size={12} /> Ends in 3 days
                           </span>
                         </div>
-                        <h3 className="text-2xl font-black text-white leading-tight tracking-tight">
+                        <h3 className="text-2xl font-black text-on-surface leading-tight tracking-tight">
                           {poll.question}
                         </h3>
                       </div>
                       <div className="flex flex-col items-end">
-                        <div className="text-2xl font-black text-white">{totalVotes}</div>
+                        <div className="text-2xl font-black text-on-surface">{totalVotes}</div>
                         <div className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/30">Total Responses</div>
                       </div>
                     </div>
@@ -132,8 +132,8 @@ export default function PollsPage() {
                             <div className={`
                               relative h-16 rounded-2xl border transition-all duration-300 overflow-hidden flex items-center px-6
                               ${hasVoted 
-                                ? 'bg-white/5 border-white/5' 
-                                : 'bg-white/2 border-white/10 hover:border-primary/40 group-hover:bg-white/5'}
+                                ? 'bg-surface-container border-border-color' 
+                                : 'bg-surface-container/50 border-border-color hover:border-primary/40 group-hover:bg-surface-container'}
                             `}>
                               {/* Background Progress Fill */}
                               {hasVoted && (
@@ -148,21 +148,21 @@ export default function PollsPage() {
                               <div className="flex items-center justify-between w-full relative z-10">
                                 <div className="flex items-center gap-4">
                                    {!hasVoted && (
-                                     <div className="w-5 h-5 rounded-full border-2 border-white/20 group-hover:border-primary/60 transition-colors" />
+                                     <div className="w-5 h-5 rounded-full border-2 border-border-color group-hover:border-primary/60 transition-colors" />
                                    )}
                                    {hasVoted && (
-                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center ${percentage === Math.max(...poll.options.map(o => (o.votes / totalVotes) * 100)) ? 'bg-primary text-white' : 'bg-white/10 text-white/40'}`}>
+                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center ${percentage === Math.max(...poll.options.map(o => (o.votes / totalVotes) * 100)) ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant/40'}`}>
                                        <CheckCircle2 size={12} />
                                      </div>
                                    )}
-                                   <span className={`font-bold transition-colors ${hasVoted ? 'text-white' : 'text-on-surface-variant/80 group-hover:text-white'}`}>
+                                   <span className={`font-bold transition-colors ${hasVoted ? 'text-on-surface' : 'text-on-surface-variant/80 group-hover:text-on-surface'}`}>
                                      {opt.text}
                                    </span>
                                 </div>
                                 
                                 {hasVoted && (
                                   <div className="flex flex-col items-end">
-                                    <span className="text-xl font-black text-white">{percentage}%</span>
+                                    <span className="text-xl font-black text-on-surface">{percentage}%</span>
                                     <span className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">{opt.votes} Votes</span>
                                   </div>
                                 )}

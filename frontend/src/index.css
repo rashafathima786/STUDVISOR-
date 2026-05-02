@@ -64,11 +64,13 @@ html, body {
   --surface-container-high: #f1f5f9;
   --surface-container-highest: #e2e8f0;
   --on-surface: #0f172a;
-  --on-surface-variant: rgba(15, 23, 42, 0.7);
+  --on-surface-variant: #334155;
   --border-color: rgba(0, 0, 0, 0.1);
   --bg-on-background: #0f172a;
-  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --surface-rgb: 248, 250, 252;
   --primary-rgb: 124, 58, 237;
+  --glass-border: rgba(0, 0, 0, 0.08);
 
   /* Reference Responsive Colors */
   --color-bg-dk: hsl(247, 69%, 5%);
@@ -95,10 +97,12 @@ html, body {
   --surface-container-high: #2a2a2c !important;
   --surface-container-highest: #353437 !important;
   --on-surface: #ffffff !important;
-  --on-surface-variant: rgba(255, 255, 255, 0.85) !important;
+  --on-surface-variant: #cbd5e1 !important;
   --border-color: rgba(255, 255, 255, 0.08) !important;
   --bg-on-background: #ffffff !important;
   --glass-bg: rgba(18, 18, 20, 0.8) !important;
+  --surface-rgb: 18, 18, 20 !important;
+  --glass-border: rgba(255, 255, 255, 0.1) !important;
 }
   
 @keyframes shimmer {
@@ -177,24 +181,25 @@ html, body {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(128, 128, 128, 0.2);
     border-radius: 10px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(128, 128, 128, 0.4);
   }
 }
 
 /* ── Custom Utilities ─────────────────────────────────────────────────── */
 @layer utilities {
   .glass-panel {
-    background: rgba(var(--surface-rgb, 18, 18, 20), 0.8);
+    background: var(--glass-bg);
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
     box-shadow: 
-      0 4px 24px -1px rgba(0, 0, 0, 0.2),
-      0 0 1px 0 rgba(255, 255, 255, 0.1) inset;
+      0 4px 24px -1px rgba(0, 0, 0, 0.05),
+      0 0 1px 0 var(--glass-border) inset;
+    color: var(--on-surface);
   }
 
   .floating-action-bar {
@@ -205,13 +210,14 @@ html, body {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 24px;
-    background: rgba(18, 18, 20, 0.8);
+    padding: 8px 24px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
     backdrop-filter: blur(32px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    -webkit-backdrop-filter: blur(32px);
     z-index: 50;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
     width: fit-content;
     max-width: calc(100vw - 32px);
   }
@@ -279,9 +285,9 @@ html, body {
   }
 
   .glass-panel-light {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(var(--surface-rgb), 0.05);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
   }
 
   /* Browser Autofill Override for Dark Theme Inputs */
@@ -308,10 +314,10 @@ html, body {
      but we keep media queries for specific adjustments if needed */
 
   .bento-tile {
-    background: var(--surface-container); /* Brighter tile base */
+    background: var(--surface-container);
     backdrop-filter: blur(24px);
     border: 1px solid var(--border-color);
-    border-radius: 24px;
+    border-radius: 28px;
     padding: 24px;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     text-decoration: none;
@@ -326,13 +332,33 @@ html, body {
     overflow: hidden;
   }
 
+  .bento-tile::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    z-index: 1;
+  }
+
   .bento-tile:hover {
-    border-color: var(--color-teal);
-    transform: translateY(-8px) scale(1.02);
-    background: rgba(var(--primary-rgb), 0.05);
+    border-color: var(--color-primary);
+    transform: translateY(-8px) scale(1.01);
+    background: var(--surface-container-high);
     box-shadow: 
       0 20px 60px rgba(0, 0, 0, 0.6), 
-      0 0 0 1px var(--color-teal);
+      0 0 0 1px var(--color-primary);
+  }
+
+  /* Glass Tile Variant */
+  .glass-tile {
+    background: rgba(var(--surface-rgb), 0.03);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .glass-tile:hover {
+    background: rgba(var(--surface-rgb), 0.08);
+    border-color: var(--color-secondary);
   }
 
   .bento-span-2 { grid-column: span 2; }
@@ -370,13 +396,13 @@ html, body {
   .hub-tile-label {
     font-size: 0.9rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--on-surface);
     letter-spacing: -0.01em;
   }
 
   .hub-tile-desc {
     font-size: 0.72rem;
-    color: rgba(255,255,255,0.5);
+    color: var(--on-surface-variant);
     font-weight: 500;
   }
 
@@ -384,6 +410,77 @@ html, body {
     border-top: 1px solid rgba(255,255,255,0.06);
     padding-top: 14px;
     margin-top: 4px;
+  }
+
+  .mini-status-item {
+    border-radius: 18px;
+    transition: all 0.3s ease;
+  }
+
+  .mini-status-item:hover {
+    background: rgba(var(--primary-rgb), 0.05);
+    border-color: var(--color-primary);
+    transform: translateX(4px);
+  }
+
+  .bento-task-action {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .bento-task-action.primary {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .bento-task-action.primary:hover {
+    background: var(--color-primary-container);
+    transform: scale(1.05);
+  }
+
+  /* Quick Stats Row */
+  .quick-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface-container-low);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover {
+    background: var(--surface-container);
+    border-color: var(--color-primary);
+    transform: translateY(-4px);
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--on-surface);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--on-surface-variant);
+    opacity: 0.6;
   }
 
   .bento-internal-scroll {
@@ -400,7 +497,7 @@ html, body {
     align-items: center;
     gap: 12px;
     padding: 10px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border-color);
   }
   .bento-task-item:last-child { border-bottom: none; }
 
@@ -415,7 +512,7 @@ html, body {
   .bento-task-title {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--on-surface);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -423,7 +520,7 @@ html, body {
 
   .bento-task-meta {
     font-size: 0.72rem;
-    color: rgba(255,255,255,0.45);
+    color: var(--on-surface-variant);
   }
 
   .bento-task-action {
@@ -448,8 +545,8 @@ html, body {
 
   /* Status badges used in hubs */
   .mini-status-list { display: flex; flex-direction: column; gap: 6px; }
-  .mini-status-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.7); }
-  .mini-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+  .mini-status-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--on-surface-variant); }
+  .mini-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); flex-shrink: 0; }
   .mini-dot.active { background: #10b981; }
   .mini-dot.warning { background: #f59e0b; }
   .mini-dot.error { background: #ef4444; }
@@ -460,7 +557,7 @@ html, body {
 
   /* Segmented progress */
   .seg-progress { display: flex; gap: 4px; width: 100%; }
-  .seg-block { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); }
+  .seg-block { flex: 1; height: 6px; border-radius: 3px; background: var(--border-color); }
   .seg-block--filled.green { background: #10b981; }
   .seg-block--filled.violet { background: #7c3aed; }
   .seg-block--filled.blue { background: #3b82f6; }
@@ -512,7 +609,7 @@ html, body {
       padding: 1.25rem !important;
       border-radius: 1.5rem !important;
       width: 100% !important;
-      background: rgba(18, 18, 20, 0.98) !important;
+      background: var(--glass-bg) !important;
       backdrop-filter: blur(40px) !important;
     }
 
@@ -528,7 +625,7 @@ html, body {
 
     h1, h2, h3 {
       word-break: normal;
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
     }
     
     .floating-chat-panel {

@@ -56,7 +56,7 @@ export default function Header({ title, subtitle }) {
   const roleLabel = (role || 'student').charAt(0).toUpperCase() + (role || 'student').slice(1);
 
   return (
-    <header className="sticky top-0 z-[30] bg-surface/80 backdrop-blur-md border-b border-panel-border px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-[30] bg-surface/80 backdrop-blur-md border-b border-border-color px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
       
       {/* Left: Context & Navigation */}
       <div className="flex items-center gap-4">
@@ -76,7 +76,7 @@ export default function Header({ title, subtitle }) {
             {title}
           </h1>
           {subtitle && (
-            <p className="font-bold text-on-surface-variant uppercase tracking-widest opacity-60 line-clamp-1 max-w-[150px] md:max-w-none" style={{
+            <p className="font-black text-on-surface-variant uppercase tracking-widest opacity-60 line-clamp-1 max-w-[150px] md:max-w-none" style={{
               fontSize: 'clamp(0.5rem, 0.45rem + 0.2vw, 0.65rem)'
             }}>
               {subtitle}
@@ -89,18 +89,18 @@ export default function Header({ title, subtitle }) {
       <div className="flex items-center gap-2 md:gap-4">
         
         {/* Global Search Core */}
-        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-surface-container-low rounded-xl border border-white/5 focus-within:border-primary/30 transition-all w-64">
+        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-surface-container-low rounded-xl border border-border-color focus-within:border-primary/30 transition-all w-64 shadow-inner">
           <Search size={16} className="text-on-surface-variant/40" />
           <input 
             type="text" 
             placeholder="Command Search..." 
-            className="bg-transparent text-sm text-on-surface outline-none w-full placeholder:text-on-surface-variant/30"
+            className="bg-transparent text-sm text-on-surface outline-none w-full placeholder:text-on-surface-variant/30 font-bold"
           />
         </div>
 
         {/* Theme Orchestration */}
         <button 
-          className="p-2.5 rounded-xl hover:bg-white/5 text-on-surface-variant transition-all active:scale-95" 
+          className="p-2.5 rounded-xl hover:bg-surface-container-high text-on-surface-variant transition-all active:scale-95" 
           onClick={toggleTheme} 
           title="Switch Reality"
         >
@@ -110,32 +110,32 @@ export default function Header({ title, subtitle }) {
         {/* Notification Telemetry */}
         <div className="relative" ref={notifRef}>
           <button 
-            className={`p-2.5 rounded-xl hover:bg-white/5 text-on-surface-variant transition-all active:scale-95 ${unreadCount > 0 ? 'text-primary' : ''}`}
+            className={`p-2.5 rounded-xl hover:bg-surface-container-high text-on-surface-variant transition-all active:scale-95 ${unreadCount > 0 ? 'text-primary' : ''}`}
             onClick={() => setShowPanel(!showPanel)}
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(124,58,237,0.6)] animate-pulse" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(var(--primary-rgb),0.6)] animate-pulse" />
             )}
           </button>
 
           {showPanel && (
-            <div className="absolute top-full right-0 mt-4 w-80 glass-panel rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
-                <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Intelligence Feed</span>
+            <div className="absolute top-full right-0 mt-4 w-80 glass-panel rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up border border-border-color">
+                <div className="p-4 border-b border-border-color bg-surface-container/50 flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Intelligence Feed</span>
                     {unreadCount > 0 && <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[9px] font-bold">{unreadCount} NEW</span>}
                 </div>
                 <div className="max-h-96 overflow-y-auto p-2 space-y-2">
                     {notifs.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-on-surface-variant/40 italic">No active data streams</div>
+                        <div className="py-8 text-center text-xs text-on-surface-variant/40 italic font-bold">No active data streams</div>
                     ) : (
                         notifs.map(n => (
-                            <div key={n.id} className="p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+                            <div key={n.id} className="p-3 rounded-xl hover:bg-surface-container transition-colors cursor-pointer group">
                                 <div className="flex gap-3">
-                                    <div className="mt-1 w-2 h-2 rounded-full bg-primary" />
+                                    <div className={`mt-1 w-2 h-2 rounded-full ${n.is_read ? 'bg-on-surface-variant/20' : 'bg-primary'}`} />
                                     <div>
                                         <p className="text-xs font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">{n.title}</p>
-                                        <p className="text-[10px] text-on-surface-variant/70 leading-relaxed">{n.message}</p>
+                                        <p className="text-[10px] text-on-surface-variant leading-relaxed font-medium">{n.message}</p>
                                     </div>
                                 </div>
                             </div>
@@ -149,7 +149,7 @@ export default function Header({ title, subtitle }) {
         {/* Intelligence Orchestrator (Chatbot) */}
         <button 
           className={`p-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center
-            ${isOpen ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' : 'hover:bg-white/5 text-on-surface-variant'}
+            ${isOpen ? 'bg-primary text-surface shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]' : 'hover:bg-surface-container-high text-on-surface-variant'}
           `} 
           onClick={toggleChat}
           title="Studvisor AI"
@@ -160,28 +160,28 @@ export default function Header({ title, subtitle }) {
         {/* Identity & Session Control */}
         <div className="relative" ref={userMenuRef}>
           <button 
-            className="flex items-center gap-3 p-1.5 pl-3 rounded-2xl bg-surface-container-low hover:bg-surface-container-high transition-all border border-panel-border"
+            className="flex items-center gap-3 p-1.5 pl-3 rounded-2xl bg-surface-container hover:bg-surface-container-high transition-all border border-border-color shadow-sm"
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
             <div className="flex flex-col items-end hidden sm:flex">
-              <span className="text-xs font-bold text-on-surface">{displayName}</span>
-              <span className="text-[9px] font-bold text-primary uppercase tracking-widest">{roleLabel}</span>
+              <span className="text-xs font-black text-on-surface tracking-tight">{displayName}</span>
+              <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">{roleLabel}</span>
             </div>
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary-soft flex items-center justify-center text-primary border border-primary/20">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
               <User size={14} />
             </div>
           </button>
 
           {showUserMenu && (
-            <div className="absolute top-full right-0 mt-4 w-56 glass-panel rounded-2xl shadow-2xl p-2 animate-fade-in-up">
+            <div className="absolute top-full right-0 mt-4 w-56 glass-panel rounded-2xl shadow-2xl p-2 animate-fade-in-up border border-border-color">
               <button 
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-on-surface-variant hover:text-on-surface transition-all"
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-all"
                 onClick={() => navigate('/settings')}
               >
                 <SettingsIcon size={16} />
-                <span className="text-xs font-bold uppercase tracking-widest">Preferences</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Preferences</span>
               </button>
-              <div className="h-px bg-white/5 my-2 mx-2" />
+              <div className="h-px bg-border-color my-2 mx-2" />
               <button 
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/10 text-red-400 transition-all group"
                 onClick={handleLogout}
@@ -189,7 +189,7 @@ export default function Header({ title, subtitle }) {
                 <div className="p-1.5 rounded-lg bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
                   <LogOut size={14} />
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-[0.2em]">Sign Out</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Sign Out</span>
               </button>
             </div>
           )}

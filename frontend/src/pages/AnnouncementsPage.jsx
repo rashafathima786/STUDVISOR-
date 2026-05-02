@@ -87,7 +87,7 @@ export default function AnnouncementsPage() {
                   flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300
                   ${activeFilter === filter.id 
                     ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                    : 'text-on-surface/50 hover:text-white hover:bg-white/5'}
+                    : 'text-on-surface-variant/50 hover:text-on-surface hover:bg-surface-container'}
                 `}
               >
                 <filter.icon size={14} />
@@ -115,10 +115,10 @@ export default function AnnouncementsPage() {
               animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center py-20 glass-panel rounded-3xl text-center"
             >
-              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-                <Megaphone size={32} className="text-on-surface/20" />
+              <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center mb-4">
+                <Megaphone size={32} className="text-on-surface-variant/20" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Clear Skies</h3>
+              <h3 className="text-lg font-bold text-on-surface mb-2">Clear Skies</h3>
               <p className="text-sm text-on-surface/50 max-w-xs mx-auto">
                 No recent announcements found for the selected filter. Check back later for updates.
               </p>
@@ -144,10 +144,10 @@ export default function AnnouncementsPage() {
                         {getIconForScope(item.scope)}
                       </div>
                       <div className="flex flex-col sm:items-center">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-on-surface/40 mb-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/40 mb-1">
                           Posted
                         </span>
-                        <span className="text-xs font-bold text-white">
+                        <span className="text-xs font-bold text-on-surface">
                           {formatDate(item.date)}
                         </span>
                       </div>
@@ -156,7 +156,7 @@ export default function AnnouncementsPage() {
                     {/* Content Section */}
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-4 mb-3">
-                        <h3 className="text-xl font-bold text-white leading-tight group-hover:text-primary transition-colors">
+                        <h3 className="text-xl font-bold text-on-surface leading-tight group-hover:text-primary transition-colors">
                           {item.title}
                         </h3>
                         <div className={`
@@ -169,21 +169,21 @@ export default function AnnouncementsPage() {
                         </div>
                       </div>
 
-                      <p className="text-on-surface/70 text-sm leading-relaxed mb-6">
+                      <p className="text-on-surface-variant/70 text-sm leading-relaxed mb-6">
                         {item.content}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-white/5">
-                        <div className="flex items-center gap-2 text-xs text-on-surface/40">
+                      <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-border-color">
+                        <div className="flex items-center gap-2 text-xs text-on-surface-variant/40">
                           <Clock size={14} />
                           <span>Expires in 7 days</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-on-surface/40">
+                        <div className="flex items-center gap-2 text-xs text-on-surface-variant/40">
                           <Building2 size={14} />
                           <span>{item.scope === 'all' ? 'General Administration' : `${item.scope} Department`}</span>
                         </div>
                         
-                        <button className="ml-auto flex items-center gap-1 text-xs font-bold text-primary hover:text-white transition-colors">
+                        <button className="ml-auto flex items-center gap-1 text-xs font-bold text-primary hover:text-on-surface transition-colors">
                           View Details <ChevronRight size={14} />
                         </button>
                       </div>

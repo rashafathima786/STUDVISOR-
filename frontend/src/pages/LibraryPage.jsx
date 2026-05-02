@@ -76,20 +76,20 @@ export default function LibraryPage() {
               <Library className="text-primary" size={32} />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-white tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Knowledge Core</h2>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Status: Online</p>
+              <h2 className="text-3xl font-black text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Knowledge Core</h2>
+              <p className="text-on-surface-variant/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Status: Online</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/5 shadow-2xl">
+          <div className="flex items-center gap-2 p-1.5 bg-surface-container rounded-2xl border border-border-color shadow-2xl">
             {['catalog', 'my-books'].map(t => (
               <button 
                 key={t} 
                 onClick={() => setTab(t)}
                 className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   tab === t 
-                    ? 'bg-primary text-white shadow-lg' 
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                    ? 'bg-primary text-surface shadow-lg' 
+                    : 'text-on-surface-variant/40 hover:text-on-surface hover:bg-surface-container-high'
                 }`}
               >
                 {t === 'catalog' ? 'Global Catalog' : 'Personal Stack'}
@@ -109,21 +109,21 @@ export default function LibraryPage() {
               className="space-y-8"
             >
               {/* Search Interface */}
-              <div className="glass-panel rounded-[32px] p-4 flex gap-4 border border-white/5 shadow-2xl">
+              <div className="glass-panel rounded-[32px] p-4 flex flex-col md:flex-row gap-4 border border-border-color shadow-2xl">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20" size={20} />
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant/20" size={20} />
                   <input 
                     type="text" 
                     value={query} 
                     onChange={e => setQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && searchBooks()}
                     placeholder="Search by title, author, or ISBN identifier..."
-                    className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm text-white font-medium outline-none focus:border-primary/40 focus:bg-white/[0.08] transition-all placeholder:text-white/10"
+                    className="w-full bg-surface-container border border-border-color rounded-2xl py-4 pl-14 pr-6 text-sm text-on-surface font-medium outline-none focus:border-primary/40 focus:bg-surface-container-high transition-all placeholder:text-on-surface-variant/10"
                   />
                 </div>
                 <button 
                   onClick={searchBooks}
-                  className="px-10 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                  className="px-10 py-4 md:py-0 rounded-2xl bg-primary text-surface font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                 >
                   Query Hub
                 </button>
@@ -137,10 +137,10 @@ export default function LibraryPage() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="group relative glass-panel rounded-[32px] p-6 border border-white/5 hover:border-primary/30 transition-all flex flex-col"
+                    className="group relative glass-panel rounded-[32px] p-6 border border-border-color hover:border-primary/30 transition-all flex flex-col"
                   >
                     <div className="flex justify-between items-start mb-6">
-                       <div className="p-3 bg-white/5 rounded-2xl text-white/40 group-hover:text-primary transition-colors">
+                       <div className="p-3 bg-surface-container rounded-2xl text-on-surface-variant/40 group-hover:text-primary transition-colors">
                          <BookOpen size={24} />
                        </div>
                        <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
@@ -152,15 +152,15 @@ export default function LibraryPage() {
                        </span>
                     </div>
 
-                    <h3 className="text-lg font-bold text-white mb-2 tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{b.title}</h3>
+                    <h3 className="text-lg font-bold text-on-surface mb-2 tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{b.title}</h3>
                     
                     <div className="flex items-center gap-2 mb-6">
-                      <User size={12} className="text-white/20" />
-                      <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{b.author}</span>
+                      <User size={12} className="text-on-surface-variant/20" />
+                      <span className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">{b.author}</span>
                     </div>
 
-                    <div className="space-y-3 pt-6 border-t border-white/5">
-                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/20">
+                    <div className="space-y-3 pt-6 border-t border-border-color">
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/20">
                         <div className="flex items-center gap-2">
                           <MapPin size={12} />
                           <span>{b.shelf_location || 'Archive Sector'}</span>
@@ -175,7 +175,7 @@ export default function LibraryPage() {
                     {b.available_copies > 0 && (
                       <button 
                         onClick={() => issueBook(b.id)}
-                        className="mt-6 w-full py-4 rounded-2xl bg-white/5 hover:bg-primary text-white font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn shadow-lg"
+                        className="mt-6 w-full py-4 rounded-2xl bg-surface-container hover:bg-primary text-on-surface hover:text-surface font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn shadow-lg"
                       >
                         Initiate Borrowing
                         <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -200,26 +200,26 @@ export default function LibraryPage() {
                  <div className="p-3 bg-emerald-500/10 rounded-2xl">
                    <BookMarked className="text-emerald-400" size={24} />
                  </div>
-                 <h2 className="text-xl font-bold text-white tracking-tight">Active Allocations</h2>
+                 <h2 className="text-xl font-bold text-on-surface tracking-tight">Active Allocations</h2>
               </div>
 
-              <div className="glass-panel rounded-[40px] overflow-hidden border border-white/5 shadow-2xl">
+              <div className="glass-panel rounded-[40px] overflow-hidden border border-border-color shadow-2xl">
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-white/[0.02]">
-                        <th className="px-10 py-6 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">Resource Title</th>
-                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Allocation Date</th>
-                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Deadline</th>
-                        <th className="px-6 py-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Status</th>
-                        <th className="px-10 py-6 text-right text-[10px] font-black text-white/30 uppercase tracking-widest">Penalty</th>
+                      <tr className="bg-surface-container/50">
+                        <th className="px-10 py-6 text-left text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Resource Title</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Allocation Date</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Deadline</th>
+                        <th className="px-6 py-6 text-center text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Status</th>
+                        <th className="px-10 py-6 text-right text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Penalty</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-border-color">
                       {myBooks.length === 0 ? (
                         <tr>
                           <td colSpan="5" className="px-10 py-32 text-center">
-                            <p className="text-white/20 text-sm font-bold uppercase tracking-widest italic">Personal stack is currently empty</p>
+                            <p className="text-on-surface-variant/20 text-sm font-bold uppercase tracking-widest italic">Personal stack is currently empty</p>
                           </td>
                         </tr>
                       ) : (
@@ -229,23 +229,23 @@ export default function LibraryPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: idx * 0.05 }}
-                            className="hover:bg-white/[0.03] transition-colors group"
+                            className="hover:bg-surface-container-high transition-colors group"
                           >
-                            <td className="px-10 py-8">
-                               <div className="flex flex-col">
-                                 <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight">{b.title}</span>
-                                 <span className="text-[10px] text-white/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Original</span>
-                               </div>
-                            </td>
-                            <td className="px-6 py-8 text-center">
-                               <span className="text-xs font-bold text-white/60">{b.issue_date}</span>
-                            </td>
-                            <td className="px-6 py-8 text-center">
-                               <div className="flex items-center justify-center gap-2">
-                                 <Clock size={12} className="text-white/20" />
-                                 <span className="text-xs font-black text-white tracking-tighter">{b.due_date}</span>
-                               </div>
-                            </td>
+                             <td className="px-10 py-8">
+                                <div className="flex flex-col">
+                                  <span className="text-on-surface font-bold group-hover:text-primary transition-colors tracking-tight">{b.title}</span>
+                                  <span className="text-[10px] text-on-surface-variant/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Original</span>
+                                </div>
+                             </td>
+                             <td className="px-6 py-8 text-center">
+                                <span className="text-xs font-bold text-on-surface-variant/60">{b.issue_date}</span>
+                             </td>
+                             <td className="px-6 py-8 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Clock size={12} className="text-on-surface-variant/20" />
+                                  <span className="text-xs font-black text-on-surface tracking-tighter">{b.due_date}</span>
+                                </div>
+                             </td>
                             <td className="px-6 py-8">
                               <div className="flex justify-center">
                                 <span className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${
@@ -258,11 +258,11 @@ export default function LibraryPage() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-10 py-8 text-right">
-                               <span className={`text-lg font-black tracking-tighter ${b.fine > 0 ? 'text-red-400' : 'text-white/20'}`}>
-                                 ₹{b.fine}
-                               </span>
-                            </td>
+                             <td className="px-10 py-8 text-right">
+                                <span className={`text-lg font-black tracking-tighter ${b.fine > 0 ? 'text-red-400' : 'text-on-surface-variant/20'}`}>
+                                  ₹{b.fine}
+                                </span>
+                             </td>
                           </motion.tr>
                         ))
                       )}
@@ -271,11 +271,11 @@ export default function LibraryPage() {
                 </div>
               </div>
 
-              {/* Action Note */}
-              <div className="flex items-center gap-4 px-8 py-6 bg-white/5 rounded-[32px] border border-white/5">
-                 <Zap className="text-primary/60" size={20} />
-                 <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Ensure all returns are synchronized before the deadline to avoid penalty accumulation.</p>
-              </div>
+               {/* Action Note */}
+               <div className="flex items-center gap-4 px-8 py-6 bg-surface-container rounded-[32px] border border-border-color">
+                  <Zap className="text-primary/60" size={20} />
+                  <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.3em]">Ensure all returns are synchronized before the deadline to avoid penalty accumulation.</p>
+               </div>
             </motion.div>
           )}
         </AnimatePresence>

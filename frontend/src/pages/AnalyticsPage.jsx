@@ -35,7 +35,7 @@ export default function AnalyticsPage() {
     <div className="bg-surface min-h-screen flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center">
             <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin mb-4" />
-            <p className="text-on-surface-variant uppercase tracking-widest text-xs font-bold">Loading Deep Analytics...</p>
+            <p className="text-on-surface-variant uppercase tracking-widest text-xs font-bold">Accessing Performance Core...</p>
         </div>
     </div>
   );
@@ -57,33 +57,33 @@ export default function AnalyticsPage() {
       
       {/* ── Top Stat Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden group hover:bg-white/[0.04] transition-all border border-white/5 hover:border-primary/30">
+        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden group hover:bg-surface-container transition-all border border-border-color hover:border-primary/30">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
             <GraduationCap size={64} className="text-primary" />
           </div>
           <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">Cumulative GPA</h3>
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-bold text-white tracking-tighter" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+            <span className="text-5xl font-bold text-on-surface tracking-tighter" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
                 {metrics.current_cgpa}
             </span>
             <span className="text-on-surface-variant font-bold text-sm">/ {maxCgpa}.0</span>
           </div>
         </div>
 
-        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden group hover:bg-white/[0.04] transition-all border border-white/5 hover:border-secondary/30">
+        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden group hover:bg-surface-container transition-all border border-border-color hover:border-secondary/30">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
             <BarChart2 size={64} className="text-secondary" />
           </div>
           <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">Completed Credits</h3>
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-bold text-white tracking-tighter" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+            <span className="text-5xl font-bold text-on-surface tracking-tighter" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
                 {metrics.total_credits_earned}
             </span>
             <span className="text-on-surface-variant font-bold text-sm uppercase tracking-widest">Across {cgpa_trend.length} Sems</span>
           </div>
         </div>
 
-        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden group hover:bg-white/[0.04] transition-all border border-white/5 hover:border-tertiary/30">
+        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden group hover:bg-surface-container transition-all border border-border-color hover:border-tertiary/30">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
             <Target size={64} className="text-tertiary" />
           </div>
@@ -104,16 +104,16 @@ export default function AnalyticsPage() {
         <div className="col-span-12 lg:col-span-7 flex flex-col gap-8">
             
             {/* Trajectory Chart */}
-            <div className="glass-panel rounded-3xl p-8 border border-white/5 relative overflow-hidden">
+            <div className="glass-panel rounded-3xl p-8 border border-border-color relative overflow-hidden">
                 <div className="inner-light-catch" />
-                <h3 className="text-lg font-bold text-white tracking-tight mb-8" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>SGPA & CGPA Trajectory</h3>
+                <h3 className="text-lg font-bold text-on-surface tracking-tight mb-8" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>SGPA & CGPA Trajectory</h3>
                 
                 <div className="w-full overflow-x-auto scrollbar-hide">
                     <div className="min-w-[600px]">
                         <svg viewBox={`0 -20 ${chartWidth} ${chartHeight + 40}`} className="w-full h-full drop-shadow-2xl">
                             {/* Grid Lines */}
                             {[0, 2, 4, 6, 8, 10].map(y => (
-                                <line key={`grid-${y}`} x1="0" y1={normalizeY(y)} x2={chartWidth} y2={normalizeY(y)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                                <line key={`grid-${y}`} x1="0" y1={normalizeY(y)} x2={chartWidth} y2={normalizeY(y)} stroke="var(--border-color)" strokeWidth="1" opacity="0.3" />
                             ))}
                             
                             {/* Trend Lines */}
@@ -123,10 +123,10 @@ export default function AnalyticsPage() {
                             {/* Data Points */}
                             {cgpa_trend.map((d, i) => (
                                 <g key={i}>
-                                <circle cx={i * stepX} cy={normalizeY(d.sgpa)} r="6" fill="#131315" stroke="var(--color-primary)" strokeWidth="3" />
-                                <circle cx={i * stepX} cy={normalizeY(d.cgpa)} r="5" fill="#131315" stroke="var(--color-secondary)" strokeWidth="3" />
-                                <text x={i * stepX} y={chartHeight + 25} fill="rgba(255,255,255,0.6)" fontSize="12" textAnchor="middle" fontWeight="bold">Sem {d.semester}</text>
-                                <text x={i * stepX} y={normalizeY(d.sgpa) - 15} fill="white" fontSize="11" textAnchor="middle" fontWeight="bold">{d.sgpa}</text>
+                                <circle cx={i * stepX} cy={normalizeY(d.sgpa)} r="6" fill="var(--surface)" stroke="var(--color-primary)" strokeWidth="3" />
+                                <circle cx={i * stepX} cy={normalizeY(d.cgpa)} r="5" fill="var(--surface)" stroke="var(--color-secondary)" strokeWidth="3" />
+                                <text x={i * stepX} y={chartHeight + 25} fill="var(--on-surface-variant)" fontSize="12" textAnchor="middle" fontWeight="bold" opacity="0.6">Sem {d.semester}</text>
+                                <text x={i * stepX} y={normalizeY(d.sgpa) - 15} fill="var(--on-surface)" fontSize="11" textAnchor="middle" fontWeight="bold">{d.sgpa}</text>
                                 </g>
                             ))}
                         </svg>
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Legend */}
-                <div className="flex gap-6 mt-8 justify-center border-t border-white/5 pt-6">
+                <div className="flex gap-6 mt-8 justify-center border-t border-border-color pt-6">
                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                         <span className="w-4 h-1 rounded-full bg-primary" />
                         SGPA (Term)
@@ -147,8 +147,8 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Intelligence Flags */}
-            <div className="glass-panel rounded-3xl p-8 border border-white/5">
-                <h3 className="text-lg font-bold text-white tracking-tight mb-6 flex items-center gap-3" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>
+            <div className="glass-panel rounded-3xl p-8 border border-border-color">
+                <h3 className="text-lg font-bold text-on-surface tracking-tight mb-6 flex items-center gap-3" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>
                     <AlertTriangle size={20} className="text-warning" /> 
                     Intelligence Flags
                 </h3>
@@ -182,16 +182,16 @@ export default function AnalyticsPage() {
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 rounded-full blur-[60px] pointer-events-none" />
                 
                 <div className="flex justify-between items-center mb-8 relative z-10">
-                    <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-3" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>
+                    <h3 className="text-lg font-bold text-on-surface tracking-tight flex items-center gap-3" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>
                         <Target size={20} className="text-primary" /> 
                         CGPA Predictor
                     </h3>
                     {!predictMode ? (
-                        <button onClick={() => setPredictMode(true)} className="px-3 py-1.5 rounded-lg border border-white/10 hover:border-primary/50 hover:bg-primary/10 transition-all text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-white">
+                        <button onClick={() => setPredictMode(true)} className="px-3 py-1.5 rounded-lg border border-border-color hover:border-primary/50 hover:bg-primary/10 transition-all text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-on-surface">
                             Set Targets
                         </button>
                     ) : (
-                        <button onClick={handlePredict} className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-container transition-colors text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_15px_rgba(124,58,237,0.3)]">
+                        <button onClick={handlePredict} className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-container transition-colors text-[10px] font-bold uppercase tracking-widest text-surface shadow-[0_0_15px_rgba(124,58,237,0.3)]">
                             Simulate
                         </button>
                     )}
@@ -211,7 +211,7 @@ export default function AnalyticsPage() {
                                             min={s.total_marks} 
                                             value={expectedMarks[s.subject_id] || ''} 
                                             onChange={e => setExpectedMarks({...expectedMarks, [s.subject_id]: parseInt(e.target.value) || 0})}
-                                            className="autofill-override w-full bg-[#14141a] border border-white/10 hover:border-white/20 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 rounded-xl py-3 pl-4 pr-12 text-white text-sm outline-none transition-all duration-300"
+                                            className="autofill-override w-full bg-surface-container-high border border-border-color hover:border-on-surface-variant/20 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 rounded-xl py-3 pl-4 pr-12 text-on-surface text-sm outline-none transition-all duration-300"
                                         />
                                         <span className="absolute right-4 text-xs font-bold text-on-surface-variant">/ {s.max_marks}</span>
                                     </div>
@@ -220,10 +220,10 @@ export default function AnalyticsPage() {
                         </div>
                     ) : simResult ? (
                         <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between p-6 bg-white/[0.03] border border-white/5 rounded-2xl">
+                            <div className="flex items-center justify-between p-6 bg-surface-container border border-border-color rounded-2xl">
                                 <div>
                                     <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Baseline</p>
-                                    <p className="text-3xl font-bold text-white" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{simResult.current_cgpa.toFixed(2)}</p>
+                                    <p className="text-3xl font-bold text-on-surface" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{simResult.current_cgpa.toFixed(2)}</p>
                                 </div>
                                 <div className="p-3 rounded-full bg-primary/10 text-primary">
                                     <TrendingUp size={24} />
@@ -238,7 +238,7 @@ export default function AnalyticsPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-2xl opacity-60">
+                        <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-border-color rounded-2xl opacity-60">
                             <Target size={32} className="mb-3 text-on-surface-variant" />
                             <p className="text-sm font-medium text-on-surface-variant">Click "Set Targets" to run simulation.</p>
                         </div>
@@ -247,8 +247,8 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Subject Mastery */}
-            <div className="glass-panel rounded-3xl p-8 border border-white/5">
-                <h3 className="text-lg font-bold text-white tracking-tight mb-8" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>Subject Mastery</h3>
+            <div className="glass-panel rounded-3xl p-8 border border-border-color">
+                <h3 className="text-lg font-bold text-on-surface tracking-tight mb-8" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>Subject Mastery</h3>
                 
                 <div className="flex flex-col gap-6">
                     {subjects.map(sub => {
@@ -260,10 +260,10 @@ export default function AnalyticsPage() {
                             <div key={sub.subject_name} className="flex flex-col gap-2">
                                 <div className="flex justify-between items-end">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-white truncate max-w-[200px]" title={sub.subject_name}>{sub.subject_name}</span>
+                                        <span className="text-sm font-bold text-on-surface truncate max-w-[200px]" title={sub.subject_name}>{sub.subject_name}</span>
                                         <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-1">{sub.total_marks} / {sub.max_marks} Pts</span>
                                     </div>
-                                    <span className="text-sm font-bold text-white" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{pct.toFixed(0)}%</span>
+                                    <span className="text-sm font-bold text-on-surface" style={{ fontFamily: 'var(--font-space-grotesk)' }}>{pct.toFixed(0)}%</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
                                     <div 

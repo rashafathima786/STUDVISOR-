@@ -22,7 +22,11 @@ import {
   HelpCircle,
   FileText,
   UserCheck,
-  Globe, Activity, Cpu, Calendar, Users,
+  Globe, 
+  Activity, 
+  Cpu, 
+  Calendar, 
+  Users,
   Clock,
   TrendingUp,
   BarChart3,
@@ -33,7 +37,9 @@ import {
   Plus,
   ChevronDown,
   Mic,
-  AudioLines
+  AudioLines,
+  Menu,
+  X
 } from 'lucide-react'
 
 export default function GeneralForumPage() {
@@ -44,6 +50,7 @@ export default function GeneralForumPage() {
   const [showMenu, setShowMenu] = useState(false)
   const [isSending, setIsSending] = useState(false) 
   const [postCache, setPostCache] = useState({}) 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const messagesEndRef = useRef(null)
   const scrollContainerRef = useRef(null)
@@ -84,11 +91,10 @@ export default function GeneralForumPage() {
       const lastClearedId = parseInt(localStorage.getItem(`forum_last_cleared_id_${category}`) || "0")
       const filtered = lastClearedId > 0 ? allPosts.filter(p => p.id > lastClearedId) : allPosts
 
-      // ── OPTIMIZATION: Only update if content actually changed ────────────────
       setPosts(current => {
         const currentIds = current.map(p => p.id).join(',')
         const newIds = filtered.map(p => p.id).join(',')
-        if (currentIds === newIds) return current // No change, skip state update
+        if (currentIds === newIds) return current
         return filtered
       })
       
@@ -98,7 +104,6 @@ export default function GeneralForumPage() {
   }
 
   useEffect(() => {
-    // Immediate state switch from cache to prevent "pulling up" to empty state
     if (postCache[category]) {
       setPosts(postCache[category])
     } else {
@@ -117,13 +122,11 @@ export default function GeneralForumPage() {
       const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 250
       
       if (isFirstLoad.current) {
-        // Use a slight timeout to ensure layout has stabilized
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
           isFirstLoad.current = false
         }, 50)
       } else if (isAtBottom) {
-        // Use a slight timeout to ensure content is rendered
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
         }, 100)
@@ -226,184 +229,174 @@ export default function GeneralForumPage() {
 
   return (
     <ErpLayout title="General Forum" subtitle="Open campus dialogue">
-      <div className="wrapper flex flex-col lg:flex-row h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)] overflow-hidden bg-transparent backdrop-blur-3xl rounded-[2rem] lg:rounded-[2.5rem] border border-white/5 text-white font-sans relative">
+      <div className="wrapper flex flex-col lg:flex-row h-[calc(100vh-160px)] lg:h-[calc(100vh-140px)] overflow-hidden bg-transparent backdrop-blur-3xl rounded-[2.5rem] border border-border-color text-on-surface font-sans relative">
 
-        {/* Sidebar */}
-        <div className="w-80 flex flex-col bg-white/[0.01] backdrop-blur-md hidden lg:flex">
+        {/* Sidebar (Desktop) */}
+        <div className="w-80 flex flex-col bg-surface-container/30 backdrop-blur-md hidden lg:flex border-r border-border-color">
           <div className="p-8">
             <div className="flex items-center gap-3 mb-10">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                <Shield size={18} className="text-indigo-400" />
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Shield size={18} className="text-primary" />
               </div>
-              <span className="text-sm font-bold tracking-[0.1em] text-white/90 uppercase">Campus Feed</span>
+              <span className="text-xs font-black tracking-[0.2em] text-on-surface-variant uppercase">Campus Feed</span>
             </div>
 
-            <nav className="space-y-1">
+            <nav className="space-y-2">
               {channels.map(c => (
                 <button
                   key={c.id}
                   onClick={() => setCategory(c.id)}
-                  className={`w-full group flex items-center gap-4 p-4 rounded-xl transition-all duration-300 border ${category === c.id
-                      ? 'bg-opacity-10 text-white shadow-lg'
-                      : 'text-white/30 border-transparent hover:bg-white/5 hover:text-white/60'
+                  className={`w-full group flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border ${category === c.id
+                      ? 'bg-primary/10 text-on-surface shadow-lg border-primary/20'
+                      : 'text-on-surface-variant/40 border-transparent hover:bg-surface-container hover:text-on-surface'
                     }`}
-                  style={category === c.id ? {
-                    backgroundColor: `rgba(${zoneTheme.color === 'indigo' ? '99, 102, 241' : zoneTheme.color === 'rose' ? '244, 63, 94' : zoneTheme.color === 'emerald' ? '16, 185, 129' : '168, 85, 247'}, 0.1)`,
-                    borderColor: `rgba(${zoneTheme.color === 'indigo' ? '99, 102, 241' : zoneTheme.color === 'rose' ? '244, 63, 94' : zoneTheme.color === 'emerald' ? '16, 185, 129' : '168, 85, 247'}, 0.2)`,
-                    boxShadow: `0 0 20px ${zoneTheme.glow}`
-                  } : {}}
                 >
-                  <div className={`transition-colors duration-200`} style={{ color: category === c.id ? `rgb(${zoneTheme.color === 'indigo' ? '99, 102, 241' : zoneTheme.color === 'rose' ? '244, 63, 94' : zoneTheme.color === 'emerald' ? '16, 185, 129' : '168, 85, 247'})` : 'rgba(255,255,255,0.2)' }}>
+                  <div className={`transition-colors duration-200 ${category === c.id ? 'text-primary' : 'opacity-40'}`}>
                     {c.icon}
                   </div>
                   <div className="flex flex-col items-start overflow-hidden text-left">
-                    <span className="text-sm font-bold truncate tracking-tight">{c.name}</span>
-                    <span className="text-[10px] opacity-40 truncate font-medium">{c.desc}</span>
+                    <span className="text-sm font-black truncate tracking-tight">{c.name}</span>
+                    <span className="text-[10px] opacity-40 truncate font-bold uppercase tracking-wider">{c.desc}</span>
                   </div>
                 </button>
               ))}
             </nav>
           </div>
 
-          <div className="mt-auto p-8 border-t border-white/5">
-            <div className="flex items-center gap-3 text-white/20">
+          <div className="mt-auto p-8 border-t border-border-color">
+            <div className="flex items-center gap-3 text-on-surface-variant/20">
               <Info size={14} />
-              <p className="text-[10px] font-bold uppercase tracking-widest">Privacy Protected</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em]">Privacy Protocols Active</p>
             </div>
           </div>
         </div>
 
-          {/* Content Area */}
-          <div className="flex-1 flex flex-col bg-transparent relative">
-            
-            {/* Mobile Channel Navigation */}
-            <div className="lg:hidden flex flex-col gap-3 p-4 bg-white/[0.03] backdrop-blur-2xl border-b border-white/5 sticky top-0 z-40">
-              <div className="flex items-center gap-2 px-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em]">Campus Feed Protocols</span>
-              </div>
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                {channels.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setCategory(c.id);
-                      if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
-                    }}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex-shrink-0 border ${
-                      category === c.id 
-                        ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)] scale-105' 
-                        : 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col bg-transparent relative">
+          
+          {/* Mobile Header with Menu Button */}
+          <div className="lg:hidden flex items-center justify-between p-4 bg-surface-container/50 backdrop-blur-2xl border-b border-border-color sticky top-0 z-40">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2.5 bg-surface-container rounded-xl border border-border-color text-on-surface"
+              >
+                <Menu size={20} />
+              </button>
+              <div className="flex flex-col">
+                <span className="text-xs font-black uppercase tracking-widest text-on-surface">{activeChannel.name}</span>
+                <span className="text-[9px] font-bold uppercase text-primary/60 tracking-tighter">Campus Feed Matrix</span>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+               <span className="text-[9px] font-black text-on-surface-variant/30 uppercase tracking-widest">Live</span>
+            </div>
+          </div>
 
           <div className="flex-1 overflow-y-auto scrollbar-hide bg-transparent relative" ref={scrollContainerRef}>
             <div className="max-w-4xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
-            <AnimatePresence mode="wait">
-              {posts.length > 0 ? (
-                posts.map((post, idx) => {
-                  const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### 🟢");
-                  return (
-                    <motion.div 
-                      key={post.id || idx}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                      className="mb-8"
-                    >
-                      <div className="flex items-center justify-between mb-3 px-2">
-                        <div className="flex items-center gap-3">
-                           <div className={`w-2 h-2 rounded-full ${isAI ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-indigo-500/60 shadow-[0_0_8px_rgba(99,102,241,0.3)]'} animate-pulse`} />
-                           <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
-                             {isAI ? 'Forum Intelligence' : 'Verified Student'}
-                           </span>
-                        </div>
-                        <div className="flex items-center gap-2 opacity-30">
-                          <Clock size={12} className="text-white" />
-                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                            {new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
-
-                      {isAI && (
-                        <div className="w-full py-4">
-                          <div className="flex items-center gap-2 mb-6 opacity-40">
-                             <AudioLines size={14} className="text-white" />
-                             <span className="text-[11px] font-medium text-white tracking-tight">Thought for 1s</span>
+              <AnimatePresence mode="wait">
+                {posts.length > 0 ? (
+                  posts.map((post, idx) => {
+                    const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### \ud83d\udfe2");
+                    return (
+                      <motion.div 
+                        key={post.id || idx}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+                        className="mb-10"
+                      >
+                        <div className="flex items-center justify-between mb-3 px-2">
+                          <div className="flex items-center gap-3">
+                             <div className={`w-2 h-2 rounded-full ${isAI ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-primary/60 shadow-[0_0_12px_rgba(124,58,237,0.3)]'} animate-pulse`} />
+                             <span className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-[0.3em]">
+                               {isAI ? 'Forum Intelligence' : 'Verified Student'}
+                             </span>
                           </div>
-
-                          <div className="text-white/90">
-                            <div className="prose prose-invert prose-p:leading-relaxed prose-p:mb-6 max-w-none 
-                                prose-headings:text-white prose-headings:font-bold prose-headings:text-lg prose-headings:mb-4
-                                prose-strong:text-white prose-strong:font-bold
-                                prose-ul:list-disc prose-ul:pl-5 prose-li:mb-2 prose-li:text-white/80">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-6 mt-8 opacity-20 hover:opacity-100 transition-opacity">
-                             <div className="flex items-center gap-4">
-                                <button className="hover:text-white transition-colors"><Search size={16} /></button>
-                                <button className="hover:text-white transition-colors"><ThumbsUp size={16} /></button>
-                                <button className="hover:text-white transition-colors"><ThumbsDown size={16} /></button>
-                                <button className="hover:text-white transition-colors"><RotateCcw size={16} /></button>
-                             </div>
+                          <div className="flex items-center gap-2 opacity-30">
+                            <Clock size={12} className="text-on-surface" />
+                            <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest">
+                              {new Date(post.date || post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
                           </div>
                         </div>
-                      )}
 
-                      {!isAI && (
-                        <div className={`group relative w-full flex ${post.is_mine || post.is_optimistic ? 'justify-end' : 'justify-start'}`}>
-                          {post.is_mine || post.is_optimistic ? (
-                            <div className="bg-white/10 border border-white/5 rounded-full px-5 py-2.5 max-w-[85%] shadow-sm">
-                               <div className="text-white/90 text-[15px] font-medium">
-                                 {post.censored_content || post.content}
+                        {isAI && (
+                          <div className="w-full py-4 px-6 rounded-[32px] bg-surface-container/20 border border-border-color">
+                            <div className="flex items-center gap-2 mb-6 opacity-40">
+                               <AudioLines size={14} className="text-on-surface" />
+                               <span className="text-[11px] font-bold text-on-surface tracking-tight uppercase tracking-widest">AI Thought Stream</span>
+                            </div>
+
+                            <div className="text-on-surface/90">
+                              <div className="prose dark:prose-invert prose-p:leading-relaxed prose-p:mb-6 max-w-none 
+                                  prose-headings:text-on-surface prose-headings:font-black prose-headings:text-lg prose-headings:mb-4
+                                  prose-strong:text-on-surface prose-strong:font-black
+                                  prose-ul:list-disc prose-ul:pl-5 prose-li:mb-2 prose-li:text-on-surface/80
+                                  text-on-surface">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {(post.censored_content || post.content || "").replace(/\\n/g, '\n')}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-6 mt-8 opacity-20 hover:opacity-100 transition-opacity">
+                               <div className="flex items-center gap-4">
+                                  <button className="hover:text-primary transition-colors"><Search size={16} /></button>
+                                  <button className="hover:text-primary transition-colors"><ThumbsUp size={16} /></button>
+                                  <button className="hover:text-primary transition-colors"><ThumbsDown size={16} /></button>
+                                  <button className="hover:text-primary transition-colors"><RotateCcw size={16} /></button>
                                </div>
                             </div>
-                          ) : (
-                            <div className="max-w-[85%] py-2">
-                               <div className="text-white/80 text-[15px] leading-relaxed font-medium">
-                                 {post.censored_content || post.content}
-                               </div>
-                               <div className="flex items-center gap-4 mt-3 opacity-0 group-hover:opacity-30 transition-opacity">
-                                  <button onClick={() => handleReaction(post.id, 'like')} className="hover:text-white flex items-center gap-1.5 text-[10px] font-bold uppercase"><ThumbsUp size={12} /> {post.reaction_count || 0}</button>
-                                  <button onClick={() => handleFlag(post.id)} className="hover:text-rose-500 transition-colors"><EyeOff size={14} /></button>
-                               </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </motion.div>
-                  )
-                })
-              ) : !loading && (
-                <div className="h-full flex flex-col items-center justify-center py-32 opacity-10 space-y-6">
-                   <div className="w-24 h-24 rounded-full border-2 border-dashed border-white flex items-center justify-center">
-                     <Hash size={40} />
-                   </div>
-                   <div className="text-center">
-                     <h3 className="text-lg font-black uppercase tracking-[0.4em] text-white">No Posts</h3>
-                     <p className="text-[10px] font-bold uppercase tracking-widest mt-2">No transmissions detected in {category}</p>
-                   </div>
-                </div>
-              )}
+                          </div>
+                        )}
+
+                        {!isAI && (
+                          <div className={`group relative w-full flex ${post.is_mine || post.is_optimistic ? 'justify-end' : 'justify-start'}`}>
+                            {post.is_mine || post.is_optimistic ? (
+                              <div className="bg-primary text-surface rounded-3xl px-6 py-3.5 max-w-[85%] shadow-xl shadow-primary/10 border border-primary/20">
+                                 <div className="text-surface font-bold text-[15px] leading-relaxed">
+                                   {post.censored_content || post.content}
+                                 </div>
+                              </div>
+                            ) : (
+                              <div className="max-w-[85%] py-2">
+                                 <div className="bg-surface-container/50 border border-border-color rounded-3xl px-6 py-3.5 text-on-surface leading-relaxed font-bold text-[15px] shadow-sm">
+                                   {post.censored_content || post.content}
+                                 </div>
+                                 <div className="flex items-center gap-4 mt-3 opacity-0 group-hover:opacity-40 transition-opacity ml-2">
+                                    <button onClick={() => handleReaction(post.id, 'like')} className="hover:text-primary flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"><ThumbsUp size={12} /> {post.reaction_count || 0}</button>
+                                    <button onClick={() => handleFlag(post.id)} className="hover:text-red-400 transition-colors"><EyeOff size={14} /></button>
+                                 </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </motion.div>
+                    )
+                  })
+                ) : !loading && (
+                  <div className="h-full flex flex-col items-center justify-center py-32 opacity-10 space-y-6">
+                     <div className="w-24 h-24 rounded-full border-2 border-dashed border-on-surface flex items-center justify-center">
+                       <Hash size={40} />
+                     </div>
+                     <div className="text-center">
+                       <h3 className="text-lg font-black uppercase tracking-[0.4em] text-on-surface">No Posts</h3>
+                       <p className="text-[10px] font-black uppercase tracking-widest mt-2">No transmissions detected in {category}</p>
+                     </div>
+                  </div>
+                )}
               </AnimatePresence>
-               {/* Spacer to prevent overlap with floating input bar */}
-               <div className="h-48 lg:h-64" />
+              <div className="h-48 lg:h-64" />
             </div>
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none pb-4 lg:pb-8 bg-gradient-to-t from-surface/80 via-surface/40 to-transparent pt-20">
+          {/* Floating Input Bar */}
+          <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none pb-4 lg:pb-8 bg-gradient-to-t from-surface via-surface/80 to-transparent pt-20">
             <div className="max-w-4xl mx-auto px-4 lg:px-6 pointer-events-auto">
               {quickActions.length > 0 && (
                 <div className="flex items-center lg:justify-center gap-3 mb-4 lg:mb-6 overflow-x-auto pb-2 scrollbar-hide no-scrollbar w-full px-2">
@@ -411,20 +404,19 @@ export default function GeneralForumPage() {
                     <button
                       key={i}
                       onClick={() => setNewContent(action.prompt)}
-                      className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.01] border border-white/5 hover:bg-white/[0.1] hover:border-white/10 transition-all whitespace-nowrap group shadow-2xl"
+                      className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-surface-container border border-border-color hover:bg-surface-container-high hover:border-primary/30 transition-all whitespace-nowrap group shadow-lg"
                     >
                       <span className={`${zoneTheme.text} opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all`}>{action.icon}</span>
-                      <span className="text-[10px] font-black text-white/30 group-hover:text-white/70 uppercase tracking-[0.2em] transition-colors">{action.label}</span>
+                      <span className="text-[10px] font-black text-on-surface-variant/40 group-hover:text-on-surface uppercase tracking-[0.2em] transition-colors">{action.label}</span>
                     </button>
                   ))}
                 </div>
               )}
               <div className="relative group">
-                <div className="absolute inset-0 blur-2xl opacity-0 group-focus-within:opacity-20 transition-opacity rounded-full"
-                  style={{ backgroundColor: `rgba(${themeRGB}, 0.2)` }} />
+                <div className="absolute inset-0 blur-2xl opacity-0 group-focus-within:opacity-20 transition-opacity rounded-full bg-primary" />
                 
-                <div className="relative flex items-center bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-full px-2 py-2 shadow-2xl focus-within:border-white/20 transition-all">
-                  <button className="p-3 text-white/40 hover:text-white transition-colors">
+                <div className="relative flex items-center bg-surface-container border border-border-color rounded-[32px] px-2 py-2 shadow-2xl focus-within:border-primary/40 transition-all">
+                  <button className="p-3 text-on-surface-variant/20 hover:text-primary transition-colors">
                     <Plus size={22} />
                   </button>
 
@@ -443,17 +435,17 @@ export default function GeneralForumPage() {
                         e.target.style.height = 'auto';
                       }
                     }}
-                    placeholder={`How can I help you today?`}
-                    className="flex-1 bg-transparent px-2 py-2 text-[16px] text-white placeholder-white/20 focus:outline-none resize-none overflow-y-auto max-h-40 font-medium leading-relaxed"
+                    placeholder={`Transmit to ${activeChannel.name}...`}
+                    className="flex-1 bg-transparent px-2 py-2 text-[16px] text-on-surface placeholder-on-surface-variant/20 focus:outline-none resize-none overflow-y-auto max-h-40 font-bold leading-relaxed"
                   />
 
                   <div className="flex items-center gap-1 sm:gap-3 pr-2">
-                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors text-white/40 hover:text-white border border-transparent hover:border-white/5">
-                      <span className="text-[11px] font-bold tracking-tight uppercase">Fast</span>
+                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-surface-container-high cursor-pointer transition-colors text-on-surface-variant/20 hover:text-on-surface border border-transparent hover:border-border-color">
+                      <span className="text-[11px] font-black tracking-tight uppercase">Turbo</span>
                       <ChevronDown size={14} />
                     </div>
 
-                    <button className="p-2.5 text-white/40 hover:text-white transition-colors">
+                    <button className="p-2.5 text-on-surface-variant/20 hover:text-primary transition-colors">
                       <Mic size={20} />
                     </button>
 
@@ -462,8 +454,8 @@ export default function GeneralForumPage() {
                       disabled={!newContent.trim()}
                       className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300
                         ${newContent.trim() 
-                          ? 'bg-white text-black scale-100 shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
-                          : 'bg-white/5 text-white/20 scale-95'}`}
+                          ? 'bg-primary text-surface scale-100 shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]' 
+                          : 'bg-surface-container-high text-on-surface-variant/20 scale-95'}`}
                     >
                       {newContent.trim() ? (
                         <Send size={20} className="fill-current" />
@@ -478,6 +470,74 @@ export default function GeneralForumPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sidebar Drawer */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] lg:hidden"
+            />
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 bottom-0 w-[80%] max-w-[320px] bg-surface z-[101] lg:hidden flex flex-col p-8 border-r border-border-color shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                      <Shield size={22} />
+                   </div>
+                   <span className="text-sm font-black uppercase tracking-[0.2em] text-on-surface">Campus Feed</span>
+                </div>
+                <button 
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 bg-surface-container rounded-xl text-on-surface-variant/40 hover:text-on-surface"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <nav className="space-y-3">
+                {channels.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setCategory(c.id);
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-4 p-5 rounded-[24px] transition-all duration-300 border ${category === c.id
+                        ? 'bg-primary text-surface shadow-xl shadow-primary/20 border-primary/20 scale-[1.02]'
+                        : 'text-on-surface-variant/60 border-transparent hover:bg-surface-container'
+                      }`}
+                  >
+                    <div className={`${category === c.id ? 'text-surface' : 'text-primary'}`}>
+                      {c.icon}
+                    </div>
+                    <div className="flex flex-col items-start text-left">
+                      <span className="text-sm font-black tracking-tight">{c.name}</span>
+                      <span className={`text-[9px] font-black uppercase tracking-widest mt-1 ${category === c.id ? 'text-surface/60' : 'text-on-surface-variant/30'}`}>{c.desc}</span>
+                    </div>
+                  </button>
+                ))}
+              </nav>
+
+              <div className="mt-auto pt-8 border-t border-border-color">
+                 <div className="flex items-center gap-4 p-5 bg-surface-container/50 rounded-2xl border border-border-color">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40">Secure Node Connected</p>
+                 </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </ErpLayout>
   )
 }

@@ -32,7 +32,11 @@ export default function LoginPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await loginUser(credentials);
+            const payload = {
+                ...credentials,
+                role: loginRole === 'college' ? 'faculty' : 'student'
+            };
+            const res = await loginUser(payload);
             const role = res.role || 'student';
             const userData = res.user || {};
             
@@ -46,7 +50,7 @@ export default function LoginPage() {
             
             if (res.refresh_token) localStorage.setItem('erp_refresh_token', res.refresh_token);
 
-            const from = location.state?.from?.pathname || (role === 'admin' ? "/admin/dashboard" : role === 'faculty' ? "/faculty/dashboard" : "/dashboard");
+            const from = location.state?.from?.pathname || (role === 'admin' ? "/admin/dashboard" : (role === 'faculty' || role === 'hod') ? "/faculty/dashboard" : "/dashboard");
             setTimeout(() => {
                  navigate(from, { replace: true });
             }, 600);
@@ -59,7 +63,7 @@ export default function LoginPage() {
     const isStudent = loginRole === 'student';
 
     return (
-        <div className="min-h-screen w-full bg-[#030305] text-white flex items-center justify-center relative overflow-hidden font-sans selection:bg-primary/30">
+        <div className="min-h-screen w-full bg-surface text-on-surface flex items-center justify-center relative overflow-hidden font-sans selection:bg-primary/30">
             
             {/* Interactive Ambient Background */}
             <div className="absolute inset-0 z-0 pointer-events-none">
@@ -70,8 +74,8 @@ export default function LoginPage() {
                 />
                 <div className={`absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[120px] animate-pulse transition-colors duration-1000 ${isStudent ? 'bg-secondary/10' : 'bg-primary/10'}`} style={{ animationDuration: '8s' }} />
                 <div className={`absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full blur-[150px] animate-pulse transition-colors duration-1000 ${isStudent ? 'bg-tertiary/5' : 'bg-secondary/5'}`} style={{ animationDuration: '12s' }} />
-                <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: `linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)`, backgroundSize: '48px 48px' }} />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#030305_100%)]" />
+                <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: `linear-gradient(to right, var(--on-surface) 1px, transparent 1px), linear-gradient(to bottom, var(--on-surface) 1px, transparent 1px)`, backgroundSize: '48px 48px' }} />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,var(--surface) 100%)]" />
             </div>
 
             <div className="relative z-10 w-full max-w-7xl px-6 py-12 flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-24">
@@ -89,8 +93,7 @@ export default function LoginPage() {
                         transition={{ delay: 0.2, duration: 0.5, type: "spring" }}
                         className="mb-8 relative group"
                     >
-                        <div className={`absolute inset-0 blur-xl rounded-full transition-colors duration-500 opacity-50 ${isStudent ? 'bg-primary/40' : 'bg-tertiary/40'}`} />
-                        <div className="relative w-20 h-20 rounded-3xl bg-[#0a0a0e] border border-white/10 flex items-center justify-center shadow-2xl backdrop-blur-md">
+                        <div className="relative w-20 h-20 rounded-3xl glass-panel flex items-center justify-center shadow-2xl backdrop-blur-md">
                             <ShieldCheck size={36} className={isStudent ? 'text-primary' : 'text-tertiary'} />
                         </div>
                     </motion.div>
@@ -102,20 +105,20 @@ export default function LoginPage() {
                         </span>
                     </h1>
                     
-                    <p className="text-white/70 text-lg lg:text-xl max-w-md font-medium leading-relaxed mb-12">
+                    <p className="text-on-surface-variant/70 text-lg lg:text-xl max-w-md font-medium leading-relaxed mb-12">
                         {isStudent 
                             ? 'Advanced campus intelligence and academic orchestration platform for modern scholars.' 
                             : 'High-fidelity command center for faculty and administrative operations.'}
                     </p>
 
                     <div className="flex gap-6 justify-center lg:justify-start w-full">
-                        <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                        <div className="flex items-center gap-3 bg-surface-container px-4 py-2 rounded-2xl border border-border-color">
                             <Activity size={16} className={`${isStudent ? 'text-primary' : 'text-tertiary'} animate-pulse`} />
-                            <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Core Online</span>
+                            <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">Core Online</span>
                         </div>
-                        <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                        <div className="flex items-center gap-3 bg-surface-container px-4 py-2 rounded-2xl border border-border-color">
                             <Terminal size={16} className="text-secondary" />
-                            <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">v4.1.0-beta</span>
+                            <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">v4.1.0-beta</span>
                         </div>
                     </div>
                 </motion.div>
@@ -127,21 +130,19 @@ export default function LoginPage() {
                     transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
                     className="w-full max-w-md relative"
                 >
-                    <div className={`absolute inset-0 blur-3xl rounded-[40px] opacity-20 transition-colors duration-1000 ${isStudent ? 'bg-primary' : 'bg-tertiary'}`} />
-                    
-                    <div className="relative bg-[#0a0a0e]/80 rounded-[32px] p-8 sm:p-10 border border-white/10 shadow-2xl backdrop-blur-2xl">
+                    <div className="relative glass-panel rounded-[32px] p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
                         
                         <div className="mb-8">
-                            <h2 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>Secure Access</h2>
-                            <p className="text-sm font-medium text-white/60">Select authorization clearance level.</p>
+                            <h2 className="text-3xl font-bold text-on-surface mb-2" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>Secure Access</h2>
+                            <p className="text-sm font-medium text-on-surface-variant/60">Select authorization clearance level.</p>
                         </div>
 
                         {/* Role Selector Tabs */}
-                        <div className="flex gap-2 mb-8 bg-[#14141a] p-1.5 rounded-2xl border border-white/5 relative">
+                        <div className="flex gap-2 mb-8 bg-surface-container p-1.5 rounded-2xl border border-border-color relative">
                             <button
                                 type="button"
                                 onClick={() => setLoginRole('student')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all z-10 ${isStudent ? 'text-white' : 'text-white/40 hover:text-white'}`}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all z-10 ${isStudent ? 'text-on-surface' : 'text-on-surface-variant/40 hover:text-on-surface'}`}
                             >
                                 <GraduationCap size={16} />
                                 Student
@@ -149,7 +150,7 @@ export default function LoginPage() {
                             <button
                                 type="button"
                                 onClick={() => setLoginRole('college')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all z-10 ${!isStudent ? 'text-white' : 'text-white/40 hover:text-white'}`}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all z-10 ${!isStudent ? 'text-on-surface' : 'text-on-surface-variant/40 hover:text-on-surface'}`}
                             >
                                 <Building2 size={16} />
                                 College
@@ -181,18 +182,18 @@ export default function LoginPage() {
                             
                             {/* Identifier Field */}
                             <div className="flex flex-col gap-2">
-                                <label className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-300 ${focusedField === 'username' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-white/60'}`}>
+                                <label className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-300 ${focusedField === 'username' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/60'}`}>
                                     {isStudent ? 'Student ID' : 'Staff Identifier'}
                                 </label>
                                 <div className="relative">
                                     <Fingerprint 
                                         size={20} 
-                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'username' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-white/40'}`} 
+                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'username' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/40'}`} 
                                     />
                                     {/* The autofill-override class handles browser autocomplete styling */}
                                     <input 
                                         type="text" 
-                                        className={`autofill-override w-full bg-[#14141a] border rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none transition-all duration-300 placeholder:text-white/20 ${focusedField === 'username' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-white/10 hover:border-white/20'}`}
+                                        className={`autofill-override w-full bg-surface-container border rounded-2xl py-4 pl-12 pr-4 text-on-surface text-sm outline-none transition-all duration-300 placeholder:text-on-surface-variant/20 ${focusedField === 'username' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-border-color hover:border-on-surface/20'}`}
                                         placeholder={isStudent ? "e.g. CS21001" : "e.g. FAC001 / ADMIN"}
                                         required
                                         value={credentials.username}
@@ -206,21 +207,21 @@ export default function LoginPage() {
                             {/* Passcode Field */}
                             <div className="flex flex-col gap-2">
                                 <div className="flex justify-between items-center">
-                                    <label className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-300 ${focusedField === 'password' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-white/60'}`}>
+                                    <label className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-300 ${focusedField === 'password' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/60'}`}>
                                         Passcode
                                     </label>
-                                    <button type="button" className="text-[10px] font-bold text-white/40 hover:text-white uppercase tracking-widest transition-colors">
+                                    <button type="button" className="text-[10px] font-bold text-on-surface-variant/40 hover:text-on-surface uppercase tracking-widest transition-colors">
                                         Recover?
                                     </button>
                                 </div>
                                 <div className="relative">
                                     <Lock 
                                         size={20} 
-                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'password' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-white/40'}`} 
+                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'password' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/40'}`} 
                                     />
                                     <input 
                                         type="password" 
-                                        className={`autofill-override w-full bg-[#14141a] border rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none transition-all duration-300 placeholder:text-white/20 tracking-[0.2em] ${focusedField === 'password' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-white/10 hover:border-white/20'}`}
+                                        className={`autofill-override w-full bg-surface-container border rounded-2xl py-4 pl-12 pr-4 text-on-surface text-sm outline-none transition-all duration-300 placeholder:text-on-surface-variant/20 tracking-[0.2em] ${focusedField === 'password' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-border-color hover:border-on-surface/20'}`}
                                         placeholder="••••••••••••"
                                         required
                                         value={credentials.password}
@@ -255,7 +256,7 @@ export default function LoginPage() {
             </div>
 
             <div className="absolute bottom-8 left-0 right-0 flex justify-center text-center px-6">
-                <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.4em] opacity-40">
+                <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-[0.4em] opacity-40">
                     Department of Educational Technology • Secure Node
                 </p>
             </div>

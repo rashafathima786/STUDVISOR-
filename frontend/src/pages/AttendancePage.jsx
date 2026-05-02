@@ -77,7 +77,7 @@ const AttendancePage = () => {
 
     return (
         <ErpLayout title="Attendance Matrix" subtitle="Real-time engagement tracking and strategic absence analytics">
-            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 pb-32">
                 
                 {/* Header Controls */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
@@ -86,8 +86,8 @@ const AttendancePage = () => {
                       <Activity className="text-primary" size={32} />
                     </div>
                     <div>
-                      <h2 className="text-white tracking-tight" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 'clamp(1.625rem, 1.3846rem + 1.0256vw, 2.5rem)' }}>Engagement Core</h2>
-                      <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Protocol: Real-Time Sync</p>
+                      <h2 className="text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 'clamp(1.625rem, 1.3846rem + 1.0256vw, 2.5rem)' }}>Engagement Core</h2>
+                      <p className="text-on-surface-variant/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Protocol: Real-Time Sync</p>
                     </div>
                   </div>
 
@@ -95,14 +95,14 @@ const AttendancePage = () => {
                   <div className="hidden md:flex items-center gap-4">
                     <button 
                         onClick={() => alert("Current Term: Semester 1 (Jan - June 2026)")}
-                        className="px-6 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-xl"
+                        className="px-6 py-3.5 rounded-2xl bg-surface-container border border-border-color text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-xl"
                     >
                       <Calendar size={18} />
                       Current Term
                     </button>
                     <button 
                         onClick={handleExport}
-                        className="px-8 py-3.5 rounded-2xl bg-white text-black hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-2xl"
+                        className="px-8 py-3.5 rounded-2xl bg-on-surface text-surface hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-xs font-black uppercase tracking-widest shadow-2xl"
                     >
                       <Download size={18} />
                       Export Matrix
@@ -114,12 +114,12 @@ const AttendancePage = () => {
                 <div className="md:hidden floating-action-bar">
                     <button 
                         onClick={() => alert("Current Term: Semester 1 (Jan - June 2026)")}
-                        className="flex-1 p-3 flex items-center justify-center gap-2 text-white/60 font-black text-[9px] uppercase tracking-widest"
+                        className="flex-1 p-3 flex items-center justify-center gap-2 text-on-surface-variant/60 font-black text-[9px] uppercase tracking-widest"
                     >
                       <Calendar size={16} />
                       Term
                     </button>
-                    <div className="w-px h-6 bg-white/10" />
+                    <div className="w-px h-6 bg-border-color" />
                     <button 
                         onClick={handleExport}
                         className="flex-1 p-3 flex items-center justify-center gap-2 text-primary font-black text-[9px] uppercase tracking-widest"
@@ -134,30 +134,30 @@ const AttendancePage = () => {
                     <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="lg:col-span-4 glass-panel rounded-[40px] p-8 md:p-10 flex flex-col justify-between min-h-[340px] relative overflow-hidden border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.3)] group hover:border-primary/40 transition-all duration-500"
+                        className="lg:col-span-4 glass-panel rounded-[40px] p-8 md:p-10 flex flex-col justify-between min-h-[340px] relative overflow-hidden border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.3)] group hover:border-primary/40 transition-all duration-500"
                     >
                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                             <Activity size={120} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Aggregate Health</p>
+                            <p className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-[0.2em] mb-2">Aggregate Health</p>
                             <div className="flex items-baseline gap-3">
                                 <span className="font-black text-primary tracking-tighter drop-shadow-[0_0_20px_rgba(124,58,237,0.4)]" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 'clamp(4rem, 2rem + 8vw, 8rem)' }}>
                                     {Math.round(overall?.percentage || 0)}
                                 </span>
-                                <span className="text-white/20 font-black text-3xl mb-4 md:mb-6">%</span>
+                                <span className="text-on-surface-variant/20 font-black text-3xl mb-4 md:mb-6">%</span>
                             </div>
                             <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
                                 <TrendingUp size={14} className="text-primary" />
                                 <span className="text-[9px] font-black text-primary uppercase tracking-widest">Stable Trajectory</span>
                             </div>
                         </div>
-                        <div className="mt-8 pt-8 border-t border-white/5">
+                        <div className="mt-8 pt-8 border-t border-border-color">
                             <div className="flex justify-between text-[9px] font-black mb-3 uppercase tracking-[0.2em]">
-                                <span className="text-white/30">Mandatory Threshold</span>
-                                <span className="text-white">75% Capacity</span>
+                                <span className="text-on-surface-variant/30">Mandatory Threshold</span>
+                                <span className="text-on-surface">75% Capacity</span>
                             </div>
-                            <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                            <div className="h-3 w-full bg-surface-container rounded-full overflow-hidden p-0.5 border border-border-color">
                                 <motion.div 
                                     initial={{ width: 0 }}
                                     animate={{ width: `${overall?.percentage || 0}%` }}
@@ -172,18 +172,18 @@ const AttendancePage = () => {
                     <motion.div 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="lg:col-span-8 glass-panel rounded-[40px] p-10 relative overflow-hidden border border-white/5 shadow-2xl"
+                        className="lg:col-span-8 glass-panel rounded-[40px] p-10 relative overflow-hidden border border-border-color shadow-2xl"
                     >
                         <div className="absolute top-0 right-0 p-8 opacity-5">
                             <ShieldAlert size={100} />
                         </div>
                         <div className="flex justify-between items-start mb-10">
                             <div>
-                                <h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Strategic Reserve</h2>
-                                <p className="text-white/40 text-xs font-medium">calculated for 75% operational threshold.</p>
+                                <h2 className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-[0.2em] mb-1">Strategic Reserve</h2>
+                                <p className="text-on-surface-variant/40 text-xs font-medium">calculated for 75% operational threshold.</p>
                             </div>
-                            <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-                               <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Safety Margin</span>
+                            <div className="px-4 py-2 bg-surface-container rounded-xl border border-border-color">
+                               <span className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Safety Margin</span>
                             </div>
                         </div>
                         
@@ -194,9 +194,9 @@ const AttendancePage = () => {
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: idx * 0.1 }}
-                                  className="bg-white/5 rounded-[32px] px-3 py-6 border border-white/5 flex flex-col items-center justify-center text-center group hover:bg-white/[0.08] transition-all"
+                                  className="bg-surface-container rounded-[32px] px-3 py-6 border border-border-color flex flex-col items-center justify-center text-center group hover:bg-surface-container-high transition-all"
                                 >
-                                    <span className="text-[9px] font-black text-white/50 uppercase tracking-tight mb-4 line-clamp-2 h-8 flex items-center justify-center w-full px-1 leading-tight">
+                                    <span className="text-[9px] font-black text-on-surface-variant/50 uppercase tracking-tight mb-4 line-clamp-2 h-8 flex items-center justify-center w-full px-1 leading-tight">
                                         {alert.subject_name}
                                     </span>
                                     <div className={`relative w-20 h-20 flex items-center justify-center rounded-full border-2 transition-all group-hover:scale-110 ${alert.safe_bunks > 0 ? 'border-primary/20 bg-primary/5' : 'border-red-500/20 bg-red-500/5'}`}>
@@ -204,7 +204,7 @@ const AttendancePage = () => {
                                             {alert.safe_bunks > 0 ? alert.safe_bunks : alert.required_to_clear || 0}
                                         </span>
                                     </div>
-                                    <span className={`text-[9px] mt-4 font-black uppercase tracking-widest ${alert.safe_bunks > 0 ? 'text-white/20' : 'text-red-400/60'}`}>
+                                    <span className={`text-[9px] mt-4 font-black uppercase tracking-widest ${alert.safe_bunks > 0 ? 'text-on-surface-variant/20' : 'text-red-400/60'}`}>
                                         {alert.safe_bunks > 0 ? 'Units Left' : 'Required'}
                                     </span>
                                 </motion.div>
@@ -219,19 +219,19 @@ const AttendancePage = () => {
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="glass-panel rounded-[48px] border border-white/5 overflow-hidden shadow-2xl flex flex-col"
+                    className="glass-panel rounded-[48px] border border-border-color overflow-hidden shadow-2xl flex flex-col"
                 >
-                    <div className="p-6 md:p-10 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/[0.01]">
+                    <div className="p-6 md:p-10 border-b border-border-color flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-surface-container/30">
                         <div className="flex items-center gap-4">
-                           <div className="p-3 bg-white/5 rounded-2xl">
-                             <Filter className="text-white/40" size={20} />
+                           <div className="p-3 bg-surface-container rounded-2xl">
+                             <Filter className="text-on-surface-variant/40" size={20} />
                            </div>
-                           <h2 className="text-xl font-bold text-white tracking-tight whitespace-nowrap">Module Breakdown</h2>
+                           <h2 className="text-xl font-bold text-on-surface tracking-tight whitespace-nowrap">Module Breakdown</h2>
                         </div>
                         <div className="flex gap-3 w-full md:w-auto">
                             <div className="relative w-full md:w-48">
-                               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
-                               <input type="text" placeholder="Filter subjects..." className="bg-white/5 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white outline-none focus:border-primary/40 transition-all w-full" />
+                               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/20" size={16} />
+                               <input type="text" placeholder="Filter subjects..." className="bg-surface-container border border-border-color rounded-xl py-2.5 pl-10 pr-4 text-xs text-on-surface outline-none focus:border-primary/40 transition-all w-full" />
                             </div>
                         </div>
                     </div>
@@ -240,33 +240,33 @@ const AttendancePage = () => {
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-white/[0.02]">
-                                        <th className="py-6 px-10 text-[10px] font-black text-white/30 uppercase tracking-widest">Identifier</th>
-                                        <th className="py-6 px-8 text-[10px] font-black text-white/30 uppercase tracking-widest">Module Name</th>
-                                        <th className="py-6 px-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Sync Conducted</th>
-                                        <th className="py-6 px-6 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Active Attended</th>
-                                        <th className="py-6 px-8 text-[10px] font-black text-white/30 uppercase tracking-widest">Efficiency Ratio</th>
-                                        <th className="py-6 px-10 text-[10px] font-black text-white/30 uppercase tracking-widest text-right">Operational Status</th>
+                                    <tr className="bg-surface-container/50">
+                                        <th className="py-6 px-10 text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Identifier</th>
+                                        <th className="py-6 px-8 text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Module Name</th>
+                                        <th className="py-6 px-6 text-center text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Sync Conducted</th>
+                                        <th className="py-6 px-6 text-center text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Active Attended</th>
+                                        <th className="py-6 px-8 text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Efficiency Ratio</th>
+                                        <th className="py-6 px-10 text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest text-right">Operational Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-white/5">
+                                <tbody className="divide-y divide-border-color">
                                     {subjects.map((s, idx) => (
                                         <motion.tr 
                                           key={idx} 
                                           initial={{ opacity: 0 }}
                                           animate={{ opacity: 1 }}
                                           transition={{ delay: 0.3 + idx * 0.05 }}
-                                          className="hover:bg-white/[0.03] transition-colors group"
+                                          className="hover:bg-surface-container/30 transition-colors group"
                                         >
                                             <td className="py-8 px-10 text-xs font-black text-primary tracking-tighter">{s.code}</td>
                                             <td className="py-8 px-8">
                                                <div className="flex flex-col">
-                                                 <span className="text-white font-bold group-hover:text-primary transition-colors tracking-tight">{s.subject}</span>
-                                                 <span className="text-[10px] text-white/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Original</span>
+                                                 <span className="text-on-surface font-bold group-hover:text-primary transition-colors tracking-tight">{s.subject}</span>
+                                                 <span className="text-[10px] text-on-surface-variant/20 font-bold uppercase tracking-tighter mt-1 italic">Verified Original</span>
                                                </div>
                                             </td>
-                                            <td className="py-8 px-6 text-center text-xs text-white/40 font-black">{s.total}</td>
-                                            <td className="py-8 px-6 text-center text-xs text-white font-black">{s.present}</td>
+                                            <td className="py-8 px-6 text-center text-xs text-on-surface-variant/40 font-black">{s.total}</td>
+                                            <td className="py-8 px-6 text-center text-xs text-on-surface font-black">{s.present}</td>
                                             <td className="py-8 px-8">
                                                 <div className="flex flex-col gap-2">
                                                     <div className="flex justify-between items-center pr-2">
@@ -274,7 +274,7 @@ const AttendancePage = () => {
                                                            {s.percentage}%
                                                        </span>
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                                    <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden p-0.5 border border-border-color">
                                                         <motion.div 
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${s.percentage}%` }}
@@ -303,12 +303,12 @@ const AttendancePage = () => {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.1 }}
-                                    className="glass-panel p-6 rounded-3xl border border-white/5"
+                                    className="glass-panel p-6 rounded-3xl border border-border-color"
                                 >
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <span className="text-[10px] font-black text-primary uppercase tracking-widest">{s.code}</span>
-                                            <h4 className="text-lg font-bold text-white mt-1">{s.subject}</h4>
+                                            <h4 className="text-lg font-bold text-on-surface mt-1">{s.subject}</h4>
                                         </div>
                                         <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${s.percentage >= 75 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                                             {s.percentage >= 75 ? 'Optimal' : 'Critical'}
@@ -316,22 +316,22 @@ const AttendancePage = () => {
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">Conducted</p>
-                                            <p className="text-xl font-bold text-white">{s.total}</p>
+                                        <div className="bg-surface-container p-3 rounded-2xl border border-border-color">
+                                            <p className="text-[9px] font-black text-on-surface-variant/30 uppercase tracking-widest mb-1">Conducted</p>
+                                            <p className="text-xl font-bold text-on-surface">{s.total}</p>
                                         </div>
-                                        <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">Attended</p>
-                                            <p className="text-xl font-bold text-white">{s.present}</p>
+                                        <div className="bg-surface-container p-3 rounded-2xl border border-border-color">
+                                            <p className="text-[9px] font-black text-on-surface-variant/30 uppercase tracking-widest mb-1">Attended</p>
+                                            <p className="text-xl font-bold text-on-surface">{s.present}</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Efficiency</span>
+                                            <span className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest">Efficiency</span>
                                             <span className={`text-xl font-black ${s.percentage >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>{s.percentage}%</span>
                                         </div>
-                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                        <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden p-0.5 border border-border-color">
                                             <motion.div 
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${s.percentage}%` }}
@@ -346,12 +346,12 @@ const AttendancePage = () => {
                 </motion.div>
 
                 {/* Footer Insight */}
-                <div className="mt-8 flex justify-between items-center px-10 py-8 bg-white/5 rounded-[40px] border border-white/5">
+                <div className="mt-8 flex justify-between items-center px-10 py-8 bg-surface-container/30 rounded-[40px] border border-border-color">
                    <div className="flex items-center gap-4">
                       <Zap className="text-primary/60" size={24} />
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Integrated Engagement Metrics Verified by Core Academic Ledger</p>
+                      <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.4em]">Integrated Engagement Metrics Verified by Core Academic Ledger</p>
                    </div>
-                   <button className="flex items-center gap-2 text-[10px] font-black text-primary hover:text-white transition-colors uppercase tracking-widest group">
+                   <button className="flex items-center gap-2 text-[10px] font-black text-primary hover:text-on-surface transition-colors uppercase tracking-widest group">
                       Analytics Documentation <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                    </button>
                 </div>

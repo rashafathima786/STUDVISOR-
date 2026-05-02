@@ -47,7 +47,10 @@ export default function AssignmentsPage() {
             <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20">
               <BookOpen size={24} className="text-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Active Deliverables</h2>
+            <div>
+              <h2 className="text-3xl font-black text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Active Deliverables</h2>
+              <p className="text-on-surface-variant/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Status: Submission Portals Open</p>
+            </div>
           </div>
           <div className="text-[10px] font-black uppercase tracking-widest text-primary/60 px-4 py-2 border border-primary/20 rounded-full bg-primary/5">
             {assignments.length} Total Tasks
@@ -66,10 +69,10 @@ export default function AssignmentsPage() {
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-20 glass-panel rounded-3xl text-center"
           >
-            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-              <CheckCircle size={32} className="text-tertiary/20" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Zero Backlog</h3>
+              <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center mb-4">
+                <CheckCircle size={32} className="text-tertiary/20" />
+              </div>
+              <h3 className="text-lg font-bold text-on-surface mb-2">Zero Backlog</h3>
             <p className="text-sm text-on-surface-variant/50 max-w-xs mx-auto">
               All assignments are current. You're fully caught up with your curriculum.
             </p>
@@ -94,13 +97,13 @@ export default function AssignmentsPage() {
                     
                     <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                       <div className="flex items-center gap-6">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${isSubmitted ? 'bg-tertiary/10 border-tertiary/20' : 'bg-white/5 border-white/10 group-hover:border-primary/30'}`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${isSubmitted ? 'bg-tertiary/10 border-tertiary/20' : 'bg-surface-container border-border-color group-hover:border-primary/30'}`}>
                           <FileText size={28} className={isSubmitted ? 'text-tertiary' : 'text-on-surface-variant'} />
                         </div>
                         
                         <div>
                           <div className="flex items-center gap-3 mb-1">
-                            <h3 className={`text-xl font-bold tracking-tight transition-colors ${isSubmitted ? 'text-white/40 line-through' : 'text-white group-hover:text-primary'}`}>
+                            <h3 className={`text-xl font-bold tracking-tight transition-colors ${isSubmitted ? 'text-on-surface-variant/40 line-through' : 'text-on-surface group-hover:text-primary'}`}>
                               {assignment.title}
                             </h3>
                             {isOverdue && <span className="px-2 py-0.5 rounded-md bg-error/10 text-error text-[10px] font-black uppercase tracking-tighter border border-error/20">Critical</span>}

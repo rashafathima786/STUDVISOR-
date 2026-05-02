@@ -30,11 +30,12 @@ def dashboard(faculty=Depends(get_current_faculty), db: Session = Depends(get_db
 
 @router.get("/timetable/")
 def faculty_timetable(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
-    slots = db.query(TimetableSlot).filter(TimetableSlot.faculty_id == faculty.id).order_by(TimetableSlot.day, TimetableSlot.hour).all()
-    result = []
-    for s in slots:
-        subj = db.query(Subject).filter(Subject.id == s.subject_id).first()
-        result.append({"day": s.day, "hour": s.hour, "subject": subj.name if subj else "?", "room": s.room, "section": s.section})
+    slots = db.query(TimetableSlot, Subject.name)\
+        .join(Subject, TimetableSlot.subject_id == Subject.id)\
+        .filter(TimetableSlot.faculty_id == faculty.id)\
+        .order_by(TimetableSlot.day, TimetableSlot.hour).all()
+    
+    result = [{"day": s.day, "hour": s.hour, "subject": name, "room": s.room, "section": s.section} for s, name in slots]
     return {"timetable": result}
 
 @router.get("/my-subjects/")
@@ -42,6 +43,15 @@ def get_my_subjects(faculty=Depends(get_current_faculty), db: Session = Depends(
     codes = [s.strip() for s in (faculty.subjects_teaching or "").split(",") if s.strip()]
     subjects = db.query(Subject).filter(Subject.code.in_(codes)).all()
     return {"subjects": [{"id": s.id, "name": s.name, "code": s.code} for s in subjects]}
+
+@router.get("/students-by-subject/{sid}/")
+def get_students_by_subject(sid: int, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    verify_subject_ownership(faculty, sid, db)
+    subject = db.query(Subject).filter(Subject.id == sid).first()
+    # In a real system, we'd check enrollment. Here we assume all students in same semester/dept.
+    # We can filter by department if needed, but semester is more standard for subject enrollment.
+    students = db.query(Student).filter(Student.semester == subject.semester).order_by(Student.full_name).all()
+    return {"students": [{"id": s.id, "name": s.full_name, "username": s.username, "department": s.department, "semester": s.semester} for s in students]}
 
 class AttendanceMarkRequest(BaseModel):
     subject_id: int
@@ -107,19 +117,29 @@ def request_amendment(record_id: int, new_status: str, reason: str, faculty=Depe
 @router.get("/hod/attendance/pending/")
 def hod_pending_amendments(faculty=Depends(require_role("hod")), db: Session = Depends(get_db)):
     """HOD reviews pending attendance amendment requests."""
-    reqs = db.query(AttendanceAmendmentRequest).filter(AttendanceAmendmentRequest.status == "Pending").all()
-    result = []
-    for r in reqs:
-        att = db.query(Attendance).filter(Attendance.id == r.attendance_id).first()
-        subj = db.query(Subject).filter(Subject.id == att.subject_id).first() if att else None
-        fac = db.query(Faculty).filter(Faculty.id == r.faculty_id).first()
-        result.append({
-            "id": r.id, "faculty": fac.name if fac else "?", 
-            "subject": subj.name if subj else "?", "date": att.date if att else "?",
-            "old_status": att.status if att else "?", "new_status": r.new_status,
-            "reason": r.reason
+    # Optimized with joins
+    results = db.query(
+        AttendanceAmendmentRequest, 
+        Attendance, 
+        Subject.name, 
+        Faculty.name
+    ).join(Attendance, AttendanceAmendmentRequest.attendance_id == Attendance.id)\
+     .join(Subject, Attendance.subject_id == Subject.id)\
+     .join(Faculty, AttendanceAmendmentRequest.faculty_id == Faculty.id)\
+     .filter(AttendanceAmendmentRequest.status == "Pending").all()
+
+    formatted = []
+    for req, att, subj_name, fac_name in results:
+        formatted.append({
+            "id": req.id, 
+            "faculty": fac_name, 
+            "subject": subj_name, 
+            "date": att.date,
+            "old_status": att.status, 
+            "new_status": req.new_status,
+            "reason": req.reason
         })
-    return {"pending_amendments": result}
+    return {"pending_amendments": formatted}
 
 @router.put("/hod/attendance/approve/{req_id}/")
 def hod_approve_amendment(req_id: int, approve: bool = True, remarks: str = "", faculty=Depends(require_role("hod")), db: Session = Depends(get_db)):
@@ -143,17 +163,38 @@ def hod_approve_amendment(req_id: int, approve: bool = True, remarks: str = "", 
 
 @router.get("/attendance/defaulters/")
 def defaulters(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    from sqlalchemy import func, case
+    
     subject_codes = [s.strip() for s in (faculty.subjects_teaching or "").split(",") if s.strip()]
-    subjects = db.query(Subject).filter(Subject.code.in_(subject_codes)).all() if subject_codes else []
+    if not subject_codes:
+        return {"defaulters": []}
+
+    subjects = db.query(Subject).filter(Subject.code.in_(subject_codes)).all()
+    subject_ids = [s.id for s in subjects]
+    
+    # Fully optimized single query with Student join
+    stats = db.query(
+        Attendance.student_id,
+        Attendance.subject_id,
+        Student.full_name,
+        func.count(Attendance.id).label("total"),
+        func.sum(case((Attendance.status == 'P', 1), else_=0)).label("present")
+    ).join(Student, Attendance.student_id == Student.id)\
+     .filter(Attendance.subject_id.in_(subject_ids))\
+     .group_by(Attendance.student_id, Attendance.subject_id, Student.full_name).all()
+
     result = []
-    for subj in subjects:
-        students = db.query(Student).filter(Student.semester == subj.semester).all()
-        for s in students:
-            records = db.query(Attendance).filter(Attendance.student_id == s.id, Attendance.subject_id == subj.id).all()
-            if not records: continue
-            pct = round(sum(1 for r in records if r.status == "P") / len(records) * 100, 1)
-            if pct < 75:
-                result.append({"student": s.full_name, "subject": subj.name, "attendance": pct})
+    for s_id, sub_id, name, total, present in stats:
+        if total == 0: continue
+        pct = round((present / total) * 100, 1)
+        if pct < 75:
+            subject = next((sub for sub in subjects if sub.id == sub_id), None)
+            result.append({
+                "student": name,
+                "subject": subject.name if subject else "Unknown",
+                "attendance": pct
+            })
+            
     return {"defaulters": sorted(result, key=lambda x: x["attendance"])}
 
 class MarkUploadEntry(BaseModel):
@@ -207,11 +248,22 @@ def mark_statistics(subject_id: int, faculty=Depends(get_current_faculty), db: S
 
 @router.get("/leave/pending/")
 def pending_leave(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
-    leaves = db.query(LeaveRequest).filter(LeaveRequest.status == "Pending").order_by(LeaveRequest.applied_on.desc()).all()
+    # Optimized with join
+    leaves = db.query(LeaveRequest, Student.full_name)\
+        .join(Student, LeaveRequest.student_id == Student.id)\
+        .filter(LeaveRequest.status == "Pending")\
+        .order_by(LeaveRequest.applied_on.desc()).all()
+    
     result = []
-    for l in leaves:
-        s = db.query(Student).filter(Student.id == l.student_id).first()
-        result.append({"id": l.id, "student": s.full_name if s else "?", "type": l.leave_type, "from": l.from_date, "to": l.to_date, "reason": l.reason})
+    for l, name in leaves:
+        result.append({
+            "id": l.id, 
+            "student": name, 
+            "type": l.leave_type, 
+            "from": l.from_date, 
+            "to": l.to_date, 
+            "reason": l.reason
+        })
     return {"pending": result}
 
 @router.put("/leave/{lid}/approve/")
@@ -226,12 +278,22 @@ def approve_leave(lid: int, faculty=Depends(get_current_faculty), db: Session = 
 @router.get("/hod/leave/pending/")
 def hod_pending_leave(faculty=Depends(require_role("hod")), db: Session = Depends(get_db)):
     """HOD sees leaves already approved by faculty advisor, awaiting HOD sign-off."""
+    # Optimized with join
+    leaves = db.query(LeaveRequest, Student.full_name)\
+        .join(Student, LeaveRequest.student_id == Student.id)\
+        .filter(LeaveRequest.status == "Faculty_Approved")\
+        .order_by(LeaveRequest.applied_on.desc()).all()
     
-    leaves = db.query(LeaveRequest).filter(LeaveRequest.status == "Faculty_Approved").order_by(LeaveRequest.applied_on.desc()).all()
     result = []
-    for l in leaves:
-        s = db.query(Student).filter(Student.id == l.student_id).first()
-        result.append({"id": l.id, "student": s.full_name if s else "?", "type": l.leave_type, "from": l.from_date, "to": l.to_date, "reason": l.reason})
+    for l, name in leaves:
+        result.append({
+            "id": l.id, 
+            "student": name, 
+            "type": l.leave_type, 
+            "from": l.from_date, 
+            "to": l.to_date, 
+            "reason": l.reason
+        })
     return {"pending": result}
 
 @router.put("/hod/leave/{lid}/approve/")
@@ -319,14 +381,18 @@ def create_lecture_log(data: LectureLogCreate, faculty=Depends(get_current_facul
 
 @router.get("/lecture-logs/")
 def get_faculty_lecture_logs(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
-    logs = db.query(LectureLog).filter(LectureLog.faculty_id == faculty.id).order_by(LectureLog.date.desc(), LectureLog.hour.desc()).all()
+    # Optimized with join
+    logs = db.query(LectureLog, Subject)\
+        .join(Subject, LectureLog.subject_id == Subject.id)\
+        .filter(LectureLog.faculty_id == faculty.id)\
+        .order_by(LectureLog.date.desc(), LectureLog.hour.desc()).all()
+    
     result = []
-    for l in logs:
-        subj = db.query(Subject).filter(Subject.id == l.subject_id).first()
+    for l, subj in logs:
         result.append({
             "id": l.id,
-            "subject": subj.name if subj else "?",
-            "code": subj.code if subj else "?",
+            "subject": subj.name,
+            "code": subj.code,
             "date": l.date,
             "hour": l.hour,
             "topic_covered": l.topic_covered,

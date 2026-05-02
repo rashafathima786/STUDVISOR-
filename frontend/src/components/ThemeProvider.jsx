@@ -78,7 +78,7 @@ export default function ThemeProvider({ children }) {
     <>
       {children}
       {/* Theme Indicator (Dev) */}
-      <div className="fixed bottom-4 left-4 z-[9999] px-2 py-1 bg-primary text-white text-[10px] font-bold rounded-md opacity-50 pointer-events-none uppercase tracking-widest">
+      <div className="fixed bottom-4 left-4 z-[9999] px-3 py-1.5 bg-on-surface/10 backdrop-blur-md text-on-surface text-[9px] font-black rounded-full opacity-30 pointer-events-none uppercase tracking-[0.2em] border border-on-surface/5 hidden md:block">
         Theme: {theme} | Accent: {accentColor}
       </div>
     </>

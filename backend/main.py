@@ -13,10 +13,21 @@ import os
 # ── Rate Limiter ─────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Database Initialization ─────────────────────────────────────────────
+    from backend.app.database import Base, engine
+    from backend.app import models
+    Base.metadata.create_all(bind=engine)
+    yield
+
 app = FastAPI(
     title="Studvisor — Unified Campus Intelligence Platform",
     description="AI-powered Student ERP with multi-role auth, predictive analytics, gamification, and 80+ endpoints",
     version="2.0.0",
+    lifespan=lifespan
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -33,13 +44,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 cors_origins = os.getenv("CORS_ORIGINS", "https://studvisor.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000").split(",")
 app.add_middleware(CORSMiddleware, allow_origins=cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-
-# ── Database ─────────────────────────────────────────────────────────────────
-from backend.app.database import Base, engine
-from backend.app import models # Ensure models are registered with Base
-Base.metadata.create_all(bind=engine)
-
-# ── Domain-Driven Route Registration ────────────────────────────────────────
 from backend.api.routes.domains.core_domain import router as core_domain
 from backend.api.routes.domains.academic_domain import router as academic_domain
 from backend.api.routes.domains.user_domain import router as user_domain

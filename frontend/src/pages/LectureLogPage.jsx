@@ -32,7 +32,7 @@ export default function LectureLogPage() {
           <button
             key={subj}
             onClick={() => setFilter(subj)}
-            className={`pill-badge cursor-pointer transition-all ${filter === subj ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'bg-white/5 text-muted hover:bg-white/10'}`}
+            className={`pill-badge cursor-pointer transition-all ${filter === subj ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'bg-surface-container text-on-surface-variant/60 hover:bg-surface-container-high'}`}
             style={{ padding: '8px 20px', border: 'none', textTransform: 'uppercase', fontSize: '10px', fontWeight: 800, letterSpacing: '1px' }}
           >
             {subj}
@@ -68,19 +68,19 @@ export default function LectureLogPage() {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-extrabold text-primary uppercase tracking-[0.2em]">{log.code}</span>
-                  <h3 className="text-lg font-bold text-white mt-1">{log.subject}</h3>
+                  <h3 className="text-lg font-bold text-on-surface mt-1">{log.subject}</h3>
                 </div>
-                <div className="bg-white/5 p-2 rounded-xl border border-white/5">
-                  <span className="text-[10px] font-bold text-white/60">HOUR {log.hour}</span>
+                <div className="bg-surface-container-high p-2 rounded-xl border border-border-color">
+                  <span className="text-[10px] font-bold text-on-surface-variant/60">HOUR {log.hour}</span>
                 </div>
               </div>
 
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 mb-6">
-                <p className="text-sm leading-relaxed text-white/80" style={{ minHeight: '60px' }}>
+              <div className="p-4 bg-surface-container rounded-2xl border border-border-color mb-6">
+                <p className="text-sm leading-relaxed text-on-surface/80" style={{ minHeight: '60px' }}>
                   {log.topic_covered}
                 </p>
                 {log.remarks && (
-                  <div className="mt-3 pt-3 border-t border-white/5 flex gap-2 items-start">
+                  <div className="mt-3 pt-3 border-t border-border-color flex gap-2 items-start">
                     <Info size={14} className="text-secondary shrink-0 mt-0.5" />
                     <span className="text-xs text-muted italic">{log.remarks}</span>
                   </div>
@@ -98,12 +98,12 @@ export default function LectureLogPage() {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+              <div className="mt-4 pt-4 border-t border-border-color flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-success">Completed</span>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-white/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/30">
                   {log.methodology}
                 </span>
               </div>

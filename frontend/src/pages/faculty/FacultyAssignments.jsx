@@ -74,7 +74,7 @@ export default function FacultyAssignments() {
     <ErpLayout title="Curriculum & Evaluation" subtitle="Design assessments and audit academic integrity">
       
       <div className="flex items-center justify-between mb-8">
-         <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white/30 flex items-center gap-2">
+         <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-on-surface-variant/30 flex items-center gap-2">
             <Book size={14} /> Academic Tasks ({assignments.length})
          </h3>
          <button 
@@ -91,36 +91,36 @@ export default function FacultyAssignments() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="card glass-panel mb-8 border-primary/20 bg-primary/[0.02]"
+            className="card glass-panel mb-8 border-border-color bg-surface-container"
           >
             <form onSubmit={handleCreate} className="space-y-6">
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-1">Subject Node</label>
+                     <label className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest px-1">Subject Node</label>
                      <div className="relative">
                         <select 
-                          className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white text-sm focus:border-primary/50 outline-none transition-all appearance-none"
+                          className="w-full bg-surface-container border border-border-color rounded-xl px-4 py-3 text-on-surface text-sm focus:border-primary/50 outline-none transition-all appearance-none"
                           value={newAssignment.subject_id}
                           onChange={e => setNewAssignment({...newAssignment, subject_id: e.target.value})}
                           required
                         >
-                          <option value="" className="bg-[#12121a]">Select Subject</option>
+                          <option value="" className="bg-surface">Select Subject</option>
                           {subjects.map(s => (
-                            <option key={s.id} value={s.id} className="bg-[#12121a]">
+                            <option key={s.id} value={s.id} className="bg-surface">
                               {s.code} - {s.name}
                             </option>
                           ))}
                         </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/20">
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/20">
                            <BookOpen size={14} />
                         </div>
                      </div>
                   </div>
                   <div className="md:col-span-2 space-y-2">
-                     <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-1">Assignment Title</label>
+                     <label className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest px-1">Assignment Title</label>
                      <input 
                       type="text" 
-                      className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white text-sm focus:border-primary/50 outline-none transition-all"
+                      className="w-full bg-surface-container border border-border-color rounded-xl px-4 py-3 text-on-surface text-sm focus:border-primary/50 outline-none transition-all"
                       placeholder="e.g. Mid-term Research Paper"
                       value={newAssignment.title}
                       onChange={e => setNewAssignment({...newAssignment, title: e.target.value})}
@@ -129,9 +129,9 @@ export default function FacultyAssignments() {
                </div>
 
                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-1">Detailed Instructions</label>
+                  <label className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest px-1">Detailed Instructions</label>
                   <textarea 
-                    className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white text-sm focus:border-primary/50 outline-none transition-all min-h-[100px]"
+                    className="w-full bg-surface-container border border-border-color rounded-xl px-4 py-3 text-on-surface text-sm focus:border-primary/50 outline-none transition-all min-h-[100px]"
                     placeholder="Provide context, resources, and evaluation criteria..."
                     value={newAssignment.description}
                     onChange={e => setNewAssignment({...newAssignment, description: e.target.value})}
@@ -140,22 +140,22 @@ export default function FacultyAssignments() {
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-1">Deadline Date</label>
+                     <label className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest px-1">Deadline Date</label>
                      <div className="relative">
-                        <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" />
+                        <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/20" />
                         <input 
                           type="date" 
-                          className="w-full bg-white/5 border border-white/5 rounded-xl pl-12 pr-4 py-3 text-white text-sm focus:border-primary/50 outline-none transition-all"
+                          className="w-full bg-surface-container border border-border-color rounded-xl pl-12 pr-4 py-3 text-on-surface text-sm focus:border-primary/50 outline-none transition-all"
                           value={newAssignment.due_date}
                           onChange={e => setNewAssignment({...newAssignment, due_date: e.target.value})}
                         />
                      </div>
                   </div>
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-1">Evaluation Scale (Max Marks)</label>
+                     <label className="text-[10px] font-black text-on-surface-variant/30 uppercase tracking-widest px-1">Evaluation Scale (Max Marks)</label>
                      <input 
                       type="number" 
-                      className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white text-sm focus:border-primary/50 outline-none transition-all"
+                      className="w-full bg-surface-container border border-border-color rounded-xl px-4 py-3 text-on-surface text-sm focus:border-primary/50 outline-none transition-all"
                       value={newAssignment.max_marks}
                       onChange={e => setNewAssignment({...newAssignment, max_marks: e.target.value})}
                      />
@@ -166,7 +166,7 @@ export default function FacultyAssignments() {
                   <button 
                     type="button" 
                     onClick={() => setShowCreate(false)}
-                    className="px-6 py-2.5 rounded-xl bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                    className="px-6 py-2.5 rounded-xl bg-surface-container text-on-surface-variant/40 text-[10px] font-black uppercase tracking-widest hover:bg-on-surface/[0.05] transition-all"
                   >
                     Cancel
                   </button>
@@ -197,7 +197,7 @@ export default function FacultyAssignments() {
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
                transition={{ delay: idx * 0.1 }}
-               className="card glass-panel p-6 border-white/5 bg-white/[0.02] group relative overflow-hidden"
+               className="card glass-panel p-6 border-border-color bg-surface-container group relative overflow-hidden"
              >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-3xl -mr-12 -mt-12" />
                 
@@ -205,16 +205,16 @@ export default function FacultyAssignments() {
                    <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                          <FileText size={14} className="text-primary" />
-                         <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Assignment #{a.id}</span>
+                         <span className="text-[10px] font-bold text-on-surface-variant/30 uppercase tracking-widest">Assignment #{a.id}</span>
                       </div>
-                      <h4 className="text-lg font-bold text-white leading-tight">{a.title}</h4>
+                      <h4 className="text-lg font-bold text-on-surface leading-tight">{a.title}</h4>
                    </div>
                    <div className="text-right">
                       <div className="flex items-center gap-1.5 text-success/80 font-black text-[10px] uppercase tracking-widest mb-1">
                          <Users size={12} />
                          {a.submissions} Submissions
                       </div>
-                      <div className="flex items-center gap-1.5 text-white/30 text-[10px] font-bold uppercase tracking-widest">
+                      <div className="flex items-center gap-1.5 text-on-surface-variant/30 text-[10px] font-bold uppercase tracking-widest">
                          <Clock size={12} />
                          Due: {a.due}
                       </div>
@@ -223,7 +223,7 @@ export default function FacultyAssignments() {
 
                 <div className="flex gap-3 mt-8">
                    <button 
-                    className="flex-1 h-11 rounded-xl bg-white/5 border border-white/5 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 h-11 rounded-xl bg-surface-container border border-border-color text-on-surface text-[10px] font-black uppercase tracking-widest hover:bg-on-surface/[0.05] transition-all flex items-center justify-center gap-2"
                    >
                       <Send size={14} /> View Submissions
                    </button>
@@ -242,7 +242,7 @@ export default function FacultyAssignments() {
                 </div>
 
                 <div className="absolute bottom-4 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <div className="flex items-center gap-1 text-[8px] font-bold text-white/10 uppercase tracking-widest">
+                   <div className="flex items-center gap-1 text-[8px] font-bold text-on-surface-variant/10 uppercase tracking-widest">
                       AI Guard Enabled <AlertTriangle size={8} />
                    </div>
                 </div>

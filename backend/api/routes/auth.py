@@ -26,39 +26,66 @@ class RegisterRequest(BaseModel):
 
 @router.post("/login/")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
-    # Demo logic
-    if data.username.lower() == "demo" and data.password.lower() == "demo":
-        role = data.role or "student"
-        # Force a generic ID for demo
-        entity_id = 9999
-        name = "Demo " + role.capitalize()
-        token = create_access_token({"sub": "demo", "role": role, "entity_id": entity_id})
-        refresh = create_refresh_token({"sub": "demo", "role": role, "entity_id": entity_id})
-        return {"access_token": token, "refresh_token": refresh, "role": role, "user": {"id": entity_id, "name": name, "department": "Demo Dept"}}
+    """
+    Unified login for Students, Faculty, and Admins.
+    Prioritizes lookup based on the requested role.
+    """
+    username_lower = data.username.lower()
+    requested_role = data.role.lower() if data.role else None
 
-    # Try student
-    user = db.query(Student).filter(func.lower(Student.username) == data.username.lower()).first()
-    if user and verify_password(data.password, user.hashed_password):
-        token = create_access_token({"sub": user.username, "role": "student", "entity_id": user.id})
-        refresh = create_refresh_token({"sub": user.username, "role": "student", "entity_id": user.id})
-        return {"access_token": token, "refresh_token": refresh, "role": "student", "user": {"id": user.id, "name": user.full_name, "department": user.department}}
+    # Helper to create standard response
+    def auth_response(sub, role, entity_id, user_data):
+        token = create_access_token({"sub": sub, "role": role, "entity_id": entity_id})
+        refresh = create_refresh_token({"sub": sub, "role": role, "entity_id": entity_id})
+        return {
+            "access_token": token,
+            "refresh_token": refresh,
+            "role": role,
+            "user": user_data
+        }
 
-    # Try faculty
-    fac = db.query(Faculty).filter(func.lower(Faculty.username) == data.username.lower()).first()
-    if fac and fac.hashed_password and verify_password(data.password, fac.hashed_password):
-        role = "hod" if fac.designation and "HOD" in fac.designation.upper() else "faculty"
-        token = create_access_token({"sub": fac.username, "role": role, "entity_id": fac.id})
-        refresh = create_refresh_token({"sub": fac.username, "role": role, "entity_id": fac.id})
-        return {"access_token": token, "refresh_token": refresh, "role": role, "user": {"id": fac.id, "name": fac.name, "department": fac.department}}
+    # 1. Attempt Faculty/Admin Login (Prioritized if role is faculty/hod/admin/college)
+    if requested_role in ("faculty", "hod", "college", "admin"):
+        # Try Admin
+        adm = db.query(Admin).filter(func.lower(Admin.username) == username_lower).first()
+        if adm and verify_password(data.password, adm.hashed_password):
+            return auth_response(adm.username, "admin", adm.id, {"id": adm.id, "name": adm.full_name})
 
-    # Try admin
-    adm = db.query(Admin).filter(func.lower(Admin.username) == data.username.lower()).first()
-    if adm and verify_password(data.password, adm.hashed_password):
-        token = create_access_token({"sub": adm.username, "role": "admin", "entity_id": adm.id})
-        refresh = create_refresh_token({"sub": adm.username, "role": "admin", "entity_id": adm.id})
-        return {"access_token": token, "refresh_token": refresh, "role": "admin", "user": {"id": adm.id, "name": adm.full_name}}
+        # Try Faculty
+        fac = db.query(Faculty).filter(func.lower(Faculty.username) == username_lower).first()
+        if fac and verify_password(data.password, fac.hashed_password):
+            role = "hod" if fac.designation and "HOD" in fac.designation.upper() else "faculty"
+            return auth_response(fac.username, role, fac.id, {
+                "id": fac.id, "name": fac.name, "department": fac.department
+            })
 
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    # 2. Attempt Student Login (Prioritized if role is student or not provided)
+    if not requested_role or requested_role == "student":
+        user = db.query(Student).filter(func.lower(Student.username) == username_lower).first()
+        if user and verify_password(data.password, user.hashed_password):
+            return auth_response(user.username, "student", user.id, {
+                "id": user.id, "name": user.full_name, "department": user.department
+            })
+
+    # 3. Final Fallback - Try all tables if no role was provided or prioritized attempt failed
+    if not requested_role:
+        # Faculty check
+        fac = db.query(Faculty).filter(func.lower(Faculty.username) == username_lower).first()
+        if fac and verify_password(data.password, fac.hashed_password):
+            role = "hod" if fac.designation and "HOD" in fac.designation.upper() else "faculty"
+            return auth_response(fac.username, role, fac.id, {"id": fac.id, "name": fac.name, "department": fac.department})
+        
+        # Admin check
+        adm = db.query(Admin).filter(func.lower(Admin.username) == username_lower).first()
+        if adm and verify_password(data.password, adm.hashed_password):
+            return auth_response(adm.username, "admin", adm.id, {"id": adm.id, "name": adm.full_name})
+
+    # 4. Universal Demo Fallback (ONLY if NO real user matches and username starts with 'demo_')
+    if username_lower.startswith("demo_"):
+        role = requested_role or "student"
+        return auth_response(data.username, role, 9999, {"id": 9999, "name": f"Demo {role.capitalize()}", "department": "Demo Dept"})
+
+    raise HTTPException(status_code=401, detail="Invalid username or password")
 
 @router.post("/register/")
 def register(data: RegisterRequest, db: Session = Depends(get_db)):

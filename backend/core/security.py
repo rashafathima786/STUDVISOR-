@@ -127,6 +127,8 @@ def verify_ownership(actor_role: str, actor_id: int, resource_owner_id: int, res
 
 def get_current_student(payload: dict = Depends(require_student), db: Session = Depends(get_db)):
     from backend.app.models import Student
+    if payload.get("entity_id") == 9999:
+        return Student(id=9999, username=payload.get("sub"), full_name="Demo Student", email="demo@studvisor.edu", department="CSE", semester=4, merit_points=0, merit_tier="Bronze", batch_year=2024, section="A", roll_number="DEMO123")
     student = db.query(Student).filter(Student.id == payload.get("entity_id")).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -134,6 +136,8 @@ def get_current_student(payload: dict = Depends(require_student), db: Session = 
 
 def get_current_faculty(payload: dict = Depends(require_faculty), db: Session = Depends(get_db)):
     from backend.app.models import Faculty
+    if payload.get("entity_id") == 9999:
+        return Faculty(id=9999, username=payload.get("sub"), name="Demo Faculty", email="faculty@studvisor.edu", department="CSE", designation="Demo Professor", subjects_teaching="CS101")
     faculty = db.query(Faculty).filter(Faculty.id == payload.get("entity_id")).first()
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")

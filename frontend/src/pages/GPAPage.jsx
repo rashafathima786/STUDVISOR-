@@ -65,7 +65,7 @@ export default function GPAPage() {
         {/* Semester Breakdown */}
         {semesters.map(sem => (
           <div key={sem.semester} className="glass-panel rounded-2xl overflow-hidden">
-            <div className="p-6 border-b border-white/5 flex justify-between items-center">
+            <div className="p-6 border-b border-border-color flex justify-between items-center">
               <h3 className="font-bold text-on-surface flex items-center gap-2">
                 <GraduationCap size={18} />
                 Semester {sem.semester}
@@ -82,15 +82,15 @@ export default function GPAPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-white/[0.02] border-b border-white/5">
+                  <tr className="bg-surface-container/50 border-b border-border-color">
                     {['Subject', 'Code', 'Credits', 'Marks', '%', 'Grade', 'GP'].map(h => (
                       <th key={h} className="py-3 px-6 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-border-color">
                   {(sem.subjects || []).map((subj, idx) => (
-                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={idx} className="hover:bg-surface-container transition-colors">
                       <td className="py-4 px-6 text-sm font-semibold text-on-surface">{subj.name || subj.subject_name}</td>
                       <td className="py-4 px-6 text-sm text-primary/80 font-bold">{subj.code || subj.subject_code}</td>
                       <td className="py-4 px-6 text-sm text-on-surface-variant text-center">{subj.credits}</td>

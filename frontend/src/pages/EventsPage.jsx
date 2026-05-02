@@ -38,7 +38,7 @@ export default function EventsPage() {
       case 'seminar': return "bg-secondary/10 text-secondary border-secondary/20";
       case 'sports': return "bg-tertiary/10 text-tertiary border-tertiary/20";
       case 'cultural': return "bg-accent/10 text-accent border-accent/20";
-      default: return "bg-white/5 text-white/60 border-white/10";
+      default: return "bg-surface-container text-on-surface-variant/60 border-border-color";
     }
   };
 
@@ -55,14 +55,14 @@ export default function EventsPage() {
              <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20">
                <CalendarDays size={24} className="text-primary" />
              </div>
-             <h2 className="text-2xl font-bold text-white tracking-tight">Upcoming Schedule</h2>
+             <h2 className="text-2xl font-bold text-on-surface tracking-tight">Upcoming Schedule</h2>
           </div>
           
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-on-surface-variant/60 hover:bg-white/10 transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container border border-border-color text-xs font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors">
               <Filter size={14} /> Filter
             </button>
-            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all">
+            <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-surface text-xs font-black uppercase tracking-widest hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all">
               <Plus size={16} /> Suggest Event
             </button>
           </div>
@@ -80,10 +80,10 @@ export default function EventsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="py-32 glass-panel rounded-[40px] flex flex-col items-center justify-center text-center px-6"
           >
-            <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/10">
-              <CalendarDays size={40} className="text-white/10" />
+            <div className="w-20 h-20 rounded-3xl bg-surface-container flex items-center justify-center mb-6 border border-border-color">
+              <CalendarDays size={40} className="text-on-surface-variant/10" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">No Events Found</h3>
+            <h3 className="text-2xl font-bold text-on-surface mb-2">No Events Found</h3>
             <p className="text-on-surface-variant/40 max-w-sm text-sm">
               The campus calendar is quiet at the moment. Keep an eye out for future workshops and seminars.
             </p>
@@ -105,7 +105,7 @@ export default function EventsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.08 }}
                     whileHover={{ y: -6 }}
-                    className="group flex flex-col glass-panel rounded-3xl overflow-hidden border border-white/5 hover:border-primary/30 transition-all duration-300"
+                    className="group flex flex-col glass-panel rounded-3xl overflow-hidden border border-border-color hover:border-primary/30 transition-all duration-300"
                   >
                     {/* Event Banner */}
                     <div className="relative h-44 overflow-hidden">
@@ -117,7 +117,7 @@ export default function EventsPage() {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
-                          <CalendarDays size={48} className="text-white/10" />
+                          <CalendarDays size={48} className="text-on-surface-variant/10" />
                         </div>
                       )}
                       <div className="absolute top-4 left-4">
@@ -130,7 +130,7 @@ export default function EventsPage() {
                     {/* Content */}
                     <div className="p-6 flex flex-col flex-grow space-y-4">
                       <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-white leading-tight group-hover:text-primary transition-colors">
+                        <h3 className="text-xl font-bold text-on-surface leading-tight group-hover:text-primary transition-colors">
                           {evt.title}
                         </h3>
                         <p className="text-sm text-on-surface-variant/50 line-clamp-2 leading-relaxed">
@@ -138,7 +138,7 @@ export default function EventsPage() {
                         </p>
                       </div>
 
-                      <div className="space-y-2.5 py-4 border-y border-white/5">
+                      <div className="space-y-2.5 py-4 border-y border-border-color">
                         <div className="flex items-center gap-3 text-xs font-medium text-on-surface-variant/60">
                           <CalendarDays size={14} className="text-primary/60" /> 
                           <span>{eventDate}</span>
@@ -161,7 +161,7 @@ export default function EventsPage() {
                             w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300
                             ${isRsvped 
                               ? 'bg-tertiary/10 text-tertiary border border-tertiary/20 cursor-default' 
-                              : 'bg-primary text-white hover:shadow-lg hover:shadow-primary/20 active:scale-95 cursor-pointer'}
+                              : 'bg-primary text-surface hover:shadow-lg hover:shadow-primary/20 active:scale-95 cursor-pointer'}
                           `}
                         >
                           {isRsvped ? (

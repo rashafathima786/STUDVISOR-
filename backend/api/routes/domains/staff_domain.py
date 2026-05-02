@@ -7,7 +7,7 @@ from backend.api.routes.extended_routes import (
 )
 from backend.api.routes.fees import router as fees_router
 
-router = APIRouter(prefix="/staff", tags=["Staff Domain"])
+router = APIRouter(tags=["Staff Domain"])
 
 router.include_router(admin_router, tags=["Admin Control"])
 router.include_router(faculty_portal_router, tags=["Faculty Portal"])

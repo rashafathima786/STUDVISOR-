@@ -48,7 +48,7 @@ export default function FacultyLeaves() {
   return (
     <ErpLayout title="Leave Decision Center" subtitle="Validate and process student absence authorizations">
       <div className="mb-8">
-         <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white/30 mb-6 flex items-center gap-2">
+         <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-on-surface-variant/30 mb-6 flex items-center gap-2">
             <PenTool size={14} /> Pending Verifications ({leaves.length})
          </h3>
 
@@ -72,17 +72,17 @@ export default function FacultyLeaves() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="card glass-panel p-6 border-white/5 bg-white/[0.02] flex flex-col group relative overflow-hidden"
+                    className="card glass-panel p-6 border-border-color bg-surface-container flex flex-col group relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
                     
                     <div className="flex items-center gap-4 mb-6">
-                       <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary font-bold text-lg">
+                       <div className="w-12 h-12 rounded-2xl bg-surface-container border border-border-color flex items-center justify-center text-primary font-bold text-lg">
                           {l.student?.[0]}
                        </div>
                        <div className="flex-1">
-                          <h4 className="text-sm font-bold text-white leading-tight">{l.student}</h4>
-                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{l.type} Request</span>
+                          <h4 className="text-sm font-bold text-on-surface leading-tight">{l.student}</h4>
+                          <span className="text-[10px] font-bold text-on-surface-variant/30 uppercase tracking-widest">{l.type} Request</span>
                        </div>
                        <div className="px-2 py-1 rounded-lg bg-info/10 border border-info/20 text-info text-[8px] font-black uppercase tracking-widest">
                           Pending
@@ -91,20 +91,20 @@ export default function FacultyLeaves() {
 
                     <div className="space-y-4 mb-8 flex-1">
                        <div className="flex items-center gap-3">
-                          <Calendar size={14} className="text-white/20" />
+                          <Calendar size={14} className="text-on-surface-variant/20" />
                           <div className="text-xs">
-                             <span className="text-white font-bold">{l.from}</span>
-                             <span className="text-white/20 mx-2">to</span>
-                             <span className="text-white font-bold">{l.to}</span>
+                             <span className="text-on-surface font-bold">{l.from}</span>
+                             <span className="text-on-surface-variant/20 mx-2">to</span>
+                             <span className="text-on-surface font-bold">{l.to}</span>
                           </div>
                        </div>
                        <div className="flex items-start gap-3">
-                          <FileText size={14} className="text-white/20 mt-1 shrink-0" />
-                          <p className="text-xs text-white/60 leading-relaxed italic">"{l.reason}"</p>
+                          <FileText size={14} className="text-on-surface-variant/20 mt-1 shrink-0" />
+                          <p className="text-xs text-on-surface-variant/60 leading-relaxed italic">"{l.reason}"</p>
                        </div>
                     </div>
 
-                    <div className="flex gap-3 pt-6 border-t border-white/5">
+                    <div className="flex gap-3 pt-6 border-t border-border-color">
                        <button 
                         className="flex-1 h-11 rounded-xl bg-error/10 border border-error/20 text-error text-[10px] font-black uppercase tracking-[0.2em] hover:bg-error hover:text-white transition-all disabled:opacity-50"
                         onClick={() => handleReject(l.id)}
@@ -122,7 +122,7 @@ export default function FacultyLeaves() {
                     </div>
 
                     <div className="absolute bottom-4 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button className="text-white/20 hover:text-white"><Info size={14} /></button>
+                       <button className="text-on-surface-variant/20 hover:text-on-surface"><Info size={14} /></button>
                     </div>
                   </motion.div>
                 ))}
