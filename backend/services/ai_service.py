@@ -26,6 +26,15 @@ class AIService:
         self.api_key = os.getenv("ANTHROPIC_API_KEY") 
         self.model = self.anthropic_model
 
+    def mask_identifiable_info(self, text: str) -> str:
+        """Redacts names, IDs, and other PII from the context string."""
+        import re
+        # Mask IDs (e.g., ID: 12345)
+        text = re.sub(r"(ID:? ?)\d+", r"\1[MASKED]", text)
+        # Mask Names (heuristic: follows 'Identity:' or 'Student Identity:')
+        text = re.sub(r"(Identity:? ?)[A-Z][a-z]+ [A-Z][a-z]+", r"\1Verified Student", text)
+        return text
+
     async def _call_gemini_api(self, prompt: str, stream: bool = False):
         """Robust helper to call Gemini with automatic API key rotation and model cycling."""
         from backend.core.config import get_settings
@@ -199,11 +208,12 @@ class AIService:
 
         return f"[MOCK AI] Analyzing: {user_query[:50]}..."
 
-    async def ensemble_chat(self, user_query: str, db_context: str, category: str = "General") -> Dict:
+    async def ensemble_chat(self, user_query: str, db_context: str, category: str = "General", identity_token: str = "anonymous") -> Dict:
         # -- INTELLIGENCE FAST-PASS (CACHE CHECK) --
-        cache_key = f"{user_query.strip().lower()}_{db_context[:100]}"
+        # Identity-aware caching to prevent cross-login data leakage
+        cache_key = f"{identity_token}_{user_query.strip().lower()}_{db_context[:150]}"
         if cache_key in self._response_cache:
-            print(f"[AI CACHE HIT] Serving cached response for node speed.")
+            print(f"[AI CACHE HIT] Serving isolated response for security.")
             return self._response_cache[cache_key]
 
         from backend.core.config import get_settings
@@ -217,7 +227,10 @@ class AIService:
         protocol = "Gemini"
         
         if gemini_key:
-            # Theme-aware draft prompt
+            # -- PRIVACY GUARD: REDACT SENSITIVE DATA --
+            masked_context = self.mask_identifiable_info(db_context)
+            
+            # Theme-aware focus
             category_focus = {
                 "Academic": "Be precise and data-driven. Focus on grades, attendance, and study tips.",
                 "Lounge": "Be casual, friendly, and brief. Act like a helpful student peer.",
@@ -225,7 +238,9 @@ class AIService:
                 "Clubs": "Be energetic and informative. Focus on events and student organizations."
             }.get(category, "Be helpful and professional.")
 
-            prompt = f"Context: {db_context}\nCategory: {category}\nFocus: {category_focus}\n\nStudent asked: '{user_query}'\n\nDraft a helpful response for the {category} zone."
+            from backend.services.sentiment_service import sentiment_service
+            redacted_query = sentiment_service.redact_pii(user_query)
+            prompt = f"Context: {masked_context}\nCategory: {category}\nFocus: {category_focus}\n\nStudent asked: '{redacted_query}'\n\nDraft a helpful response for the {category} zone. IMPORTANT: MAINTAIN TOTAL ANONYMITY. DO NOT USE NAMES."
             draft = await self._call_gemini_api(prompt)
 
         final_text = draft # Default to draft if refinement fails
@@ -235,12 +250,12 @@ class AIService:
             is_academic_query = any(k in user_query.upper() for k in ["GPA", "CGPA", "ATTENDANCE", "MARKS", "REPORT", "GRADE"])
             
             # Mask sensitive data if not in Academic zone and not an academic query
-            filtered_context = db_context
+            filtered_context = self.mask_identifiable_info(db_context)
             if category != "Academic" and not is_academic_query:
                 # Remove GPA and Attendance strings from the context seen by the AI
                 import re
-                filtered_context = re.sub(r"Attendance:.*?\.", "Attendance: [HIDDEN FOR PRIVACY].", filtered_context)
-                filtered_context = re.sub(r"Academic Stats:.*?\.", "Academic Stats: [HIDDEN FOR PRIVACY].", filtered_context)
+                filtered_context = re.sub(r"Attendance:.*?\.", "Attendance: [REDACTED FOR ANONYMITY].", filtered_context)
+                filtered_context = re.sub(r"Academic Stats:.*?\.", "Academic Stats: [REDACTED FOR ANONYMITY].", filtered_context)
             
             # Theme-Specific Persona Prompts
             persona_map = {
@@ -260,13 +275,14 @@ class AIService:
                 f"DRAFT: {draft if draft else 'N/A'}.\n\n"
                 "CRITICAL INSTRUCTIONS:\n"
                 "1. TONE: Match the Zone Persona. Professional for Academic/General, Casual for Lounge/Clubs.\n"
-                "2. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (-).\n"
-                "3. BREVITY: Max 3-4 bullet points. Be extremely direct.\n"
-                "4. ACCURACY: Use exact stats from context. If data is missing, say 'No institutional data found'.\n"
-                "5. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n"
-                "6. RECOVERY MATH: If attendance is < 75% in a subject, calculate 'X' needed classes using (Present + X)/(Total + X) >= 0.75. Always state: '(Requires X more classes)'.\n\n"
+                "2. ANONYMITY: NEVER mention names, IDs, or identifiable details. Treat the poster as an anonymous 'Student'.\n"
+                "3. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (-).\n"
+                "4. BREVITY: Max 3-4 bullet points. Be extremely direct.\n"
+                "5. ACCURACY: Use exact stats from context if provided. If data is [REDACTED], do not guess it.\n"
+                "6. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n"
+                "7. RECOVERY MATH: If attendance is < 75% in a subject, calculate 'X' needed classes using (Present + X)/(Total + X) >= 0.75. Always state: '(Requires X more classes)'.\n\n"
                 "FORMATTING RULES:\n"
-                "- Bold key metrics, dates, and names.\n"
+                "- Bold key metrics, dates, and categories.\n"
                 "- Use '-' for all lists.\n"
                 "- Align data using 'Key: Value' format."
             )
@@ -327,8 +343,9 @@ class AIService:
         self._response_cache[cache_key] = result
         return result
 
-    async def ensemble_chat_stream(self, user_query: str, db_context: str, category: str = "General") -> AsyncGenerator[str, None]:
+    async def ensemble_chat_stream(self, user_query: str, db_context: str, category: str = "General", identity_token: str = "anonymous") -> AsyncGenerator[str, None]:
         """Streaming version of the intelligence ensemble."""
+        # Note: Streaming responses are generally not cached to ensure freshness
         from backend.core.config import get_settings
         settings = get_settings()
         gemini_key = settings.GEMINI_API_KEY

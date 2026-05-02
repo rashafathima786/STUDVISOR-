@@ -54,7 +54,10 @@ def list_posts(
     from backend.services.anonymity_service import compute_anon_id
     current_hash = compute_anon_id(student.id)
     
-    query = db.query(AnonPost).filter(AnonPost.moderated == False)
+    query = db.query(AnonPost).filter(
+        AnonPost.moderated == False,
+        AnonPost.institution_id == student.institution_id
+    )
     
     if category and category.lower() != "all":
         query = query.filter(AnonPost.category.ilike(category))
@@ -120,8 +123,10 @@ async def create_post(data: AnonPostCreate, student=Depends(get_current_student)
         session_hash=session_hash, 
         content=data.content, 
         category=data.category,
+        institution_id=student.institution_id,
         moderated=analysis["needs_moderation"],
-        toxicity_score=analysis["toxicity_score"]
+        toxicity_score=analysis["toxicity_score"],
+        censored_content=analysis.get("redacted_content")
     )
     db.add(post)
     db.commit()
@@ -168,7 +173,7 @@ async def create_post(data: AnonPostCreate, student=Depends(get_current_student)
             ann_info = " | ".join([f"{a.title}: {a.content[:100]}" for a in recent_ann]) if recent_ann else "No recent news."
 
             db_context = (
-                f"Student Identity: {student.full_name} (ID: {student.id}). "
+                f"Student Identity: Verified Student. "
                 f"Attendance: Overall {total_pct}%. Breakdown: {subject_details}. "
                 f"Academic Stats: CGPA is {cgpa}. "
                 f"Campus Schedule: Upcoming exams: {exam_info}. "
@@ -176,13 +181,14 @@ async def create_post(data: AnonPostCreate, student=Depends(get_current_student)
             )
 
             # 2. Call Ensemble Chat (Gemini Draft -> Groq Refine)
-            ai_response_obj = await ai_service.ensemble_chat(data.content, db_context, data.category)
+            ai_response_obj = await ai_service.ensemble_chat(data.content, db_context, data.category, identity_token=session_hash)
             ai_response = ai_response_obj.get("text", "") if isinstance(ai_response_obj, dict) else ai_response_obj
             
             ai_post = AnonPost(
                 session_hash="NEXUS_AI_BOT",
                 content=ai_response,
                 category=data.category,
+                institution_id=student.institution_id,
                 parent_id=post.id
             )
             db.add(ai_post)
@@ -203,6 +209,13 @@ class ReactionCreate(BaseModel):
 @anon_chat_router.post("/posts/{pid}/react/")
 def react(pid: int, data: ReactionCreate, student=Depends(get_current_student), db: Session = Depends(get_db)):
     from backend.services.anonymity_service import compute_anon_id
+    
+    # Ensure post belongs to student's institution
+    post = db.query(AnonPost).filter(AnonPost.id == pid, AnonPost.institution_id == student.institution_id).first()
+    if not post:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Post not found in your campus")
+
     session_hash = compute_anon_id(student.id)
     
     # Check if already reacted
@@ -227,8 +240,8 @@ def react(pid: int, data: ReactionCreate, student=Depends(get_current_student), 
     return {"message": "Reaction added"}
 
 @anon_chat_router.post("/posts/{pid}/flag/")
-def flag(pid: int, db: Session = Depends(get_db)):
-    post = db.query(AnonPost).filter(AnonPost.id == pid).first()
+def flag(pid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
+    post = db.query(AnonPost).filter(AnonPost.id == pid, AnonPost.institution_id == student.institution_id).first()
     if not post:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Post not found")

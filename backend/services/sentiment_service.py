@@ -20,7 +20,17 @@ ACADEMIC_KEYWORDS = [
 
 
 class SentimentService:
+    def redact_pii(self, text: str) -> str:
+        """Redacts sensitive campus data like emails and phone numbers."""
+        # Redact emails
+        text = re.sub(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', '[EMAIL REDACTED]', text)
+        # Redact phone numbers (simple common formats)
+        text = re.sub(r'\+?\d{10,12}', '[PHONE REDACTED]', text)
+        text = re.sub(r'\d{3}-\d{3}-\d{4}', '[PHONE REDACTED]', text)
+        return text
+
     def analyze(self, text: str) -> dict:
+        raw_text = text
         text = text.lower()
         
         # 1. Toxicity check
@@ -38,8 +48,12 @@ class SentimentService:
         # 3. Categorization
         is_academic = any(w in text for w in ACADEMIC_KEYWORDS)
         
+        # 4. PII Redaction
+        redacted_text = self.redact_pii(raw_text)
+        
         return {
             "text": text,
+            "redacted_content": redacted_text,
             "sentiment": "Negative" if toxicity_score > 0.3 or distress_score > 0.3 else "Neutral",
             "score": max(toxicity_score, distress_score),
             "toxicity_score": toxicity_score,

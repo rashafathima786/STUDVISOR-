@@ -55,6 +55,7 @@ export default function GeneralForumPage() {
   const messagesEndRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const isFirstLoad = useRef(true)
+  const shouldScrollRef = useRef(false)
 
   const channels = [
     { id: "General", name: "General Forum", desc: "Open campus dialogue", icon: <Globe size={18} /> },
@@ -119,13 +120,16 @@ export default function GeneralForumPage() {
   useEffect(() => {
     const container = scrollContainerRef.current
     if (container && posts.length > 0) {
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 250
+      // Calculate if user was near bottom BEFORE the update
+      const threshold = 300
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold
       
-      if (isFirstLoad.current) {
+      if (isFirstLoad.current || shouldScrollRef.current) {
         setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+          messagesEndRef.current?.scrollIntoView({ behavior: isFirstLoad.current ? 'auto' : 'smooth' })
           isFirstLoad.current = false
-        }, 50)
+          shouldScrollRef.current = false
+        }, 100)
       } else if (isAtBottom) {
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -151,6 +155,7 @@ export default function GeneralForumPage() {
       is_optimistic: true
     }
     setPosts(prev => [...prev, optimisticPost])
+    shouldScrollRef.current = true // Force scroll on next render
 
     try {
       await createAnonPost({ content, category })
@@ -296,10 +301,10 @@ export default function GeneralForumPage() {
 
           <div className="flex-1 overflow-y-auto scrollbar-hide bg-transparent relative" ref={scrollContainerRef}>
             <div className="max-w-4xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
-              <AnimatePresence mode="wait">
-                {posts.length > 0 ? (
-                  posts.map((post, idx) => {
-                    const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### \ud83d\udfe2");
+            <AnimatePresence initial={false}>
+              {posts.length > 0 ? (
+                posts.map((post, idx) => {
+                  const isAI = post.session_hash === "NEXUS_AI_BOT" || post.content.startsWith("### \ud83d\udfe2");
                     return (
                       <motion.div 
                         key={post.id || idx}
