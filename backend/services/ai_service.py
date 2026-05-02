@@ -263,7 +263,8 @@ class AIService:
                 "2. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (-).\n"
                 "3. BREVITY: Max 3-4 bullet points. Be extremely direct.\n"
                 "4. ACCURACY: Use exact stats from context. If data is missing, say 'No institutional data found'.\n"
-                f"5. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n\n"
+                "5. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n"
+                "6. RECOVERY MATH: If attendance is < 75% in a subject, calculate 'X' needed classes using (Present + X)/(Total + X) >= 0.75. Always state: '(Requires X more classes)'.\n\n"
                 "FORMATTING RULES:\n"
                 "- Bold key metrics, dates, and names.\n"
                 "- Use '-' for all lists.\n"
@@ -341,7 +342,11 @@ class AIService:
 
         # Refinement (Groq) - Streaming
         if groq_key:
-            refinement_prompt = f"ZONE: {category}. CONTEXT: {db_context}. DRAFT: {draft}. Respond to: '{user_query}' with short bullet points. NEVER USE PARAGRAPHS."
+            refinement_prompt = (
+                f"ZONE: {category}. CONTEXT: {db_context}. DRAFT: {draft}. "
+                f"Respond to: '{user_query}' with short bullet points. NEVER USE PARAGRAPHS. "
+                "RULE: If attendance is < 75%, calculate classes needed to reach 75% and state '(Requires X more classes)'."
+            )
             data = {
                 "model": self.groq_model,
                 "messages": [{"role": "system", "content": refinement_prompt}],

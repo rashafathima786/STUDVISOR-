@@ -32,7 +32,7 @@ INTENT_PATTERNS = {
     "attendance_subject": r"\b(subject.?wise|per subject|each subject|individual subject|attendance in each)\b",
     "attendance_recovery": r"\b(low attendance|how many classes to attend|lowest attendance|attendance recovery|less attendance|poor attendance|lowest)\b|which subject.*(low|less).*attendance",
     "bunk_check": r"\b(how many.*(miss|bunk|skip)|can i (miss|bunk|skip)|safe to bunk|bunk safety)\b",
-    "reach_75": r"\b(reach 75|get to 75|need.*attend.*75|recover attendance|classes needed|reach target|how many.*classes.*attend.*eligible)\b",
+    "reach_75": r"\b(reach 75|get to 75|need.*attend.*75|recover attendance|classes needed|reach target|how many.*classes.*attend.*eligible|how (many|mnay).*(more|shud|attend).*eligible)\b",
     "attendance_overall": r"\b(attendance|overall attendance|total attendance|my attendance|attendance percentage|attendance summary)\b",
     "cgpa": r"\b(cgpa|cumulative|overall gpa|my gpa|total gpa)\b",
     "sgpa": r"\b(sgpa|semester gpa|this semester gpa|current gpa)\b",
@@ -56,10 +56,38 @@ INTENT_PATTERNS = {
 }
 
 
+def normalize_text(text: str) -> str:
+    """Preprocessing layer to handle shorthands, typos, and character normalization."""
+    # 1. Basic cleaning
+    text = text.lower().strip()
+    
+    # 2. Character normalization (e.g., "helloooo" -> "hello")
+    text = re.sub(r'(.)\1{2,}', r'\1', text)
+    
+    # 3. Common Shorthand & Student Typos (Custom Fixes)
+    shorthand_map = {
+        r"\bhw\b": "how",
+        r"\br\b": "are",
+        r"\bu\b": "you",
+        r"\bur\b": "your",
+        r"\bwht\b": "what",
+        r"\bmnay\b": "many",
+        r"\bshud\b": "should",
+        r"\battnd\b": "attend",
+        r"\beligibl\b": "eligible",
+        r"\bclses\b": "classes",
+        r"\battndnce\b": "attendance",
+    }
+    for pattern, replacement in shorthand_map.items():
+        text = re.sub(pattern, replacement, text)
+        
+    return text
+
+
 def detect_intent(message: str) -> str:
-    lowered = message.lower().strip()
+    normalized = normalize_text(message)
     for intent, pattern in INTENT_PATTERNS.items():
-        if re.search(pattern, lowered):
+        if re.search(pattern, normalized):
             return intent
     return "unknown"
 

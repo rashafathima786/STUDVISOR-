@@ -277,23 +277,13 @@ html, body {
   /* ── Bento Grid System (used by hub pages) ─────────────────────────── */
   .bento-grid {
     display: grid;
-<<<<<<< HEAD
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-=======
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
->>>>>>> ab602ae41d34c7ccd3f32234ca1ebd32539305cd
     gap: 20px;
     width: 100%;
   }
 
-<<<<<<< HEAD
-  /* Overriding old media queries for more fluid grid */
-  /* @media (max-width: 1024px) { ... } */
-  /* @media (max-width: 640px) { ... } */
-=======
   /* Note: Mobile stacking is now handled by auto-fit, 
      but we keep media queries for specific adjustments if needed */
->>>>>>> ab602ae41d34c7ccd3f32234ca1ebd32539305cd
 
   .bento-tile {
     background: var(--surface-container); /* Brighter tile base */
