@@ -57,22 +57,24 @@ export default function ServicesHub() {
   return (
     <ErpLayout title="Service Terminal" subtitle="Strategic management of administrative, financial, and career protocols">
       
-      {/* Navigation Tabs */}
-      <div className="flex gap-2 mb-12 p-1.5 bg-white/5 rounded-2xl border border-white/5 w-fit backdrop-blur-xl">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-              activeTab === tab.id 
-                ? 'bg-primary text-white shadow-lg' 
-                : 'text-white/40 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <tab.icon size={14} className={activeTab === tab.id ? 'text-white' : tab.color} />
-            {tab.label}
-          </button>
-        ))}
+      {/* Navigation Tabs (App-Style Segmented Control) */}
+      <div className="sticky top-0 z-40 bg-surface/60 backdrop-blur-3xl -mx-4 px-4 py-4 md:static md:bg-transparent md:backdrop-blur-none md:p-0 md:mb-12">
+        <div className="flex gap-1 p-1 bg-white/[0.03] rounded-2xl border border-white/5 w-full overflow-x-auto scrollbar-hide">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex-shrink-0 flex-1 min-w-[120px] ${
+                activeTab === tab.id 
+                  ? 'bg-white text-black shadow-xl scale-[1.02]' 
+                  : 'text-white/30 hover:text-white/60'
+              }`}
+            >
+              <tab.icon size={14} className={activeTab === tab.id ? 'text-black' : tab.color} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -82,37 +84,37 @@ export default function ServicesHub() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="grid grid-cols-1 md:grid-cols-12 gap-8"
+            className="flex flex-col lg:grid lg:grid-cols-12 gap-8"
           >
             {/* Quick Metrics */}
             <div className="col-span-12 glass-panel p-8 rounded-[40px] border-white/5 flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="flex items-center gap-6">
-                <div className="p-4 bg-emerald-500/10 rounded-2xl text-emerald-400">
+              <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto min-w-0">
+                <div className="p-4 bg-emerald-500/10 rounded-2xl text-emerald-400 flex-shrink-0">
                   <Wallet size={32} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Financial Standing</p>
-                  <h3 className="text-2xl font-black text-white tracking-tighter">₹{feeSummary?.total_balance?.toLocaleString() || '0'} Due</h3>
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest truncate">Financial Standing</p>
+                  <h3 className="font-black text-white tracking-tighter" style={{ fontSize: 'clamp(1.1rem, 1rem + 1vw, 1.75rem)' }}>₹{feeSummary?.total_balance?.toLocaleString() || '0'} Due</h3>
                 </div>
               </div>
               <div className="w-px h-12 bg-white/5 hidden md:block" />
-              <div className="flex items-center gap-6">
-                <div className="p-4 bg-primary/10 rounded-2xl text-primary">
+              <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto min-w-0">
+                <div className="p-4 bg-primary/10 rounded-2xl text-primary flex-shrink-0">
                   <Briefcase size={32} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Active Drives</p>
-                  <h3 className="text-2xl font-black text-white tracking-tighter">{drives.length} Portfolios</h3>
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest truncate">Active Drives</p>
+                  <h3 className="font-black text-white tracking-tighter" style={{ fontSize: 'clamp(1.1rem, 1rem + 1vw, 1.75rem)' }}>{drives.length} Portfolios</h3>
                 </div>
               </div>
               <div className="w-px h-12 bg-white/5 hidden md:block" />
-              <div className="flex items-center gap-6">
-                <div className="p-4 bg-amber-500/10 rounded-2xl text-amber-400">
+              <div className="flex items-center gap-4 md:gap-8 w-full md:w-auto min-w-0">
+                <div className="p-4 bg-amber-500/10 rounded-2xl text-amber-400 flex-shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
                   <HelpCircle size={32} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Support Sync</p>
-                  <h3 className="text-2xl font-black text-white tracking-tighter">{helpdeskStats.active_tickets} Open Tickets</h3>
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest truncate mb-1">Support Sync</p>
+                  <h3 className="font-black text-white tracking-tighter" style={{ fontSize: 'clamp(1.25rem, 1.15rem + 1vw, 1.85rem)' }}>{helpdeskStats.active_tickets} Open Tickets</h3>
                 </div>
               </div>
               <button onClick={() => navigate('/helpdesk')} className="bg-white text-black px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl">
@@ -121,15 +123,15 @@ export default function ServicesHub() {
             </div>
 
             {/* Placement Preview */}
-            <div className="md:col-span-6 glass-panel p-8 rounded-[40px] border-white/5 group hover:border-primary/40 transition-colors">
+            <div className="lg:col-span-6 glass-panel bg-surface p-8 rounded-[40px] border-white/5 group hover:border-primary/40 transition-colors">
               <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-4">
-                   <div className="p-3 bg-secondary/10 rounded-2xl text-secondary">
+                <div className="flex items-center gap-3 md:gap-4 overflow-hidden min-w-0">
+                   <div className="p-3 bg-secondary/10 rounded-2xl text-secondary flex-shrink-0">
                      <Briefcase size={24} />
                    </div>
-                   <h3 className="text-xl font-black text-white tracking-tight">Career Terminal</h3>
+                    <h3 className="text-lg md:text-xl font-black text-white tracking-tight truncate flex-1 md:flex-none whitespace-normal md:whitespace-nowrap">Career Terminal</h3>
                 </div>
-                <button onClick={() => navigate('/placement')} className="p-2 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all">
+                <button onClick={() => navigate('/placement')} className="p-2 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all flex-shrink-0">
                   <ChevronRight size={20} />
                 </button>
               </div>
@@ -148,21 +150,21 @@ export default function ServicesHub() {
             </div>
 
             {/* Financials Preview */}
-            <div className="md:col-span-6 glass-panel p-8 rounded-[40px] border-white/5 group hover:border-emerald-500/40 transition-colors">
+            <div className="lg:col-span-6 glass-panel bg-surface p-8 rounded-[40px] border-white/5 group hover:border-emerald-500/40 transition-colors">
               <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-4">
-                   <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                <div className="flex items-center gap-3 md:gap-4 overflow-hidden min-w-0">
+                   <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400 flex-shrink-0">
                      <CreditCard size={24} />
                    </div>
-                   <h3 className="text-xl font-black text-white tracking-tight">Financial Terminal</h3>
+                    <h3 className="text-lg md:text-xl font-black text-white tracking-tight truncate flex-1 md:flex-none whitespace-normal md:whitespace-nowrap">Financial Terminal</h3>
                 </div>
-                <button onClick={() => navigate('/fees')} className="p-2 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all">
+                <button onClick={() => navigate('/fees')} className="p-2 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all flex-shrink-0">
                   <ChevronRight size={20} />
                 </button>
               </div>
               <div className="p-8 bg-white/5 rounded-[32px] border border-white/5 text-center">
                  <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2">Aggregate Balance</p>
-                 <h2 className="text-4xl font-black text-white tracking-tighter mb-6">₹{feeSummary?.total_balance?.toLocaleString() || '0'}</h2>
+                 <h2 className="text-3xl font-black text-white tracking-tighter mb-6">₹{feeSummary?.total_balance?.toLocaleString() || '0'}</h2>
                  <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-4">
                    <div 
                     className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-1000"
@@ -174,6 +176,7 @@ export default function ServicesHub() {
             </div>
 
             {/* Quick Links Grid */}
+            <div className="col-span-12 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-6">
             {[
               { label: 'Leave & OD', icon: Clock, path: '/leave', color: 'text-amber-400', desc: 'Absence Protocols' },
               { label: 'Library HQ', icon: ArrowRight, path: '/library', color: 'text-secondary', desc: 'Resource Access' },
@@ -183,7 +186,7 @@ export default function ServicesHub() {
               <div 
                 key={i} 
                 onClick={() => navigate(link.path)}
-                className="col-span-12 md:col-span-3 glass-panel p-6 rounded-[32px] border-white/5 cursor-pointer hover:scale-105 hover:bg-white/5 transition-all group"
+                className="glass-panel p-6 rounded-[32px] border-white/5 cursor-pointer hover:scale-105 hover:bg-white/5 transition-all group"
               >
                 <div className={`p-3 bg-white/5 rounded-2xl w-fit mb-4 ${link.color} group-hover:scale-110 transition-transform`}>
                   <link.icon size={20} />
@@ -192,6 +195,7 @@ export default function ServicesHub() {
                 <p className="text-white font-bold">{link.label}</p>
               </div>
             ))}
+            </div>
           </motion.div>
         )}
 
@@ -205,7 +209,7 @@ export default function ServicesHub() {
           >
             <div className="glass-panel p-12 rounded-[48px] text-center bg-gradient-to-br from-secondary/20 to-transparent border-secondary/20">
               <Briefcase size={80} className="mx-auto mb-8 text-secondary" />
-              <h2 className="text-4xl font-black text-white tracking-tighter mb-4">Strategic Career Intelligence</h2>
+              <h2 className="font-black text-white tracking-tighter mb-4" style={{ fontSize: 'clamp(2rem, 1.5rem + 3vw, 3.5rem)' }}>Strategic Career Intelligence</h2>
               <p className="text-white/40 max-w-2xl mx-auto mb-12">Access premium corporate drives, track real-time application streams, and manage your professional academic portfolio.</p>
               <button onClick={() => navigate('/placement')} className="bg-secondary text-white px-12 py-5 rounded-[24px] font-black text-sm uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl">
                 Enter Placement Portal

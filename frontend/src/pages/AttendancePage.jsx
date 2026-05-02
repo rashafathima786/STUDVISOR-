@@ -86,12 +86,13 @@ const AttendancePage = () => {
                       <Activity className="text-primary" size={32} />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-black text-white tracking-tight" style={{ fontFamily: 'var(--font-jakarta)' }}>Engagement Core</h2>
+                      <h2 className="text-white tracking-tight" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 'clamp(1.625rem, 1.3846rem + 1.0256vw, 2.5rem)' }}>Engagement Core</h2>
                       <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em] mt-1">Protocol: Real-Time Sync</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  {/* Desktop Only Controls */}
+                  <div className="hidden md:flex items-center gap-4">
                     <button 
                         onClick={() => alert("Current Term: Semester 1 (Jan - June 2026)")}
                         className="px-6 py-3.5 rounded-2xl bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all flex items-center gap-3 text-xs font-bold uppercase tracking-widest shadow-xl"
@@ -109,23 +110,42 @@ const AttendancePage = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 mb-12">
+                {/* Mobile Floating Action Bar */}
+                <div className="md:hidden floating-action-bar">
+                    <button 
+                        onClick={() => alert("Current Term: Semester 1 (Jan - June 2026)")}
+                        className="flex-1 p-3 flex items-center justify-center gap-2 text-white/60 font-black text-[9px] uppercase tracking-widest"
+                    >
+                      <Calendar size={16} />
+                      Term
+                    </button>
+                    <div className="w-px h-6 bg-white/10" />
+                    <button 
+                        onClick={handleExport}
+                        className="flex-1 p-3 flex items-center justify-center gap-2 text-primary font-black text-[9px] uppercase tracking-widest"
+                    >
+                      <Download size={16} />
+                      Export
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
                     {/* Aggregate Score Card */}
                     <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="lg:col-span-4 glass-panel rounded-[40px] p-10 flex flex-col justify-between min-h-[340px] relative overflow-hidden border border-white/5"
+                        className="lg:col-span-4 glass-panel rounded-[40px] p-8 md:p-10 flex flex-col justify-between min-h-[340px] relative overflow-hidden border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.3)] group hover:border-primary/40 transition-all duration-500"
                     >
-                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                             <Activity size={120} />
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">Aggregate Health</p>
                             <div className="flex items-baseline gap-3">
-                                <span className="text-8xl font-black text-primary tracking-tighter" style={{ fontFamily: 'var(--font-jakarta)' }}>
+                                <span className="font-black text-primary tracking-tighter drop-shadow-[0_0_20px_rgba(124,58,237,0.4)]" style={{ fontFamily: 'var(--font-jakarta)', fontSize: 'clamp(4rem, 2rem + 8vw, 8rem)' }}>
                                     {Math.round(overall?.percentage || 0)}
                                 </span>
-                                <span className="text-white/20 font-black text-3xl">%</span>
+                                <span className="text-white/20 font-black text-3xl mb-4 md:mb-6">%</span>
                             </div>
                             <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
                                 <TrendingUp size={14} className="text-primary" />
@@ -167,7 +187,7 @@ const AttendancePage = () => {
                             </div>
                         </div>
                         
-                        <div className="flex flex-col md:grid md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-6">
                             {bunkAlerts.length > 0 ? bunkAlerts.slice(0, 4).map((alert, idx) => (
                                 <motion.div 
                                   key={idx} 
@@ -201,17 +221,17 @@ const AttendancePage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="glass-panel rounded-[48px] border border-white/5 overflow-hidden shadow-2xl flex flex-col"
                 >
-                    <div className="p-8 md:p-10 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+                    <div className="p-6 md:p-10 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/[0.01]">
                         <div className="flex items-center gap-4">
                            <div className="p-3 bg-white/5 rounded-2xl">
                              <Filter className="text-white/40" size={20} />
                            </div>
-                           <h2 className="text-xl font-bold text-white tracking-tight">Module Breakdown</h2>
+                           <h2 className="text-xl font-bold text-white tracking-tight whitespace-nowrap">Module Breakdown</h2>
                         </div>
-                        <div className="flex gap-3">
-                            <div className="relative">
+                        <div className="flex gap-3 w-full md:w-auto">
+                            <div className="relative w-full md:w-48">
                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
-                               <input type="text" placeholder="Filter subjects..." className="bg-white/5 border border-white/5 rounded-xl py-2 pl-10 pr-4 text-xs text-white outline-none focus:border-primary/40 transition-all w-48" />
+                               <input type="text" placeholder="Filter subjects..." className="bg-white/5 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white outline-none focus:border-primary/40 transition-all w-full" />
                             </div>
                         </div>
                     </div>

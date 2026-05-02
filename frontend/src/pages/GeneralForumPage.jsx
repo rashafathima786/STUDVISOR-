@@ -123,7 +123,10 @@ export default function GeneralForumPage() {
           isFirstLoad.current = false
         }, 50)
       } else if (isAtBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        // Use a slight timeout to ensure content is rendered
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
       }
     }
   }, [posts])
@@ -223,7 +226,7 @@ export default function GeneralForumPage() {
 
   return (
     <ErpLayout title="General Forum" subtitle="Open campus dialogue">
-      <div className="wrapper flex h-[calc(100vh-140px)] overflow-hidden bg-transparent backdrop-blur-3xl rounded-[2.5rem] border border-white/5 text-white font-sans relative">
+      <div className="wrapper flex flex-col lg:flex-row h-[calc(100vh-120px)] lg:h-[calc(100vh-140px)] overflow-hidden bg-transparent backdrop-blur-3xl rounded-[2rem] lg:rounded-[2.5rem] border border-white/5 text-white font-sans relative">
 
         {/* Sidebar */}
         <div className="w-80 flex flex-col bg-white/[0.01] backdrop-blur-md hidden lg:flex">
@@ -272,9 +275,35 @@ export default function GeneralForumPage() {
 
           {/* Content Area */}
           <div className="flex-1 flex flex-col bg-transparent relative">
+            
+            {/* Mobile Channel Navigation */}
+            <div className="lg:hidden flex flex-col gap-3 p-4 bg-white/[0.03] backdrop-blur-2xl border-b border-white/5 sticky top-0 z-40">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em]">Campus Feed Protocols</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                {channels.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setCategory(c.id);
+                      if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+                    }}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex-shrink-0 border ${
+                      category === c.id 
+                        ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)] scale-105' 
+                        : 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
 
           <div className="flex-1 overflow-y-auto scrollbar-hide bg-transparent relative" ref={scrollContainerRef}>
-            <div className="max-w-4xl mx-auto px-6 py-10 pb-[200px]">
+            <div className="max-w-4xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
             <AnimatePresence mode="wait">
               {posts.length > 0 ? (
                 posts.map((post, idx) => {
@@ -368,14 +397,16 @@ export default function GeneralForumPage() {
                 </div>
               )}
               </AnimatePresence>
+               {/* Spacer to prevent overlap with floating input bar */}
+               <div className="h-48 lg:h-64" />
             </div>
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none pb-8">
-            <div className="max-w-4xl mx-auto px-6 pointer-events-auto">
+          <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none pb-4 lg:pb-8 bg-gradient-to-t from-surface/80 via-surface/40 to-transparent pt-20">
+            <div className="max-w-4xl mx-auto px-4 lg:px-6 pointer-events-auto">
               {quickActions.length > 0 && (
-                <div className="flex items-center justify-center gap-3 mb-6 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
+                <div className="flex items-center lg:justify-center gap-3 mb-4 lg:mb-6 overflow-x-auto pb-2 scrollbar-hide no-scrollbar w-full px-2">
                   {quickActions.map((action, i) => (
                     <button
                       key={i}
@@ -443,7 +474,6 @@ export default function GeneralForumPage() {
                   </div>
                 </div>
               </div>
-              <div ref={messagesEndRef} />
             </div>
           </div>
         </div>
