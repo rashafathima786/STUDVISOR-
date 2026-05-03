@@ -299,7 +299,7 @@ export default function GeneralForumPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto scrollbar-hide bg-transparent relative touch-pan-y" ref={scrollContainerRef}>
+          <div className="flex-1 overflow-y-auto bg-transparent relative touch-pan-y" ref={scrollContainerRef}>
             <div className="max-w-4xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
             <AnimatePresence initial={false}>
               {posts.length > 0 ? (
