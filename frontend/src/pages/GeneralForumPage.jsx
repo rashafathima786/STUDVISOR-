@@ -277,10 +277,10 @@ export default function GeneralForumPage() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col bg-transparent relative">
+        <div className="flex-1 flex flex-col bg-transparent relative min-h-0">
           
           {/* Mobile Header with Menu Button */}
-          <div className="lg:hidden flex items-center justify-between p-4 bg-surface-container/50 backdrop-blur-2xl border-b border-border-color z-40">
+          <div className="lg:hidden flex items-center justify-between p-4 bg-surface-container/50 backdrop-blur-2xl border-b border-border-color z-40 shrink-0">
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setIsSidebarOpen(true)}
@@ -299,7 +299,7 @@ export default function GeneralForumPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto bg-transparent relative touch-pan-y" ref={scrollContainerRef}>
+          <div className="flex-1 overflow-y-auto overscroll-y-contain scrollbar-visible bg-transparent relative touch-pan-y min-h-0" ref={scrollContainerRef}>
             <div className="max-w-4xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
             <AnimatePresence initial={false}>
               {posts.length > 0 ? (
@@ -395,7 +395,7 @@ export default function GeneralForumPage() {
                   </div>
                 )}
               </AnimatePresence>
-              <div className="h-64 lg:h-80" />
+              <div className="h-96 lg:h-80" />
             </div>
             <div ref={messagesEndRef} />
           </div>

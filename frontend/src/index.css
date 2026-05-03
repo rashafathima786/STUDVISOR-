@@ -599,6 +599,29 @@ html, body {
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+  /* Force visible scrollbar on mobile */
+  .scrollbar-visible::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-visible::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+  }
+  .scrollbar-visible::-webkit-scrollbar-thumb {
+    background: rgba(124, 58, 237, 0.4);
+    border-radius: 10px;
+  }
+  .scrollbar-visible::-webkit-scrollbar-thumb:active {
+    background: rgba(124, 58, 237, 0.8);
+  }
+  /* Firefox */
+  .scrollbar-visible {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124, 58, 237, 0.4) rgba(0, 0, 0, 0.05);
+  }
+
 
   /* Spring easing */
   .ease-spring { transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
