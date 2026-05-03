@@ -2,13 +2,20 @@ import axios from "axios";
 import { getToken, saveToken } from "../utils/auth";
 
 let base = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-// Fix Mixed Content: Force HTTPS for production Railway URLs
-if (base.includes("up.railway.app")) {
-  base = base.replace("http://", "https://");
-  if (!base.startsWith("https://")) {
-    base = "https://" + base.replace("https://", "");
+
+// If we are on Vercel, force all API calls through the Vercel Proxy to bypass mobile adblockers
+if (typeof window !== 'undefined' && window.location.hostname.includes("vercel.app")) {
+  base = "/api";
+} else {
+  // Fix Mixed Content: Force HTTPS for production Railway URLs
+  if (base.includes("up.railway.app")) {
+    base = base.replace("http://", "https://");
+    if (!base.startsWith("https://")) {
+      base = "https://" + base.replace("https://", "");
+    }
   }
 }
+
 export const API_BASE_URL = base;
 
 const api = axios.create({
