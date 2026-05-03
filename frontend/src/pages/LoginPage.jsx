@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../stores/authStore';
 import { loginUser } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Fingerprint, Lock, ShieldCheck, Zap, AlertTriangle, ArrowRight, Activity, Terminal, GraduationCap, Building2 } from 'lucide-react';
+import { Fingerprint, Lock, ShieldCheck, Zap, AlertTriangle, ArrowRight, Activity, Terminal, GraduationCap, Building2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
     const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -11,6 +11,7 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [focusedField, setFocusedField] = useState(null);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const [showPassword, setShowPassword] = useState(false);
     
     // Add role selector: 'student' or 'college' (faculty/admin)
     const [loginRole, setLoginRole] = useState('student');
@@ -222,8 +223,8 @@ export default function LoginPage() {
                                         className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'password' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/40'}`} 
                                     />
                                     <input 
-                                        type="password" 
-                                        className={`autofill-override w-full bg-surface-container border rounded-2xl py-4 pl-12 pr-4 text-on-surface text-sm outline-none transition-all duration-300 placeholder:text-on-surface-variant/20 tracking-[0.2em] ${focusedField === 'password' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-border-color hover:border-on-surface/20'}`}
+                                        type={showPassword ? "text" : "password"} 
+                                        className={`autofill-override w-full bg-surface-container border rounded-2xl py-4 pl-12 pr-12 text-on-surface text-sm outline-none transition-all duration-300 placeholder:text-on-surface-variant/20 tracking-[0.2em] ${focusedField === 'password' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-border-color hover:border-on-surface/20'}`}
                                         placeholder="••••••••••••"
                                         required
                                         value={credentials.password}
@@ -231,6 +232,14 @@ export default function LoginPage() {
                                         onFocus={() => setFocusedField('password')}
                                         onBlur={() => setFocusedField(null)}
                                     />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-on-surface transition-colors focus:outline-none"
+                                        tabIndex="-1"
+                                    >
+                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
                                 </div>
                             </div>
 
