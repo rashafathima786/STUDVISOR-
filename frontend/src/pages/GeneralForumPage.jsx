@@ -234,7 +234,7 @@ export default function GeneralForumPage() {
 
   return (
     <ErpLayout title="General Forum" subtitle="Open campus dialogue">
-      <div className="wrapper flex flex-col lg:flex-row h-[calc(100vh-160px)] lg:h-[calc(100vh-140px)] overflow-hidden bg-transparent backdrop-blur-3xl rounded-[2.5rem] border border-border-color text-on-surface font-sans relative">
+      <div className="flex flex-col lg:flex-row h-[calc(100dvh-130px)] lg:h-[calc(100vh-140px)] overflow-hidden bg-transparent backdrop-blur-3xl rounded-[2.5rem] border border-border-color text-on-surface font-sans relative">
 
         {/* Sidebar (Desktop) */}
         <div className="w-80 flex flex-col bg-surface-container/30 backdrop-blur-md hidden lg:flex border-r border-border-color">
@@ -280,7 +280,7 @@ export default function GeneralForumPage() {
         <div className="flex-1 flex flex-col bg-transparent relative">
           
           {/* Mobile Header with Menu Button */}
-          <div className="lg:hidden flex items-center justify-between p-4 bg-surface-container/50 backdrop-blur-2xl border-b border-border-color sticky top-0 z-40">
+          <div className="lg:hidden flex items-center justify-between p-4 bg-surface-container/50 backdrop-blur-2xl border-b border-border-color z-40">
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setIsSidebarOpen(true)}
@@ -299,7 +299,7 @@ export default function GeneralForumPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto scrollbar-hide bg-transparent relative" ref={scrollContainerRef}>
+          <div className="flex-1 overflow-y-auto scrollbar-hide bg-transparent relative touch-pan-y" ref={scrollContainerRef}>
             <div className="max-w-4xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
             <AnimatePresence initial={false}>
               {posts.length > 0 ? (
@@ -395,7 +395,7 @@ export default function GeneralForumPage() {
                   </div>
                 )}
               </AnimatePresence>
-              <div className="h-48 lg:h-64" />
+              <div className="h-64 lg:h-80" />
             </div>
             <div ref={messagesEndRef} />
           </div>
