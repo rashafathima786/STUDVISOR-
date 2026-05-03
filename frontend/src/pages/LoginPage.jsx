@@ -57,8 +57,10 @@ export default function LoginPage() {
             }, 600);
         } catch (err) {
             console.error("Login Error:", err);
-            const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred.';
-            setError(`Authentication failed: ${errorMessage}`);
+            // Dump the raw error for maximum visibility on mobile
+            const rawError = err.message || JSON.stringify(err);
+            const targetUrl = import.meta.env.VITE_API_BASE_URL || 'localhost';
+            setError(`DEBUG: [${rawError}] to [${targetUrl}]`);
             setLoading(false);
         }
     };
