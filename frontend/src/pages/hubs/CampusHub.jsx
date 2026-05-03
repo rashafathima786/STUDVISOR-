@@ -315,7 +315,7 @@ export default function CampusHub() {
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
                   <Search size={20} className="text-amber-400" />
                 </div>
-                <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Inventory</span>
+                <span className="text-sm font-bold text-on-surface uppercase tracking-wider">Lost & Found</span>
               </div>
               <ChevronRight size={16} className="text-on-surface-variant/30 group-hover:text-on-surface group-hover:translate-x-1 transition-all" />
             </div>
