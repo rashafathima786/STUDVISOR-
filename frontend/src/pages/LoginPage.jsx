@@ -55,7 +55,9 @@ export default function LoginPage() {
                  navigate(from, { replace: true });
             }, 600);
         } catch (err) {
-            setError('Authentication sequence failed. Verify credentials.');
+            console.error("Login Error:", err);
+            const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred.';
+            setError(`Authentication failed: ${errorMessage}`);
             setLoading(false);
         }
     };
