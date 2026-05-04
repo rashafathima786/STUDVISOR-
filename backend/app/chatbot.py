@@ -118,15 +118,26 @@ def detect_emotion(message: str) -> str:
 
 # ─── RESPONSE GENERATORS ────────────────────────────────────────────────────
 
-def handle_greeting(student: Student) -> dict:
-    return {
-        "reply": f"Hello {student.full_name.split()[0]}, how can I help with your ERP data today?",
-        "actions": [
-            {"label": "📊 Attendance Summary", "query": "show my attendance", "category": "attendance"},
-            {"label": "📅 Academic Calendar", "query": "when is next holiday", "category": "calendar"},
-            {"label": "📈 Performance Hub", "query": "what is my cgpa", "category": "academic"}
-        ]
-    }
+def handle_greeting(user) -> dict:
+    name = getattr(user, "full_name", getattr(user, "name", "User")).split()[0]
+    if getattr(user, "user_role", "student") == "student":
+        return {
+            "reply": f"Hello {name}, how can I help with your ERP data today?",
+            "actions": [
+                {"label": "📊 Attendance Summary", "query": "show my attendance", "category": "attendance"},
+                {"label": "📅 Academic Calendar", "query": "when is next holiday", "category": "calendar"},
+                {"label": "📈 Performance Hub", "query": "what is my cgpa", "category": "academic"}
+            ]
+        }
+    else:
+        return {
+            "reply": f"Hello Professor {name}, how can I assist with your academic administrative tasks today?",
+            "actions": [
+                {"label": "📅 My Timetable", "query": "show my timetable", "category": "calendar"},
+                {"label": "📝 Leave Requests", "query": "view pending leaves", "category": "compliance"},
+                {"label": "📊 Attendance Stats", "query": "show attendance stats", "category": "attendance"}
+            ]
+        }
 
 
 def handle_help() -> dict:
@@ -515,48 +526,55 @@ def handle_distressed(student: Student) -> dict:
 
 # ─── MAIN CHAT DISPATCHER ───────────────────────────────────────────────────
 
-async def process_chat(db: Session, student: Student, message: str) -> dict:
+async def process_chat(db: Session, user, message: str) -> dict:
     """Main entry point for the AI chatbot. Detects intent and dispatches to handler."""
     from backend.services.ai_service import ai_service
-    from backend.core.ai_context import build_student_context
+    from backend.core.ai_context import build_student_context, build_faculty_context
 
     emotion = detect_emotion(message)
     intent = detect_intent(message)
+    is_student = getattr(user, "user_role", "student") == "student"
 
-    # Emotion override: if frustrated/anxious/distressed, respond empathetically first
+    # Emotion override
     if emotion == "distressed":
-        return handle_distressed(student)
-    if emotion == "frustrated":
-        # We'll just return the reply for now, or adapt it to dict
-        res = handle_frustrated(student)
+        return handle_distressed(user) if is_student else {"reply": "I'm here to help, Professor. If you're feeling stressed, please reach out to the staff wellness coordinator.", "protocol": "Safety"}
+    
+    if emotion == "frustrated" and is_student:
+        res = handle_frustrated(user)
         return {"reply": res, "actions": [{"label": "Talk to Counselor", "query": "connect me to counselor"}], "protocol": "Safety"}
 
+    # Unified handlers
     handlers = {
-        "greeting": lambda: handle_greeting(student),
+        "greeting": lambda: handle_greeting(user),
         "help": lambda: handle_help(),
-        "attendance_overall": lambda: handle_attendance_overall(db, student),
-        "attendance_subject": lambda: {"reply": handle_attendance_subject(db, student), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
-        "bunk_check": lambda: {"reply": handle_bunk_check(db, student), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
-        "reach_75": lambda: {"reply": handle_reach_75(db, student), "actions": []},
-        "attendance_recovery": lambda: {"reply": handle_reach_75(db, student), "actions": []},
-        "od_help": lambda: {"reply": handle_od_help(db, student), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
-        "marks": lambda: {"reply": handle_marks(db, student), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
-        "cgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
-        "sgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
-        "best_subject": lambda: {"reply": handle_best_subject(db, student), "actions": []},
-        "weakest_subject": lambda: {"reply": handle_weakest_subject(db, student), "actions": []},
-        "low_marks": lambda: {"reply": handle_low_marks(db, student), "actions": [{"label": "View Marks", "action": "navigate", "payload": "/performance"}]},
-        "academic_comparison": lambda: {"reply": handle_academic_comparison(db, student), "actions": []},
-        "simulation": lambda: {"reply": handle_simulation(db, student, message), "actions": []},
-        "eligibility": lambda: {"reply": handle_eligibility(db, student), "actions": []},
-        "profile": lambda: {"reply": handle_profile(student), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
-        "leave_status": lambda: {"reply": handle_leave_status(db, student), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
-        "exam_schedule": lambda: {"reply": handle_exam_schedule(db, student), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
         "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
         "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
-        "thank": lambda: {"reply": handle_thank(student), "actions": []},
-        "missed_today": lambda: {"reply": handle_missed_today(db, student), "actions": []},
+        "thank": lambda: {"reply": handle_thank(user), "actions": []},
     }
+
+    # Student-specific handlers
+    if is_student:
+        handlers.update({
+            "attendance_overall": lambda: handle_attendance_overall(db, user),
+            "attendance_subject": lambda: {"reply": handle_attendance_subject(db, user), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
+            "bunk_check": lambda: {"reply": handle_bunk_check(db, user), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
+            "reach_75": lambda: {"reply": handle_reach_75(db, user), "actions": []},
+            "attendance_recovery": lambda: {"reply": handle_reach_75(db, user), "actions": []},
+            "od_help": lambda: {"reply": handle_od_help(db, user), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
+            "marks": lambda: {"reply": handle_marks(db, user), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
+            "cgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
+            "sgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
+            "best_subject": lambda: {"reply": handle_best_subject(db, user), "actions": []},
+            "weakest_subject": lambda: {"reply": handle_weakest_subject(db, user), "actions": []},
+            "low_marks": lambda: {"reply": handle_low_marks(db, user), "actions": [{"label": "View Marks", "action": "navigate", "payload": "/performance"}]},
+            "academic_comparison": lambda: {"reply": handle_academic_comparison(db, user), "actions": []},
+            "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},
+            "eligibility": lambda: {"reply": handle_eligibility(db, user), "actions": []},
+            "profile": lambda: {"reply": handle_profile(user), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
+            "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
+            "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
+            "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
+        })
 
     if intent in handlers:
         result = handlers[intent]()
@@ -564,8 +582,12 @@ async def process_chat(db: Session, student: Student, message: str) -> dict:
             result["protocol"] = "Deterministic"
         return result
 
-    # Fallback to AI Ensemble (fleet cycling) for unknown intents
-    context = build_student_context(db, student.id)
+    # Fallback to AI Ensemble
+    if is_student:
+        context = build_student_context(db, user.id)
+    else:
+        context = build_faculty_context(db, user.id)
+        
     ensemble_result = await ai_service.ensemble_chat(message, context)
     return {
         "reply": ensemble_result.get("text", "[AI] Unable to process query."),
@@ -574,58 +596,63 @@ async def process_chat(db: Session, student: Student, message: str) -> dict:
     }
 
 
-async def process_chat_stream(db: Session, student: Student, message: str) -> AsyncGenerator[Dict, None]:
+async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator[Dict, None]:
     """Streaming entry point for the AI chatbot. Yields meta then chunks."""
     from backend.services.ai_service import ai_service
-    from backend.core.ai_context import build_student_context
+    from backend.core.ai_context import build_student_context, build_faculty_context
 
     emotion = detect_emotion(message)
     intent = detect_intent(message)
+    is_student = getattr(user, "user_role", "student") == "student"
 
     # Emotion override
     if emotion == "distressed":
-        res = handle_distressed(student)
-        yield {"type": "meta", "actions": res["actions"], "protocol": "Safety"}
-        yield {"type": "chunk", "token": res["reply"]}
+        res = handle_distressed(user) if is_student else {"reply": "I'm here to help, Professor. If you're feeling stressed, please reach out to the staff wellness coordinator.", "actions": []}
+        yield {"type": "meta", "actions": res.get("actions", []), "protocol": "Safety"}
+        yield {"type": "chunk", "token": res.get("reply", res)}
         return
 
+    # Unified handlers
     handlers = {
-        "greeting": lambda: handle_greeting(student),
+        "greeting": lambda: handle_greeting(user),
         "help": lambda: handle_help(),
-        "attendance_overall": lambda: handle_attendance_overall(db, student),
-        "attendance_subject": lambda: {"reply": handle_attendance_subject(db, student), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
-        "bunk_check": lambda: {"reply": handle_bunk_check(db, student), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
-        "reach_75": lambda: {"reply": handle_reach_75(db, student), "actions": []},
-        "attendance_recovery": lambda: {"reply": handle_reach_75(db, student), "actions": []},
-        "od_help": lambda: {"reply": handle_od_help(db, student), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
-        "marks": lambda: {"reply": handle_marks(db, student), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
-        "cgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
-        "sgpa": lambda: {"reply": handle_cgpa(db, student), "actions": []},
-        "best_subject": lambda: {"reply": handle_best_subject(db, student), "actions": []},
-        "weakest_subject": lambda: {"reply": handle_weakest_subject(db, student), "actions": []},
-        "low_marks": lambda: {"reply": handle_low_marks(db, student), "actions": [{"label": "View Marks", "action": "navigate", "payload": "/performance"}]},
-        "academic_comparison": lambda: {"reply": handle_academic_comparison(db, student), "actions": []},
-        "simulation": lambda: {"reply": handle_simulation(db, student, message), "actions": []},
-        "eligibility": lambda: {"reply": handle_eligibility(db, student), "actions": []},
-        "profile": lambda: {"reply": handle_profile(student), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
-        "leave_status": lambda: {"reply": handle_leave_status(db, student), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
-        "exam_schedule": lambda: {"reply": handle_exam_schedule(db, student), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
         "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
         "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
-        "thank": lambda: {"reply": handle_thank(student), "actions": []},
-        "missed_today": lambda: {"reply": handle_missed_today(db, student), "actions": []},
+        "thank": lambda: {"reply": handle_thank(user), "actions": []},
     }
+
+    if is_student:
+        handlers.update({
+            "attendance_overall": lambda: handle_attendance_overall(db, user),
+            "attendance_subject": lambda: {"reply": handle_attendance_subject(db, user), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
+            "bunk_check": lambda: {"reply": handle_bunk_check(db, user), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
+            "reach_75": lambda: {"reply": handle_reach_75(db, user), "actions": []},
+            "attendance_recovery": lambda: {"reply": handle_reach_75(db, user), "actions": []},
+            "od_help": lambda: {"reply": handle_od_help(db, user), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
+            "marks": lambda: {"reply": handle_marks(db, user), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
+            "cgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
+            "sgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
+            "best_subject": lambda: {"reply": handle_best_subject(db, user), "actions": []},
+            "weakest_subject": lambda: {"reply": handle_weakest_subject(db, user), "actions": []},
+            "low_marks": lambda: {"reply": handle_low_marks(db, user), "actions": [{"label": "View Marks", "action": "navigate", "payload": "/performance"}]},
+            "academic_comparison": lambda: {"reply": handle_academic_comparison(db, user), "actions": []},
+            "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},
+            "eligibility": lambda: {"reply": handle_eligibility(db, user), "actions": []},
+            "profile": lambda: {"reply": handle_profile(user), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
+            "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
+            "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
+            "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
+        })
 
     if intent in handlers:
         result = handlers[intent]()
         yield {"type": "meta", "actions": result.get("actions", []), "protocol": "Deterministic"}
-        # Deterministic responses are yielded as a single chunk for speed
         yield {"type": "chunk", "token": result["reply"]}
         return
 
     # Fallback to AI Service Stream
     yield {"type": "meta", "actions": [], "protocol": "Ensemble Stream"}
-    context = build_student_context(db, student.id)
+    context = build_student_context(db, user.id) if is_student else build_faculty_context(db, user.id)
     async for token in ai_service.ensemble_chat_stream(message, context):
         yield {"type": "chunk", "token": token}
 

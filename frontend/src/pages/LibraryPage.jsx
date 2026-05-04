@@ -32,8 +32,8 @@ export default function LibraryPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE_URL}/library/catalog`, { headers }).then(r => r.json()).catch(() => ({ books: [] })),
-      fetch(`${API_BASE_URL}/library/my-books`, { headers }).then(r => r.json()).catch(() => ({ issued_books: [] })),
+      fetch(`${API_BASE_URL}/user/library/catalog/`, { headers }).then(r => r.json()).catch(() => ({ books: [] })),
+      fetch(`${API_BASE_URL}/user/library/my-books/`, { headers }).then(r => r.json()).catch(() => ({ issued_books: [] })),
     ]).then(([catalogRes, myRes]) => {
       setBooks(catalogRes.books || [])
       setMyBooks(myRes.issued_books || [])
@@ -42,13 +42,13 @@ export default function LibraryPage() {
   }, [])
 
   const searchBooks = () => {
-    fetch(`${API_BASE_URL}/library/catalog?q=${encodeURIComponent(query)}`, { headers })
+    fetch(`${API_BASE_URL}/user/library/catalog/?q=${encodeURIComponent(query)}`, { headers })
       .then(r => r.json()).then(res => setBooks(res.books || []))
   }
 
   const issueBook = async (bookId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/library/issue/${bookId}`, { method: 'POST', headers })
+      const res = await fetch(`${API_BASE_URL}/user/library/issue/${bookId}/`, { method: 'POST', headers })
       const data = await res.json()
       alert(data.message || data.detail)
     } catch (err) {

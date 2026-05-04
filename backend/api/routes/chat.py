@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 import json, asyncio
 
-from backend.core.security import get_current_student
+from backend.core.security import get_current_student, get_current_user_any
 from backend.app.database import get_db, SessionLocal
 from backend.app.models import ChatHistory
 from backend.app.chatbot import process_chat, detect_emotion
@@ -21,12 +21,23 @@ class ChatInput(BaseModel):
 
 
 @router.post("/")
-async def chat(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
+async def chat(data: ChatInput, user=Depends(get_current_user_any), db: Session = Depends(get_db)):
     """Process a chat message through the deterministic AI engine."""
-    result = await process_chat(db, student, data.query)
-    # Save text reply to history
-    db.add(ChatHistory(student_id=student.id, query=data.query, response=result["reply"],
-                       context_page=data.context_page))
+    result = await process_chat(db, user, data.query)
+    
+    # Save to history
+    history = ChatHistory(
+        query=data.query, 
+        response=result["reply"],
+        context_page=data.context_page,
+        user_role=user.user_role
+    )
+    if user.user_role == "student":
+        history.student_id = user.id
+    else:
+        history.faculty_id = user.id
+        
+    db.add(history)
     db.commit()
     return {
         "reply": result["reply"], 
@@ -37,7 +48,7 @@ async def chat(data: ChatInput, student=Depends(get_current_student), db: Sessio
 
 
 @router.post("/stream/")
-async def chat_stream(data: ChatInput, student=Depends(get_current_student), db: Session = Depends(get_db)):
+async def chat_stream(data: ChatInput, user=Depends(get_current_user_any), db: Session = Depends(get_db)):
     """SSE streaming — sends the AI response in real-time as tokens are generated."""
     from backend.app.chatbot import process_chat_stream
 
@@ -46,7 +57,7 @@ async def chat_stream(data: ChatInput, student=Depends(get_current_student), db:
         protocol = "Nexus"
         actions = []
         
-        async for chunk in process_chat_stream(db, student, data.query):
+        async for chunk in process_chat_stream(db, user, data.query):
             if chunk["type"] == "meta":
                 protocol = chunk.get("protocol", "Nexus")
                 actions = chunk.get("actions", [])
@@ -57,7 +68,9 @@ async def chat_stream(data: ChatInput, student=Depends(get_current_student), db:
                 yield f"event: chunk\ndata: {json.dumps({'token': token, 'done': False})}\n\n"
         
         # Save to history in background after stream completes
-        asyncio.create_task(asyncio.to_thread(save_chat_history, student.id, data.query, full_response, data.context_page))
+        asyncio.create_task(asyncio.to_thread(
+            save_chat_history, user.id, user.user_role, data.query, full_response, data.context_page
+        ))
         
         yield f"event: chunk\ndata: {json.dumps({'token': '', 'done': True})}\n\n"
         yield f"event: done\ndata: {json.dumps({'status': 'finished'})}\n\n"
@@ -65,39 +78,62 @@ async def chat_stream(data: ChatInput, student=Depends(get_current_student), db:
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-def save_chat_history(student_id, query, response, context_page):
+def save_chat_history(user_id, role, query, response, context_page):
     """Background helper to persist chat history."""
     db = SessionLocal()
     try:
-        db.add(ChatHistory(student_id=student_id, query=query, response=response, context_page=context_page))
+        history = ChatHistory(query=query, response=response, context_page=context_page, user_role=role)
+        if role == "student":
+            history.student_id = user_id
+        else:
+            history.faculty_id = user_id
+        db.add(history)
         db.commit()
     finally:
         db.close()
 
 
 @router.get("/history/")
-def history(student=Depends(get_current_student), db: Session = Depends(get_db)):
-    """Last 50 chat messages for this student."""
-    msgs = db.query(ChatHistory).filter(
-        ChatHistory.student_id == student.id
-    ).order_by(ChatHistory.created_at.desc()).limit(50).all()
+def history(user=Depends(get_current_user_any), db: Session = Depends(get_db)):
+    """Last 50 chat messages for this user."""
+    query = db.query(ChatHistory).order_by(ChatHistory.created_at.desc())
+    if user.user_role == "student":
+        query = query.filter(ChatHistory.student_id == user.id)
+    else:
+        query = query.filter(ChatHistory.faculty_id == user.id)
+        
+    msgs = query.limit(50).all()
     return {"messages": [{"query": m.query, "response": m.response,
                           "context_page": m.context_page, "date": str(m.created_at)} for m in msgs]}
 
 
 @router.delete("/history/")
-def clear_history(student=Depends(get_current_student), db: Session = Depends(get_db)):
-    """Clear chat history for this student."""
-    db.query(ChatHistory).filter(ChatHistory.student_id == student.id).delete()
+def clear_history(user=Depends(get_current_user_any), db: Session = Depends(get_db)):
+    """Clear chat history for this user."""
+    query = db.query(ChatHistory)
+    if user.user_role == "student":
+        query = query.filter(ChatHistory.student_id == user.id)
+    else:
+        query = query.filter(ChatHistory.faculty_id == user.id)
+        
+    query.delete()
     db.commit()
     return {"message": "Chat history cleared"}
 
 
 @router.get("/suggestions/")
-def suggestions(student=Depends(get_current_student), db: Session = Depends(get_db)):
-    """Context-aware question suggestions based on student state."""
+def suggestions(user=Depends(get_current_user_any), db: Session = Depends(get_db)):
+    """Context-aware question suggestions based on user state."""
+    if user.user_role != "student":
+        return {"suggestions": [
+            "How do I mark attendance?",
+            "Show my timetable",
+            "View pending leave requests",
+            "What is the academic calendar?"
+        ]}
+    
     from backend.app.models import Attendance
-    records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
+    records = db.query(Attendance).filter(Attendance.student_id == user.id).all()
     total = len(records)
     present = sum(1 for r in records if r.status == "P")
     pct = round(present / total * 100, 1) if total > 0 else 100

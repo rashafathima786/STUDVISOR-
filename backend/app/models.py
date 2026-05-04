@@ -565,7 +565,9 @@ class ChatHistory(Base):
     institution_id = Column(String, nullable=False, default="default", index=True)
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=True)
+    faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=True)
+    user_role = Column(String, nullable=False, default="student")
     query = Column(String, nullable=False)
     response = Column(String, nullable=False)
     context_page = Column(String, nullable=True)
@@ -573,7 +575,7 @@ class ChatHistory(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
-        Index("ix_chat_student_session", "student_id", "session_id"),
+        Index("ix_chat_user_session", "student_id", "faculty_id", "session_id"),
     )
 
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import ClassroomStream from '../../components/faculty/ClassroomStream'
-import { fetchFacultyDashboard, fetchFacultyTimetable, fetchFacultyPendingLeaves, fetchAttendanceDefaulters } from '../../services/api'
+import { fetchFacultyDashboard, fetchFacultyTimetable, fetchFacultyPendingLeaves, fetchAttendanceDefaulters, fetchMySubjects, fetchFacultyAssignments } from '../../services/api'
 import ErpLayout from '../../components/ErpLayout'
 import SkeletonLoader from '../../components/SkeletonLoader'
 import { 
@@ -17,6 +17,8 @@ export default function FacultyDashboard() {
   const [timetable, setTimetable] = useState([])
   const [pendingLeaves, setPendingLeaves] = useState([])
   const [defaulters, setDefaulters] = useState([])
+  const [subjects, setSubjects] = useState([])
+  const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -25,11 +27,15 @@ export default function FacultyDashboard() {
       fetchFacultyTimetable().catch(() => ({ timetable: [] })),
       fetchFacultyPendingLeaves().catch(() => ({ pending: [] })),
       fetchAttendanceDefaulters().catch(() => ({ defaulters: [] })),
-    ]).then(([dash, tt, leaves, defs]) => {
+      fetchMySubjects().catch(() => ({ subjects: [] })),
+      fetchFacultyAssignments().catch(() => ({ assignments: [] })),
+    ]).then(([dash, tt, leaves, defs, subjs, assns]) => {
       setDashboard(dash)
       setTimetable(tt?.timetable || [])
       setPendingLeaves(leaves?.pending || [])
       setDefaulters(defs?.defaulters || [])
+      setSubjects(subjs?.subjects || [])
+      setAssignments(assns?.assignments || [])
       setLoading(false)
     })
   }, [])
@@ -113,9 +119,26 @@ export default function FacultyDashboard() {
                     <div className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">{slot.room} • {slot.section}</div>
                   </div>
                 </div>
-                <Link to="/faculty/attendance" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="mini-tag primary cursor-pointer">Mark</button>
-                </Link>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    <button 
+                      onClick={() => {
+                        localStorage.setItem('faculty_preselect_subject', slot.subject_id)
+                        window.location.href = '/faculty/attendance'
+                      }}
+                      className="mini-tag primary cursor-pointer"
+                    >
+                      Mark
+                    </button>
+                    <button 
+                      onClick={() => {
+                        localStorage.setItem('faculty_preselect_subject', slot.subject_id)
+                        window.location.href = '/faculty/marks'
+                      }}
+                      className="mini-tag secondary cursor-pointer"
+                    >
+                      Grade
+                    </button>
+                  </div>
               </motion.div>
             )) : (
               <div className="h-full flex flex-col items-center justify-center text-on-surface-variant/20 py-12">
@@ -126,7 +149,11 @@ export default function FacultyDashboard() {
           </div>
         </div>
 
-        <div className="bento-tile group" style={{ borderColor: defaulters.length > 0 ? 'rgba(239,68,68,0.2)' : 'var(--panel-border)' }}>
+        <div 
+          className="bento-tile group cursor-pointer hover:border-error/50 transition-all" 
+          style={{ borderColor: defaulters.length > 0 ? 'rgba(239,68,68,0.2)' : 'var(--panel-border)' }}
+          onClick={() => window.location.href = '/faculty/attendance'}
+        >
           <div className="hub-tile-header">
             <div className="hub-tile-icon-wrap bg-error/20 text-error">
               <AlertTriangle size={20} />
@@ -186,7 +213,7 @@ export default function FacultyDashboard() {
 
         {/* Classroom Stream - Full Width Span */}
         <div className="bento-tile bento-span-4" style={{ padding: 0, overflow: 'hidden', minHeight: 'auto' }}>
-           <ClassroomStream />
+           <ClassroomStream subjects={subjects} assignments={assignments} />
         </div>
 
       </div>

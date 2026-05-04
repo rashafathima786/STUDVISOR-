@@ -35,7 +35,7 @@ def faculty_timetable(faculty=Depends(get_current_faculty), db: Session = Depend
         .filter(TimetableSlot.faculty_id == faculty.id)\
         .order_by(TimetableSlot.day, TimetableSlot.hour).all()
     
-    result = [{"day": s.day, "hour": s.hour, "subject": name, "room": s.room, "section": s.section} for s, name in slots]
+    result = [{"day": s.day, "hour": s.hour, "subject": name, "subject_id": s.subject_id, "room": s.room, "section": s.section} for s, name in slots]
     return {"timetable": result}
 
 @router.get("/my-subjects/")
@@ -95,6 +95,12 @@ def amend_attendance(record_id: int, new_status: str, reason: str, faculty=Depen
     record.amended_at = datetime.utcnow()
     db.commit()
     return {"message": "Attendance amended", "record_id": record_id}
+
+@router.get("/attendance/get/{subject_id}/{date}/{hour}/")
+def get_attendance(subject_id: int, date: str, hour: int, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    verify_subject_ownership(faculty, subject_id, db)
+    records = db.query(Attendance).filter(Attendance.subject_id == subject_id, Attendance.date == date, Attendance.hour == hour).all()
+    return {"attendance": {r.student_id: r.status for r in records}}
 
 @router.post("/attendance/request-amendment/")
 def request_amendment(record_id: int, new_status: str, reason: str, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
@@ -197,6 +203,21 @@ def defaulters(faculty=Depends(get_current_faculty), db: Session = Depends(get_d
             
     return {"defaulters": sorted(result, key=lambda x: x["attendance"])}
 
+@router.get("/attendance/subject-stats/{subject_id}/")
+def get_subject_attendance_stats(subject_id: int, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    verify_subject_ownership(faculty, subject_id, db)
+    from sqlalchemy import func, case
+    stats = db.query(
+        Attendance.student_id,
+        func.count(Attendance.id).label("total"),
+        func.sum(case((Attendance.status == 'P', 1), else_=0)).label("present")
+    ).filter(Attendance.subject_id == subject_id)\
+     .group_by(Attendance.student_id).all()
+    
+    return {
+        "statistics": {s_id: {"total": total, "present": present, "percentage": round((present/total)*100, 1) if total > 0 else 0} for s_id, total, present in stats}
+    }
+
 class MarkUploadEntry(BaseModel):
     student_id: int
     marks_obtained: float
@@ -245,6 +266,12 @@ def mark_statistics(subject_id: int, faculty=Depends(get_current_faculty), db: S
     if not percentages: return {"statistics": None}
     import statistics as stats
     return {"count": len(percentages), "mean": round(stats.mean(percentages), 1), "median": round(stats.median(percentages), 1), "stdev": round(stats.stdev(percentages), 1) if len(percentages) > 1 else 0, "highest": round(max(percentages), 1), "lowest": round(min(percentages), 1), "pass_rate": round(sum(1 for p in percentages if p >= 40) / len(percentages) * 100, 1)}
+
+@router.get("/marks/get/{subject_id}/{assessment_type}/")
+def get_existing_marks(subject_id: int, assessment_type: str, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    verify_subject_ownership(faculty, subject_id, db)
+    marks = db.query(Mark).filter(Mark.subject_id == subject_id, Mark.assessment_type == assessment_type).all()
+    return {"marks": [{"student_id": m.student_id, "marks_obtained": m.marks_obtained, "max_marks": m.max_marks, "published": m.published} for m in marks]}
 
 @router.get("/leave/pending/")
 def pending_leave(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):

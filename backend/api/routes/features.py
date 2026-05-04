@@ -196,40 +196,6 @@ def predict_cgpa_post(data: PredictCgpaRequest, student=Depends(get_current_stud
     from backend.services.analytics_service import analytics_service
     return analytics_service.predict_future_cgpa(db, student.id, data.expected_marks)
 
-@analytics_router.get("/performance/")
-async def student_performance_overview(student=Depends(get_current_student), db: Session = Depends(get_db)):
-    """Summary of student performance for the dashboard."""
-    print(f"[DEBUG] Fetching performance overview for student {student.id} ({student.username})")
-    from backend.services.gpa_service import gpa_service
-    
-    # 1. Get CGPA
-    cgpa_data = gpa_service.get_cgpa(db, student.id)
-    cgpa = cgpa_data.get("cgpa", 0.0)
-    
-    # 2. Get Overall Attendance
-    from backend.app.models import Attendance
-    records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
-    total = len(records)
-    present = sum(1 for r in records if r.status == "P")
-    att_pct = round(present / total * 100, 1) if total > 0 else 0
-    
-    # 3. Generate Insight
-    performance_text = "Good"
-    if cgpa >= 9.0: performance_text = "Excellent"
-    elif cgpa >= 8.0: performance_text = "Very Good"
-    elif cgpa < 6.0: performance_text = "Needs Improvement"
-    
-    insight = f"Based on your {cgpa} CGPA and {att_pct}% attendance, you are performing at a '{performance_text}' level."
-    if att_pct < 75:
-        insight += " Warning: Low attendance might impact your eligibility for exams."
-    elif cgpa >= 8.5:
-        insight += " You are eligible for the Dean's Honor List."
-        
-    return {
-        "recent_performance": performance_text,
-        "ai_insight": insight
-    }
-
 # ─── ASSIGNMENTS ─────────────────────────────────────────────────────────────
 @assignment_router.get("/")
 async def list_assignments(student=Depends(get_current_student), db: Session = Depends(get_db)):
@@ -338,12 +304,27 @@ def rate_note(nid: int, helpful: bool = True, db: Session = Depends(get_db)):
 
 # ─── POLLS ───────────────────────────────────────────────────────────────────
 @poll_router.get("/")
-def list_polls(db: Session = Depends(get_db)):
+def list_polls(student=Depends(get_current_student), db: Session = Depends(get_db)):
     polls = db.query(Poll).order_by(Poll.created_at.desc()).limit(20).all()
+    # Get all votes by this student in one query
+    poll_ids = [p.id for p in polls]
+    student_votes = db.query(PollVote).filter(
+        PollVote.student_id == student.id,
+        PollVote.poll_id.in_(poll_ids)
+    ).all()
+    voted_poll_ids = {v.poll_id for v in student_votes}
+    voted_option_ids = {v.option_id for v in student_votes}
+    
     result = []
     for p in polls:
         options = db.query(PollOption).filter(PollOption.poll_id == p.id).all()
-        result.append({"id": p.id, "question": p.question, "options": [{"id": o.id, "text": o.option_text, "votes": o.vote_count} for o in options]})
+        result.append({
+            "id": p.id,
+            "question": p.question,
+            "category": getattr(p, 'category', 'General'),
+            "user_voted": p.id in voted_poll_ids,
+            "options": [{"id": o.id, "text": o.option_text, "votes": o.vote_count} for o in options]
+        })
     return {"polls": result}
 
 @poll_router.post("/{pid}/vote/")
@@ -358,16 +339,33 @@ def vote(pid: int, option_id: int, student=Depends(get_current_student), db: Ses
     return {"message": "Vote recorded"}
 
 @event_router.get("/")
-def list_events(db: Session = Depends(get_db)):
+def list_events(student=Depends(get_current_student), db: Session = Depends(get_db)):
+    events = db.query(Event).order_by(Event.event_date.desc()).all()
+    event_ids = [e.id for e in events]
+    # Get student RSVPs in one query
+    student_rsvps = db.query(EventRSVP).filter(
+        EventRSVP.student_id == student.id,
+        EventRSVP.event_id.in_(event_ids)
+    ).all()
+    rsvped_event_ids = {r.event_id for r in student_rsvps}
+    # Get RSVP counts per event
+    rsvp_counts = {}
+    for eid in event_ids:
+        rsvp_counts[eid] = db.query(EventRSVP).filter(EventRSVP.event_id == eid).count()
+    
     return {"events": [{
-        "id": e.id, 
-        "title": e.title, 
-        "description": e.description, 
+        "id": e.id,
+        "title": e.title,
+        "description": e.description,
         "date": e.event_date,
         "event_date": e.event_date,
         "venue": e.venue,
-        "location": e.venue
-    } for e in db.query(Event).order_by(Event.event_date.desc()).all()]}
+        "location": e.venue,
+        "category": getattr(e, 'category', 'General'),
+        "user_rsvped": e.id in rsvped_event_ids,
+        "rsvp_count": rsvp_counts.get(e.id, 0),
+        "image_url": getattr(e, 'image_url', None)
+    } for e in events]}
 
 @event_router.post("/{eid}/rsvp/")
 def rsvp(eid: int, student=Depends(get_current_student), db: Session = Depends(get_db)):
@@ -503,14 +501,18 @@ def fee_summary_v2(student=Depends(get_current_student), db: Session = Depends(g
         "overdue_count": overdue_count
     }
 
+class FeePayment(BaseModel):
+    fee_id: int
+    amount: float
+
 @fees_student_router.post("/pay/")
-def pay_fee_v2(fee_id: int, amount: float, student=Depends(get_current_student), db: Session = Depends(get_db)):
-    fee = db.query(StudentFee).filter(StudentFee.id == fee_id, StudentFee.student_id == student.id).first()
+def pay_fee_v2(data: FeePayment, student=Depends(get_current_student), db: Session = Depends(get_db)):
+    fee = db.query(StudentFee).filter(StudentFee.id == data.fee_id, StudentFee.student_id == student.id).first()
     if not fee: raise HTTPException(404, "Fee record not found")
-    fee.amount_paid += amount
+    fee.amount_paid += data.amount
     if fee.amount_paid >= fee.amount_due: fee.status = "Paid"
     
-    payment = Payment(student_id=student.id, student_fee_id=fee_id, amount=amount, payment_method="Gateway")
+    payment = Payment(student_id=student.id, student_fee_id=data.fee_id, amount=data.amount, payment_method="Gateway")
     db.add(payment)
     db.commit()
     return {"message": "Payment successful", "balance": fee.amount_due - fee.amount_paid}

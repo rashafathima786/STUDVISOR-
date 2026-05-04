@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchFaculty } from '../services/api';
 import ErpLayout from '../components/ErpLayout';
-import { Users, Mail, Phone, BookOpen, Search, Filter, MessageSquare, ExternalLink } from 'lucide-react';
+import { Users, Mail, Phone, BookOpen, BookMarked, Search, Filter, MessageSquare, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function FacultyPage() {
@@ -38,17 +38,12 @@ export default function FacultyPage() {
         
         {/* Search & Stats Section */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-             <div className="flex flex-col items-center md:items-end gap-2">
-                <div className="text-5xl font-black text-on-surface tracking-tighter">
-                  {overallProgress}<span className="text-2xl text-primary">%</span>
-                </div>
-              <div>
-                <h2 className="text-3xl font-black text-on-surface tracking-tight">Academic Council</h2>
-               <div className="flex items-center gap-2 text-on-surface-variant/60 text-sm font-medium mt-1">
-                 <span className="text-tertiary font-bold">{facultyList.length}</span>
-                 <span>Faculty Members Across 12 Departments</span>
-               </div>
-             </div>
+          <div>
+            <h2 className="text-3xl font-black text-on-surface tracking-tight">Academic Council</h2>
+            <div className="flex items-center gap-2 text-on-surface-variant/60 text-sm font-medium mt-1">
+              <span className="text-tertiary font-bold">{facultyList.length}</span>
+              <span>Faculty Members Across Departments</span>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
@@ -80,10 +75,6 @@ export default function FacultyPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="py-32 glass-panel rounded-[40px] flex flex-col items-center justify-center text-center px-6"
           >
-             <div className="py-20 glass-panel rounded-3xl flex flex-col items-center justify-center text-center">
-               <BookMarked size={48} className="text-on-surface-variant/10 mb-4" />
-               <h3 className="text-xl font-bold text-on-surface">No Syllabus Data</h3>
-             </div>
             <p className="text-on-surface-variant/40 max-w-sm text-sm leading-relaxed mt-4">
               We couldn't find any members matching "{search}". Try searching for a specific department or last name.
             </p>

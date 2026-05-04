@@ -199,13 +199,13 @@ export async function sendChatMessage(query, contextPage = "dashboard") {
 }
 
 export async function fetchChatWelcome() {
-  const response = await api.get("/v2/ai/student/welcome/");
+  const response = await api.get("/v2/ai/any/welcome/");
   return response.data;
 }
 
 export async function streamChatMessage(query, handlers = {}) {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/campus/chat/stream`, {
+  const response = await fetch(`${API_BASE_URL}/campus/chat/stream/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -416,7 +416,7 @@ export async function createPoll(question, options, category = "campus") {
 }
 
 export async function votePoll(pollId, optionId) {
-  const response = await api.post(`/campus/polls/${pollId}/vote/`, { option_id: optionId });
+  const response = await api.post(`/campus/polls/${pollId}/vote/?option_id=${optionId}`);
   return response.data;
 }
 
@@ -455,7 +455,7 @@ export async function fetchAnnouncements() {
 
 export async function fetchFaculty(department = null) {
   const params = department ? { department } : {};
-  const response = await api.get("/campus/faculty/", { params });
+  const response = await api.get("/campus/faculty/directory/", { params });
   return response.data;
 }
 
@@ -495,7 +495,7 @@ export async function fetchLeaderboard(category = "merit") {
 // ── GPA / CGPA ──────────────────────────────────────────────────────────────
 
 export async function fetchSemesterGPA(semester) {
-  const response = await api.get(`/gpa/semester/${semester}/`);
+  const response = await api.get(`/academic/gpa/semester/${semester}/`);
   return response.data;
 }
 
@@ -534,8 +534,8 @@ export async function fetchPaymentHistory() {
 // ── LIBRARY ─────────────────────────────────────────────────────────────────
 
 export async function fetchBooks(search = "") {
-  const params = search ? { search } : {};
-  const response = await api.get("/user/library/books/", { params });
+  const params = search ? { q: search } : {};
+  const response = await api.get("/user/library/catalog/", { params });
   return response.data;
 }
 
@@ -638,6 +638,21 @@ export async function fetchHodPendingLeaves() {
 
 export async function hodApproveLeave(leaveId) {
   const response = await api.put(`/faculty-portal/hod/leave/${leaveId}/approve/`);
+  return response.data;
+}
+
+export async function fetchExistingMarks(subjectId, assessmentType) {
+  const response = await api.get(`/faculty-portal/marks/get/${subjectId}/${assessmentType}/`);
+  return response.data;
+}
+
+export async function fetchSubjectAttendanceStats(subjectId) {
+  const response = await api.get(`/faculty-portal/attendance/subject-stats/${subjectId}/`);
+  return response.data;
+}
+
+export async function fetchExistingAttendance(subjectId, date, hour) {
+  const response = await api.get(`/faculty-portal/attendance/get/${subjectId}/${date}/${hour}/`);
   return response.data;
 }
 

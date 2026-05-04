@@ -215,7 +215,7 @@ export default function CampusHub() {
                         <span>{event.venue}</span>
                       </div>
                     </div>
-                    {event.is_rsvp ? (
+                    {event.user_rsvped ? (
                       <div className="flex flex-col items-center gap-1">
                         <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                           <Shield size={14} className="text-emerald-400" />
@@ -328,7 +328,7 @@ export default function CampusHub() {
                       <Hash size={14} className="text-amber-400/60" />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-on-surface truncate">{item.title}</span>
+                      <span className="text-[11px] font-bold text-on-surface truncate">{item.item_name || item.item}</span>
                       <span className="text-[8px] font-bold text-on-surface-variant/40 uppercase tracking-widest">{item.location}</span>
                     </div>
                   </div>

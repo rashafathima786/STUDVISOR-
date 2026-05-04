@@ -114,6 +114,18 @@ const promptSets = {
     ['what is my weakest subject', 'Weakest', 'results'],
     ['explain my eligibility status', 'Eligibility', 'attendance'],
   ],
+  faculty: [
+    ['show my timetable', 'Timetable', 'calendar'],
+    ['which students are at risk', 'At Risk', 'attendance'],
+    ['show attendance statistics', 'Statistics', 'attendance'],
+    ['view pending leave requests', 'Leaves', 'od'],
+  ],
+  hod: [
+    ['show department overview', 'Overview', 'results'],
+    ['faculty performance analytics', 'Faculty', 'results'],
+    ['analyze student risk trends', 'Risk Trends', 'attendance'],
+    ['approve pending documents', 'Approvals', 'od'],
+  ],
 }
 
 export default function ChatBox({ onNewChat, resetToken = 0, className = '', contextPage = 'dashboard', compact = false }) {
@@ -169,17 +181,18 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
       const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
       
       if (formatted.length === 0 && welcome) {
+         const isFaculty = welcome.message.toLowerCase().includes('professor') || welcome.message.toLowerCase().includes('faculty')
          setMessages([{ 
            sender: 'bot', 
            text: `✨ **${greeting}, ${welcome.message.split('!')[0].split(' ').pop() || ''}!** ${welcome.message}`,
            actions: welcome.actions,
-           protocol: 'Studvisor AI'
+           protocol: isFaculty ? 'Staff AI Ensemble' : 'Studvisor AI'
          }])
       } else {
         setMessages(
           formatted.length
             ? formatted
-            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm **Studvisor AI**, your premium ERP Assistant. I can analyze your attendance, marks, and help you track missing academic items.\n\nType **help** to see everything I can do for you!` }],
+            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm **Studvisor AI**, your premium ERP Assistant. I can help you analyze your ${welcome?.role === 'student' ? 'attendance and marks' : 'class performance and schedules'}.\n\nType **help** to see everything I can do for you!` }],
         )
       }
     } catch {
@@ -308,7 +321,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
           </p>
         ) : null}
         <div className="chat-prompt-row scrollbar-hide">
-          {(welcomeData?.actions || promptSets[contextPage] || promptSets.dashboard).map((item) => {
+          {(welcomeData?.actions || promptSets[contextPage] || (welcomeData?.role === 'student' ? promptSets.dashboard : promptSets.faculty)).map((item) => {
             const prompt = Array.isArray(item) ? item[0] : item.query
             const label = Array.isArray(item) ? item[1] : item.label
             const category = Array.isArray(item) ? item[2] : item.category

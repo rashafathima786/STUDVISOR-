@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import Optional
 import json, asyncio
 
-from backend.core.security import get_current_student, get_current_faculty, require_role
+from backend.core.security import get_current_student, get_current_faculty, get_current_user_any, require_role
 from backend.app.database import get_db
 from backend.core.ai_context import build_student_context, build_faculty_context, build_admin_context
 from backend.services.predictive_service import predictive_service
@@ -51,13 +51,27 @@ async def student_chat(req: ChatRequest, student=Depends(get_current_student), d
     }
 
 
+@router.get("/any/welcome/")
+async def any_welcome(user=Depends(get_current_user_any), db: Session = Depends(get_db)):
+    """Fetches a personalized welcome package for any authenticated user (Student or Faculty)."""
+    from backend.services.ai_service import ai_service
+    is_student = getattr(user, "user_role", "student") == "student"
+    
+    if is_student:
+        context = build_student_context(db, user.id)
+        name = user.full_name
+    else:
+        context = build_faculty_context(db, user.id)
+        name = user.name
+        
+    package = await ai_service.get_welcome_package(context, name)
+    return package
+
+
 @router.get("/student/welcome/")
 async def student_welcome(student=Depends(get_current_student), db: Session = Depends(get_db)):
-    """Fetches a personalized welcome package for the student."""
-    from backend.services.ai_service import ai_service
-    context = build_student_context(db, student.id)
-    package = await ai_service.get_welcome_package(context, student.full_name)
-    return package
+    """Legacy endpoint: redirect to new polymorphic welcome."""
+    return await any_welcome(student, db)
 
 
 @router.post("/student/chat/stream/")
@@ -203,11 +217,32 @@ def my_risk_score(student=Depends(get_current_student), db: Session = Depends(ge
 
 @router.post("/faculty/chat/")
 async def faculty_chat(req: ChatRequest, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    """Context-aware AI chat for faculty using the Intelligence Ensemble."""
+    from backend.services.ai_service import ai_service
     context = build_faculty_context(db, faculty.id)
+    ai_result = await ai_service.ensemble_chat(req.query, context)
+    
     return {
-        "response": f"[Faculty AI] Analyzing class data for your query: '{req.query}'",
-        "ai_provider": "Studvisor-ai-v2",
+        "response": ai_result["text"],
+        "actions": ai_result["actions"],
+        "meta": {
+            "protocol": ai_result["protocol"],
+            "context_page": req.context_page,
+            "ai_provider": "Staff-Intelligence-Ensemble",
+        }
     }
+
+
+@router.get("/faculty/suggestions/")
+def faculty_suggestions(faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
+    """AI-generated question suggestions for faculty."""
+    return {"suggestions": [
+        "Show my class attendance health",
+        "Which students are at risk of failing?",
+        "Help me generate a question paper for CS101",
+        "Analyze attendance anomalies in my morning slots",
+        "Show my timetable for this week"
+    ]}
 
 
 @router.get("/faculty/class-health/")

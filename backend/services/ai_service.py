@@ -90,45 +90,56 @@ class AIService:
 
     async def get_welcome_package(self, db_context: str, user_name: str) -> Dict:
         """Generates a personalized welcome message and quick actions."""
-        # We use a simple heuristic combined with AI for the welcome text
+        is_faculty = "FACULTY CONTEXT" in db_context
+        role = "faculty" if is_faculty else "student"
+        
         lines = db_context.split('\n')
-        att_line = next((l for l in lines if "Overall Attendance" in l), "")
-        cgpa_line = next((l for l in lines if "CGPA" in l), "")
-        exams_line = next((l for l in lines if "Upcoming Exams" in l), "")
         
-        att_pct = float(att_line.split(":")[1].split("%")[0].strip()) if "%" in att_line else 100.0
-        exams_count = int(exams_line.split(":")[1].split(" ")[1].strip()) if "Upcoming Exams" in exams_line else 0
-
-        # Base actions
-        actions = [
-            {"label": "\U0001f4ca Attendance Summary", "query": "show my attendance summary", "category": "attendance"},
-            {"label": "\U0001f4c5 Next Holiday", "query": "when is the next holiday", "category": "calendar"},
-        ]
-
-        # Contextual actions
-        if att_pct < 75:
-            actions.insert(0, {"label": "\u26a0\ufe0f Attendance Recovery", "query": "how to recover my attendance", "category": "critical"})
-        if exams_count > 0:
-            actions.append({"label": "\U0001f4dd Exam Schedule", "query": "show my upcoming exams", "category": "academic"})
-        
-        hour = asyncio.get_event_loop().time() # Mocking time for greeting
-        
-        welcome_prompt = (
-            f"Context: {db_context}\n"
-            f"User: {user_name}\n"
-            "Generate a very brief (1 sentence) 'State of the Union' for this student. "
-            "Example: 'Welcome back! Your attendance is solid, but you have 2 exams coming up.'"
-        )
+        if not is_faculty:
+            # Student Logic
+            att_line = next((l for l in lines if "Overall Attendance" in l), "")
+            att_pct = float(att_line.split(":")[1].split("%")[0].strip()) if "%" in att_line else 100.0
+            
+            actions = [
+                {"label": "📊 Attendance Summary", "query": "show my attendance summary", "category": "attendance"},
+                {"label": "📅 Next Holiday", "query": "when is the next holiday", "category": "calendar"},
+            ]
+            if att_pct < 75:
+                actions.insert(0, {"label": "⚠️ Attendance Recovery", "query": "how to recover my attendance", "category": "critical"})
+            
+            welcome_prompt = (
+                f"Context: {db_context}\n"
+                f"User: {user_name}\n"
+                "Generate a very brief (1 sentence) 'State of the Union' for this student. "
+            )
+        else:
+            # Faculty Logic
+            subj_count_line = next((l for l in lines if "Subjects Teaching" in l), "")
+            subj_count = subj_count_line.split(":")[1].strip() if ":" in subj_count_line else "0"
+            
+            actions = [
+                {"label": "📅 My Timetable", "query": "show my timetable", "category": "calendar"},
+                {"label": "📊 Class Health", "query": "show my class health", "category": "attendance"},
+                {"label": "📝 Leave Requests", "query": "view pending leaves", "category": "compliance"},
+            ]
+            
+            welcome_prompt = (
+                f"Context: {db_context}\n"
+                f"User: Professor {user_name}\n"
+                "Generate a very brief (1 sentence) greeting for this faculty member. "
+                "Example: 'Welcome back, Professor! You have 3 subjects this semester and your class performance looks stable.'"
+            )
         
         status_msg = await self.chat("You are a helpful ERP assistant.", welcome_prompt)
 
         return {
             "message": status_msg,
             "actions": actions,
+            "role": role,
             "suggestions": [
-                "What is my weakest subject?",
-                "Am I safe to bunk tomorrow?",
-                "Compare my semester performance"
+                "What is my weakest subject?" if not is_faculty else "Which students are at risk?",
+                "Am I safe to bunk tomorrow?" if not is_faculty else "Show my schedule for today",
+                "Compare my semester performance" if not is_faculty else "How is the attendance in my morning slot?"
             ]
         }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { uploadMarks, publishMarks, fetchMySubjects, fetchStudentsBySubject } from '../../services/api'
+import { uploadMarks, publishMarks, fetchMySubjects, fetchStudentsBySubject, fetchExistingMarks } from '../../services/api'
+import useAuthStore from '../../stores/authStore'
 import ErpLayout from '../../components/ErpLayout'
 import SkeletonLoader from '../../components/SkeletonLoader'
 import EmptyState from '../../components/EmptyState'
@@ -20,23 +21,45 @@ export default function FacultyMarks() {
   const toast = useToast()
 
   useEffect(() => {
-    fetchMySubjects().then(res => setSubjects(res.subjects || []))
+      const subjs = res.subjects || []
+      setSubjects(subjs)
+      const preselect = localStorage.getItem('faculty_preselect_subject')
+      if (preselect) {
+        setSubjectId(preselect)
+        localStorage.removeItem('faculty_preselect_subject')
+      } else if (subjs.length > 0) {
+        setSubjectId(subjs[0].id)
+      }
+    })
   }, [])
 
   useEffect(() => {
     if (subjectId) {
+      const subj = subjects.find(s => String(s.id) === String(subjectId))
+      if (subj?.semester) setSemester(String(subj.semester))
+      
       setLoading(true)
-      fetchStudentsBySubject(subjectId)
-        .then(res => {
-          const list = res.students || []
+      Promise.all([
+        fetchStudentsBySubject(subjectId),
+        fetchExistingMarks(subjectId, assessmentType).catch(() => ({ marks: [] }))
+      ]).then(([studentsRes, marksRes]) => {
+          const list = studentsRes.students || []
           setStudents(list)
+          
+          const existingMap = {}
+          marksRes.marks?.forEach(m => {
+            existingMap[m.student_id] = { marks: String(m.marks_obtained), max: String(m.max_marks) }
+          })
+
           const init = {}
-          list.forEach(s => init[s.id] = { marks: '', max: '100' })
+          list.forEach(s => {
+            init[s.id] = existingMap[s.id] || { marks: '', max: '100' }
+          })
           setEntries(init)
         })
         .finally(() => setLoading(false))
     }
-  }, [subjectId])
+  }, [subjectId, subjects, assessmentType])
 
   const updateEntry = (sid, field, value) => {
     setEntries(prev => ({
@@ -111,6 +134,36 @@ export default function FacultyMarks() {
     }
   }
 
+  const handleExportCSV = () => {
+    if (students.length === 0) return
+    const headers = ['Student ID', 'Name', 'Marks Obtained', 'Max Marks', 'Percentage']
+    const rows = students.map(s => {
+      const data = entries[s.id] || { marks: '0', max: '100' }
+      const pct = (parseFloat(data.marks) / parseFloat(data.max) * 100).toFixed(2)
+      return [s.username, s.name, data.marks, data.max, `${pct}%`]
+    })
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n"
+      + rows.map(e => e.join(",")).join("\n")
+    
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", `Marks_${assessmentType}_${subjectId}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    toast.success("CSV Export Triggered")
+  }
+
+  const stats = (() => {
+    const marks = Object.values(entries).map(e => parseFloat(e.marks)).filter(m => !isNaN(m))
+    if (marks.length === 0) return { avg: '0.0', pass: 0, fail: 0 }
+    const avg = marks.reduce((a, b) => a + b, 0) / marks.length
+    const pass = marks.filter(m => m >= 40).length
+    return { avg: avg.toFixed(1), pass, fail: marks.length - pass }
+  })()
+  const user = useAuthStore(s => s.user)
+
   return (
     <ErpLayout title="Grade Terminal" subtitle="Assessment processing and academic result management">
       
@@ -143,7 +196,7 @@ export default function FacultyMarks() {
                   value={assessmentType}
                   onChange={(e) => setAssessmentType(e.target.value)}
                 >
-                  {['CAT-1', 'CAT-2', 'Assignment', 'Project', 'Lab', 'Semester'].map(t => (
+                  {['Internal', 'CAT-1', 'CAT-2', 'Assignment', 'Project', 'Lab', 'Semester'].map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
@@ -151,25 +204,33 @@ export default function FacultyMarks() {
             </div>
 
             <div className="w-24 relative group">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/30 absolute left-4 top-2">Sem</label>
-              <div className="relative">
-                <Hash size={16} className="absolute left-4 top-[34px] text-on-surface-variant/20" />
-                <select
-                  className="w-full bg-surface-container border border-border-color rounded-2xl pt-8 pb-4 pl-12 pr-4 text-on-surface text-sm focus:border-primary/50 transition-all outline-none appearance-none"
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={String(s)}>{s}</option>)}
-                </select>
-              </div>
+               <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/30 absolute left-4 top-2">Sem</label>
+               <div className="relative">
+                 <Hash size={16} className="absolute left-4 top-[34px] text-on-surface-variant/20" />
+                 <select
+                   className="w-full bg-surface-container border border-border-color rounded-2xl pt-8 pb-4 pl-12 pr-4 text-on-surface text-sm focus:border-primary/50 transition-all outline-none appearance-none"
+                   value={semester}
+                   onChange={(e) => setSemester(e.target.value)}
+                 >
+                   {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={String(s)}>{s}</option>)}
+                 </select>
+               </div>
             </div>
           </div>
 
           <div className="flex gap-3 w-full lg:w-auto">
             <button 
+              onClick={handleExportCSV}
+              disabled={students.length === 0}
+              className="px-6 h-[58px] bg-surface-container border border-border-color text-on-surface-variant/40 hover:text-on-surface rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95"
+              title="Export to CSV"
+            >
+              <Upload size={18} />
+            </button>
+            <button 
               onClick={handleUpload} 
               disabled={submitting || !subjectId}
-              className="flex-1 lg:flex-none h-[58px] px-8 bg-surface-container border border-border-color text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:border-primary/50 transition-all flex items-center justify-center gap-3"
+              className="flex-1 lg:flex-none h-[58px] px-8 bg-surface-container border border-border-color text-on-surface rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:border-primary/50 transition-all flex items-center justify-center gap-3 active:scale-95"
             >
               <Save size={18} className="text-primary" />
               <span>{submitting ? 'SAVING...' : 'SAVE DRAFT'}</span>
@@ -177,13 +238,42 @@ export default function FacultyMarks() {
             <button 
               onClick={handlePublish} 
               disabled={publishing || !subjectId}
-              className="flex-1 lg:flex-none h-[58px] px-8 bg-primary text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-[0_10px_20px_rgba(124,58,237,0.3)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+              className="flex-1 lg:flex-none h-[58px] px-8 bg-primary text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-[0_10px_20px_rgba(var(--primary-rgb),0.3)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
             >
               <Send size={18} />
               <span>{publishing ? 'PUBLISHING...' : 'PUBLISH'}</span>
             </button>
           </div>
         </div>
+
+        {/* Stats Summary Panel */}
+        {students.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-border-color flex flex-wrap gap-8">
+            <div className="flex flex-col">
+              <span className="text-[8px] font-bold text-on-surface-variant/20 uppercase tracking-widest mb-1">Faculty Node</span>
+              <span className="text-sm font-bold text-on-surface">{user?.full_name} ({user?.department || 'General'})</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-bold text-on-surface-variant/20 uppercase tracking-widest mb-1">Roster Count</span>
+              <span className="text-sm font-bold text-on-surface">{students.length} Students</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-bold text-on-surface-variant/20 uppercase tracking-widest mb-1">Average Performance</span>
+              <span className="text-sm font-bold text-primary">{stats.avg}%</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] font-bold text-on-surface-variant/20 uppercase tracking-widest mb-1">Pass / Fail</span>
+              <div className="flex gap-2">
+                <span className="text-sm font-bold text-tertiary">{stats.pass} P</span>
+                <span className="text-sm font-bold text-error">{stats.fail} F</span>
+              </div>
+            </div>
+            <div className="flex flex-col ml-auto text-right">
+              <span className="text-[8px] font-bold text-on-surface-variant/20 uppercase tracking-widest mb-1">Target Assessment</span>
+              <span className="text-sm font-bold text-secondary">{assessmentType} • Semester {semester}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -191,11 +281,11 @@ export default function FacultyMarks() {
           {[1,2,3,4,5].map(i => <SkeletonLoader key={i} variant="table" />)}
         </div>
       ) : students.length > 0 ? (
-        <div className="card glass-panel border-white/5 overflow-hidden">
+        <div className="card glass-panel border-border-color overflow-hidden bg-surface-container-low">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-white/[0.02]">
+                <tr className="bg-on-surface/[0.02]">
                   <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/40">Student Identity</th>
                   <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/40">Marks Obtained</th>
                   <th className="p-6 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/40">Max Possible</th>
@@ -216,7 +306,7 @@ export default function FacultyMarks() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 10 }}
                         transition={{ duration: 0.2, delay: idx * 0.02 }}
-                        className="border-t border-white/5 hover:bg-white/[0.01] transition-colors"
+                        className="border-t border-border-color hover:bg-on-surface/[0.01] transition-colors"
                       >
                         <td className="p-6">
                           {student.isManual ? (
@@ -231,12 +321,19 @@ export default function FacultyMarks() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                                {student.name.charAt(0)}
-                              </div>
+                              {(() => {
+                                const colors = ['bg-primary', 'bg-secondary', 'bg-tertiary', 'bg-error', 'bg-blue-500', 'bg-emerald-500']
+                                const charCode = student.name.charCodeAt(0)
+                                const colorClass = colors[charCode % colors.length]
+                                return (
+                                  <div className={`w-8 h-8 rounded-full ${colorClass}/20 flex items-center justify-center ${colorClass.replace('bg-', 'text-')} text-[10px] font-bold`}>
+                                    {student.name.charAt(0)}
+                                  </div>
+                                )
+                              })()}
                               <div>
-                                <div className="text-sm font-bold text-white">{student.name}</div>
-                                <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{student.username}</div>
+                                <div className="text-sm font-bold text-on-surface">{student.name}</div>
+                                <div className="text-[10px] font-bold text-on-surface-variant/30 uppercase tracking-widest">{student.username}</div>
                               </div>
                             </div>
                           )}
@@ -245,7 +342,7 @@ export default function FacultyMarks() {
                           <input 
                             type="number"
                             placeholder="0.0"
-                            className="bg-surface-container border border-border-color rounded-xl py-2 px-4 text-sm font-bold text-white focus:border-primary/30 outline-none transition-all w-24"
+                            className="bg-surface-container border border-border-color rounded-xl py-2 px-4 text-sm font-bold text-on-surface focus:border-primary/30 outline-none transition-all w-24"
                             value={data.marks}
                             onChange={(e) => updateEntry(student.id, 'marks', e.target.value)}
                           />
@@ -253,7 +350,7 @@ export default function FacultyMarks() {
                         <td className="p-6">
                           <input 
                             type="number"
-                            className="bg-surface-container border border-border-color rounded-xl py-2 px-4 text-sm font-bold text-white/50 focus:border-primary/30 outline-none transition-all w-24"
+                            className="bg-surface-container border border-border-color rounded-xl py-2 px-4 text-sm font-bold text-on-surface-variant/50 focus:border-primary/30 outline-none transition-all w-24"
                             value={data.max}
                             onChange={(e) => updateEntry(student.id, 'max', e.target.value)}
                           />
@@ -261,7 +358,7 @@ export default function FacultyMarks() {
                         <td className="p-6">
                            {!isNaN(percentage) && (
                              <div className="flex items-center gap-3">
-                               <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden min-w-[60px]">
+                               <div className="flex-1 h-1.5 bg-on-surface/5 rounded-full overflow-hidden min-w-[60px]">
                                  <motion.div 
                                    initial={{ width: 0 }}
                                    animate={{ width: `${Math.min(100, percentage)}%` }}
@@ -289,10 +386,10 @@ export default function FacultyMarks() {
             </table>
           </div>
           
-          <div className="p-4 border-t border-white/5 bg-white/[0.01]">
+          <div className="p-4 border-t border-border-color bg-on-surface/[0.01]">
             <button 
               onClick={addRow}
-              className="w-full py-3 border border-dashed border-white/10 rounded-2xl text-[10px] font-bold text-on-surface-variant/40 hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 border border-dashed border-border-color rounded-2xl text-[10px] font-bold text-on-surface-variant/40 hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
             >
               <Plus size={14} />
               <span>INSERT AD-HOC STUDENT ROW</span>
@@ -301,7 +398,7 @@ export default function FacultyMarks() {
         </div>
       ) : (
         <EmptyState 
-          icon={<BarChart3 size={48} className="text-white/10" />}
+          icon={<BarChart3 size={48} className="text-on-surface-variant/10" />}
           title="Analytics Node Offline"
           description={subjectId ? "No students found for this subject." : "Initialize the evaluation engine by selecting a subject from the command bar."}
         />

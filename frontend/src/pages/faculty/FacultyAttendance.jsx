@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { markAttendance, fetchStudentsBySubject, fetchMySubjects } from '../../services/api'
+import { markAttendance, fetchStudentsBySubject, fetchMySubjects, fetchExistingAttendance } from '../../services/api'
 import ErpLayout from '../../components/ErpLayout'
 import SkeletonLoader from '../../components/SkeletonLoader'
 import EmptyState from '../../components/EmptyState'
@@ -21,7 +21,17 @@ export default function FacultyAttendance() {
 
   useEffect(() => {
     fetchMySubjects()
-      .then(res => setSubjects(res.subjects || []))
+      .then(res => {
+        const subjs = res.subjects || []
+        setSubjects(subjs)
+        const preselect = localStorage.getItem('faculty_preselect_subject')
+        if (preselect) {
+          setSubjectId(preselect)
+          localStorage.removeItem('faculty_preselect_subject')
+        } else if (subjs.length > 0) {
+          setSubjectId(subjs[0].id)
+        }
+      })
       .catch(() => toast.error("Failed to load subjects"))
   }, [])
 
@@ -32,11 +42,17 @@ export default function FacultyAttendance() {
     }
     setLoading(true)
     try {
-      const res = await fetchStudentsBySubject(sid)
-      const list = res?.students || []
+      const [studentsRes, existingRes] = await Promise.all([
+        fetchStudentsBySubject(sid),
+        fetchExistingAttendance(sid, date, hour).catch(() => ({ attendance: {} }))
+      ])
+      
+      const list = studentsRes?.students || []
       setStudents(list)
+      
+      const existingMap = existingRes?.attendance || {}
       const init = {}
-      list.forEach((s) => (init[s.id] = 'P'))
+      list.forEach((s) => (init[s.id] = existingMap[s.id] || 'P'))
       setAttendance(init)
     } catch (err) {
       toast.error("Failed to load students for this subject")
@@ -47,7 +63,7 @@ export default function FacultyAttendance() {
 
   useEffect(() => {
     loadStudents(subjectId)
-  }, [subjectId])
+  }, [subjectId, date, hour])
 
   const toggleStatus = (studentId) => {
     setAttendance((prev) => ({
@@ -153,7 +169,7 @@ export default function FacultyAttendance() {
 
           <div className="flex items-center gap-3 w-full lg:w-auto">
              <button 
-              className="primary-btn h-[58px] px-8 flex-1 lg:flex-none flex items-center justify-center gap-3 shadow-[0_10px_20px_rgba(124,58,237,0.3)]"
+              className="bg-primary hover:bg-primary-container text-white h-[58px] px-8 flex-1 lg:flex-none flex items-center justify-center gap-3 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(var(--primary-rgb),0.3)] transition-all active:scale-95"
               onClick={handleSubmit}
               disabled={submitting || !subjectId}
              >
@@ -177,9 +193,20 @@ export default function FacultyAttendance() {
            </div>
            
            <div className="flex gap-2">
-              <button onClick={() => setAll('P')} className="mini-tag primary cursor-pointer px-4">Mark All Present</button>
-              <button onClick={() => setAll('A')} className="mini-tag tertiary cursor-pointer px-4">Reset All</button>
-           </div>
+               <button onClick={() => setAll('P')} className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[8px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all">Mark All Present</button>
+               <button onClick={() => setAll('A')} className="px-4 py-2 rounded-xl bg-on-surface/5 border border-border-color text-on-surface-variant text-[8px] font-black uppercase tracking-widest hover:bg-on-surface/10 transition-all">Mark All Absent</button>
+               <button 
+                onClick={() => {
+                  const init = {}
+                  students.forEach(s => init[s.id] = 'P')
+                  setAttendance(init)
+                  toast.info("Reset to default (Present)")
+                }} 
+                className="px-4 py-2 rounded-xl bg-on-surface/5 border border-border-color text-on-surface-variant text-[8px] font-black uppercase tracking-widest hover:bg-on-surface/10 transition-all"
+               >
+                Reset
+               </button>
+            </div>
 
            <div className="ml-auto relative w-full lg:w-64">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/20" />
@@ -211,10 +238,10 @@ export default function FacultyAttendance() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2, delay: idx * 0.02 }}
-                  className={`card glass-panel p-6 border-white/5 relative group cursor-pointer transition-all hover:scale-[1.02] ${
-                    status === 'P' ? 'bg-tertiary/5 border-tertiary/20' : 
-                    status === 'A' ? 'bg-error/5 border-error/20' : 
-                    'bg-secondary/5 border-secondary/20'
+                  className={`card glass-panel p-6 border-border-color relative group cursor-pointer transition-all hover:scale-[1.02] ${
+                    status === 'P' ? 'bg-tertiary/5 border-tertiary/20 shadow-lg shadow-tertiary/5' : 
+                    status === 'A' ? 'bg-error/5 border-error/20 shadow-lg shadow-error/5' : 
+                    'bg-secondary/5 border-secondary/20 shadow-lg shadow-secondary/5'
                   }`}
                   onClick={() => toggleStatus(student.id)}
                 >
@@ -227,15 +254,15 @@ export default function FacultyAttendance() {
                       {student.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-white truncate">{student.name}</div>
-                      <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{student.username}</div>
+                      <div className="text-sm font-bold text-on-surface truncate">{student.name}</div>
+                      <div className="text-[10px] font-bold text-on-surface-variant/30 uppercase tracking-widest">{student.username}</div>
                     </div>
                     <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
                       status === 'P' ? 'bg-tertiary/20 text-tertiary' : 
                       status === 'A' ? 'bg-error/20 text-error' : 
                       'bg-secondary/20 text-secondary'
                     }`}>
-                      {status === 'P' ? 'Present' : status === 'A' ? 'Absent' : 'Duty Leave'}
+                      {status === 'P' ? 'Present' : status === 'A' ? 'Absent' : 'DL'}
                     </div>
                   </div>
                 </motion.div>
@@ -245,7 +272,7 @@ export default function FacultyAttendance() {
         </div>
       ) : (
         <EmptyState 
-          icon={<UserCheck size={48} className="text-white/10" />}
+          icon={<UserCheck size={48} className="text-on-surface-variant/10" />}
           title="Roster Offline"
           description={subjectId ? "No students found for this subject." : "Select a subject from the command bar to initialize the roster."}
         />

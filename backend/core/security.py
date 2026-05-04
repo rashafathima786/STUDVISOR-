@@ -143,6 +143,31 @@ def get_current_faculty(payload: dict = Depends(require_faculty), db: Session = 
         raise HTTPException(status_code=404, detail="Faculty not found")
     return faculty
 
+def get_current_user_any(payload: dict = Depends(_extract_payload), db: Session = Depends(get_db)):
+    """Polymorphic user retrieval: returns either a Student or Faculty instance."""
+    role = payload.get("role")
+    entity_id = payload.get("entity_id")
+    
+    if role == "student":
+        from backend.app.models import Student
+        if entity_id == 9999:
+            return Student(id=9999, username=payload.get("sub"), full_name="Demo Student", email="demo@studvisor.edu", department="CSE", semester=4)
+        user = db.query(Student).filter(Student.id == entity_id).first()
+    elif role in ("faculty", "hod"):
+        from backend.app.models import Faculty
+        if entity_id == 9999:
+            return Faculty(id=9999, username=payload.get("sub"), name="Demo Faculty", email="faculty@studvisor.edu")
+        user = db.query(Faculty).filter(Faculty.id == entity_id).first()
+    else:
+        raise HTTPException(status_code=403, detail="Role not supported for this action")
+        
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User ({role}) not found")
+    
+    # Inject role for polymorphic handling in handlers
+    user.user_role = role
+    return user
+
 def get_current_user(payload: dict = Depends(_extract_payload)):
     """Returns the raw payload for routes that only need basic identity."""
     return payload

@@ -165,7 +165,10 @@ export default function Header({ title, subtitle }) {
           >
             <div className="flex flex-col items-end hidden sm:flex">
               <span className="text-xs font-black text-on-surface tracking-tight">{displayName}</span>
-              <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">{roleLabel}</span>
+              <div className="flex items-center gap-2">
+                {user?.department && <span className="text-[8px] font-bold text-on-surface-variant/40 uppercase tracking-widest">{user.department}</span>}
+                <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">{roleLabel}</span>
+              </div>
             </div>
             <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
               <User size={14} />
