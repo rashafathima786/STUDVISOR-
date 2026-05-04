@@ -10,7 +10,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # ── App ──────────────────────────────────────────────────────────────
     APP_NAME: str = "Studvisor"
-    APP_VERSION: str = "2.0.0"
+    APP_VERSION: str = "3.0.0"
     DEBUG: bool = False
 
     # ── Database ─────────────────────────────────────────────────────────

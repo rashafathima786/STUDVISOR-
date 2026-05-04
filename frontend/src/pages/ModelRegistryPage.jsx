@@ -25,19 +25,13 @@ export default function ModelRegistryPage() {
   const [loading, setLoading] = useState(true)
 
   const models = [
-    { name: "Gemini 2.5 Flash", category: "Text-out", rpm: 5, tpm: "250K", rpd: 20, status: "Active", latency: "240ms" },
-    { name: "Gemini 2.5 Pro", category: "Text-out", rpm: 0, tpm: "0", rpd: 0, status: "Standby", latency: "---" },
-    { name: "Gemini 2 Flash", category: "Text-out", rpm: 0, tpm: "0", rpd: 0, status: "Standby", latency: "---" },
-    { name: "Gemini 3 Flash", category: "Text-out", rpm: 5, tpm: "250K", rpd: 20, status: "Active", latency: "180ms" },
-    { name: "Gemini 3.1 Flash Lite", category: "Text-out", rpm: 15, tpm: "250K", rpd: 500, status: "Active", latency: "110ms" },
-    { name: "Gemini 2.5 Flash TTS", category: "Multi-modal", rpm: 3, tpm: "10K", rpd: 10, status: "Active", latency: "450ms" },
-    { name: "Gemma 3 12B", category: "Other", rpm: 30, tpm: "15K", rpd: "14.4K", status: "Operational", latency: "85ms" },
-    { name: "Gemma 4 31B", category: "Other", rpm: 15, tpm: "Unlimited", rpd: "1.5K", status: "Operational", latency: "130ms" },
-    { name: "Imagen 4 Generate", category: "Multi-modal", rpm: 0, tpm: "0", rpd: 25, status: "Active", latency: "2.4s" },
-    { name: "Deep Research Pro", category: "Agents", rpm: 0, tpm: "0", rpd: 0, status: "Testing", latency: "---" },
-    { name: "Gemini 2.5 Flash Native Audio", category: "Live API", rpm: "Unl", tpm: "1M", rpd: "Unl", status: "Live", latency: "15ms" },
-    { name: "Gemini 3 Flash Live", category: "Live API", rpm: "Unl", tpm: "65K", rpd: "Unl", status: "Live", latency: "12ms" },
-    { name: "Search Grounding (Gemini 2.5)", category: "Grounding", rpm: 0, tpm: "0", rpd: "1.5K", status: "Active", latency: "800ms" }
+    { name: "Gemini 2.0 Flash", category: "Text-out", rpm: 15, tpm: "1M", rpd: 1500, status: "Active", latency: "120ms" },
+    { name: "Gemini 1.5 Pro", category: "Text-out", rpm: 2, tpm: "32K", rpd: 50, status: "Active", latency: "850ms" },
+    { name: "Gemini 1.5 Flash", category: "Text-out", rpm: 15, tpm: "1M", rpd: 1500, status: "Active", latency: "140ms" },
+    { name: "Llama 3.1 70B (Groq)", category: "Text-out", rpm: 30, tpm: "250K", rpd: 14400, status: "Active", latency: "85ms" },
+    { name: "Claude 3.5 Sonnet", category: "Text-out", rpm: 5, tpm: "40K", rpd: 500, status: "Active", latency: "650ms" },
+    { name: "Heuristic Fallback v3", category: "Grounding", rpm: "Unl", tpm: "Unl", rpd: "Unl", status: "Operational", latency: "5ms" },
+    { name: "Search Grounding (Gemini)", category: "Grounding", rpm: 5, tpm: "10K", rpd: "1.5K", status: "Active", latency: "800ms" }
   ]
 
   const categories = ["All", "Text-out", "Multi-modal", "Live API", "Grounding", "Other"]

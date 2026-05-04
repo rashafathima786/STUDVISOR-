@@ -21,17 +21,18 @@ export default function FacultyMarks() {
   const toast = useToast()
 
   useEffect(() => {
-    const subjs = res.subjects || []
-    setSubjects(subjs)
-    const preselect = localStorage.getItem('faculty_preselect_subject')
-    if (preselect) {
-      setSubjectId(preselect)
-      localStorage.removeItem('faculty_preselect_subject')
-    } else if (subjs.length > 0) {
-      setSubjectId(subjs[0].id)
-    }
-  })
-}
+    fetchMySubjects().then(res => {
+      const subjs = res.subjects || []
+      setSubjects(subjs)
+      const preselect = localStorage.getItem('faculty_preselect_subject')
+      if (preselect) {
+        setSubjectId(preselect)
+        localStorage.removeItem('faculty_preselect_subject')
+      } else if (subjs.length > 0) {
+        setSubjectId(subjs[0].id)
+      }
+    })
+  }, [])
 
 useEffect(() => {
   if (subjectId) {
@@ -404,5 +405,6 @@ return (
       />
     )}
   </ErpLayout>
-)
+  )
+}
 

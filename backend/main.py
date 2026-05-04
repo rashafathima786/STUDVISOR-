@@ -1,5 +1,5 @@
 """
-Studvisor v2.0 — Main Application Factory
+Studvisor v3.0 — Main Application Factory
 """
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Studvisor — Unified Campus Intelligence Platform",
     description="AI-powered Student ERP with multi-role auth, predictive analytics, gamification, and 80+ endpoints",
-    version="2.0.0",
+    version="3.0.0",
     lifespan=lifespan
 )
 app.state.limiter = limiter
@@ -76,9 +76,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── Root & Health ────────────────────────────────────────────────────────────
 @app.get("/")
 def root():
-    return {"success": True, "message": "Studvisor v2.0 — Unified Campus Intelligence Platform", "version": "2.0.0"}
+    return {"success": True, "message": "Studvisor v3.0 — Unified Campus Intelligence Platform", "version": "3.0.0"}
 
 @app.get("/health/")
 def health():
-    return {"success": True, "status": "ok", "version": "2.0.0"}
+    return {"success": True, "status": "ok", "version": "3.0.0"}
 
