@@ -34,6 +34,7 @@ Studvisor uses a multi-factor algorithm to predict student outcomes:
 
 ## 🛠️ Tech Stack Recap
 
--   **Backend**: FastAPI, SQLAlchemy, **PostgreSQL (Consolidated Source of Truth)**, Alembic.
--   **Frontend**: React 19, Vite, Zustand, Framer Motion.
--   **Infrastructure**: Docker, Multi-stage builds, Nginx.
+- **Backend**: FastAPI, SQLAlchemy, **SQLite (Primary Local Store)**, designed for PostgreSQL migration.
+- **Frontend**: React 19, Vite, Zustand, Framer Motion.
+- **Infrastructure**: Docker, Multi-stage builds, Nginx.
+- **AI Integration**: Custom Ensemble Orchestrator (supporting Gemini, Groq, Anthropic).

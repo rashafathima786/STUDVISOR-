@@ -11,16 +11,16 @@ import httpx
 class AIService:
     def __init__(self):
         # User-Prioritized Model Fleet\                                                                             e
-        self.gemini_model = "gemini-3-flash-preview"
+        # User-Prioritized Model Fleet
         self.performance_fleet = [
-            "gemini-3-flash-preview",  # Gemini 3 Flash
-            "gemini-2.0-flash-lite",   # Gemini 2.5 Flash Lite (Mapped to 2.0-lite)
-            "gemini-2.5-flash",        # Gemini 2.5 Flash
-            "gemini-1.5-flash"         # Legacy Fallback
+            "gemini-2.0-flash",       # Gemini 2.0 Flash
+            "gemini-1.5-flash",       # Gemini 1.5 Flash
+            "gemini-1.5-pro",        # Gemini 1.5 Pro
+            "gemini-2.0-flash-lite-preview-02-05" # Gemini 2.0 Flash Lite (Real Preview)
         ]
         
-        self.groq_model = "openai/gpt-oss-120b"
-        self.anthropic_model = "claude-3-sonnet-20240229"
+        self.groq_model = "llama-3.1-70b-versatile" # Updated to a real Groq model
+        self.anthropic_model = "claude-3-5-sonnet-20240620" # Updated to Claude 3.5 Sonnet
         self._response_cache = {} # High-speed AI response caching
         
         self.api_key = os.getenv("ANTHROPIC_API_KEY") 

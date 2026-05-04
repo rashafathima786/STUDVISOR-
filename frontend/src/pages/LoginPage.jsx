@@ -12,10 +12,10 @@ export default function LoginPage() {
     const [focusedField, setFocusedField] = useState(null);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [showPassword, setShowPassword] = useState(false);
-    
+
     // Add role selector: 'student' or 'college' (faculty/admin)
     const [loginRole, setLoginRole] = useState('student');
-    
+
     const login = useAuthStore((s) => s.login);
     const navigate = useNavigate();
     const location = useLocation();
@@ -40,7 +40,7 @@ export default function LoginPage() {
             const res = await loginUser(payload);
             const role = res.role || 'student';
             const userData = res.user || {};
-            
+
             login(res.access_token, role, {
                 id: userData.id,
                 username: credentials.username,
@@ -48,12 +48,12 @@ export default function LoginPage() {
                 role,
                 department: userData.department,
             });
-            
+
             if (res.refresh_token) localStorage.setItem('erp_refresh_token', res.refresh_token);
 
             const from = location.state?.from?.pathname || (role === 'admin' ? "/admin/dashboard" : (role === 'faculty' || role === 'hod') ? "/faculty/dashboard" : "/dashboard");
             setTimeout(() => {
-                 navigate(from, { replace: true });
+                navigate(from, { replace: true });
             }, 600);
         } catch (err) {
             console.error("Login Error:", err);
@@ -69,10 +69,10 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen w-full bg-surface text-on-surface flex items-center justify-center relative overflow-hidden font-sans selection:bg-primary/30">
-            
+
             {/* Interactive Ambient Background */}
             <div className="absolute inset-0 z-0 pointer-events-none">
-                <motion.div 
+                <motion.div
                     className={`absolute w-[600px] h-[600px] rounded-full blur-[100px] transition-colors duration-1000 ${isStudent ? 'bg-primary/10' : 'bg-tertiary/10'}`}
                     animate={{ x: mousePosition.x - 300, y: mousePosition.y - 300 }}
                     transition={{ type: "spring", stiffness: 50, damping: 20, mass: 0.5 }}
@@ -84,15 +84,15 @@ export default function LoginPage() {
             </div>
 
             <div className="relative z-10 w-full max-w-7xl px-6 py-12 flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-24">
-                
+
                 {/* Left Side: Brand & Hero */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, x: -40 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="flex-1 w-full flex flex-col items-center text-center lg:items-start lg:text-left"
                 >
-                    <motion.div 
+                    <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.2, duration: 0.5, type: "spring" }}
@@ -102,17 +102,17 @@ export default function LoginPage() {
                             <ShieldCheck size={36} className={isStudent ? 'text-primary' : 'text-tertiary'} />
                         </div>
                     </motion.div>
-                    
+
                     <h1 className="text-5xl lg:text-7xl font-bold tracking-tighter mb-6 leading-tight" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>
-                        Studvisor <br/>
+                        Studvisor <br />
                         <span className={`text-transparent bg-clip-text bg-gradient-to-r transition-all duration-700 ${isStudent ? 'from-primary via-secondary to-tertiary' : 'from-tertiary via-secondary to-primary'}`}>
                             Nexus
                         </span>
                     </h1>
-                    
+
                     <p className="text-on-surface-variant/70 text-lg lg:text-xl max-w-md font-medium leading-relaxed mb-12">
-                        {isStudent 
-                            ? 'Advanced campus intelligence and academic orchestration platform for modern scholars.' 
+                        {isStudent
+                            ? 'Advanced campus intelligence and academic orchestration platform for modern scholars.'
                             : 'High-fidelity command center for faculty and administrative operations.'}
                     </p>
 
@@ -129,14 +129,14 @@ export default function LoginPage() {
                 </motion.div>
 
                 {/* Right Side: Authentication Terminal */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
                     className="w-full max-w-md relative"
                 >
                     <div className="relative glass-panel rounded-[32px] p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
-                        
+
                         <div className="mb-8">
                             <h2 className="text-3xl font-bold text-on-surface mb-2" style={{ fontFamily: 'var(--font-plus-jakarta)' }}>Secure Access</h2>
                             <p className="text-sm font-medium text-on-surface-variant/60">Select authorization clearance level.</p>
@@ -160,8 +160,8 @@ export default function LoginPage() {
                                 <Building2 size={16} />
                                 College
                             </button>
-                            
-                            <motion.div 
+
+                            <motion.div
                                 className={`absolute top-1.5 bottom-1.5 w-[calc(50%-0.375rem)] rounded-xl border transition-colors duration-300 ${isStudent ? 'bg-primary/20 border-primary/30' : 'bg-tertiary/20 border-tertiary/30'}`}
                                 animate={{ x: isStudent ? '0%' : '100%' }}
                                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -171,7 +171,7 @@ export default function LoginPage() {
 
                         <AnimatePresence mode="wait">
                             {error && (
-                                <motion.div 
+                                <motion.div
                                     initial={{ opacity: 0, height: 0, y: -10 }}
                                     animate={{ opacity: 1, height: 'auto', y: 0 }}
                                     exit={{ opacity: 0, height: 0, y: -10 }}
@@ -184,20 +184,20 @@ export default function LoginPage() {
                         </AnimatePresence>
 
                         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                            
+
                             {/* Identifier Field */}
                             <div className="flex flex-col gap-2">
                                 <label className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors duration-300 ${focusedField === 'username' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/60'}`}>
                                     {isStudent ? 'Student ID' : 'Staff Identifier'}
                                 </label>
                                 <div className="relative">
-                                    <Fingerprint 
-                                        size={20} 
-                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'username' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/40'}`} 
+                                    <Fingerprint
+                                        size={20}
+                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'username' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/40'}`}
                                     />
                                     {/* The autofill-override class handles browser autocomplete styling */}
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         className={`autofill-override w-full bg-surface-container border rounded-2xl py-4 pl-12 pr-4 text-on-surface text-sm outline-none transition-all duration-300 placeholder:text-on-surface-variant/20 ${focusedField === 'username' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-border-color hover:border-on-surface/20'}`}
                                         placeholder={isStudent ? "e.g. CS21001" : "e.g. FAC001 / ADMIN"}
                                         required
@@ -220,12 +220,12 @@ export default function LoginPage() {
                                     </button>
                                 </div>
                                 <div className="relative">
-                                    <Lock 
-                                        size={20} 
-                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'password' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/40'}`} 
+                                    <Lock
+                                        size={20}
+                                        className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 ${focusedField === 'password' ? (isStudent ? 'text-primary' : 'text-tertiary') : 'text-on-surface-variant/40'}`}
                                     />
-                                    <input 
-                                        type={showPassword ? "text" : "password"} 
+                                    <input
+                                        type={showPassword ? "text" : "password"}
                                         className={`autofill-override w-full bg-surface-container border rounded-2xl py-4 pl-12 pr-12 text-on-surface text-sm outline-none transition-all duration-300 placeholder:text-on-surface-variant/20 tracking-[0.2em] ${focusedField === 'password' ? (isStudent ? 'border-primary/50 ring-1 ring-primary/50' : 'border-tertiary/50 ring-1 ring-tertiary/50') : 'border-border-color hover:border-on-surface/20'}`}
                                         placeholder="••••••••••••"
                                         required
@@ -234,7 +234,7 @@ export default function LoginPage() {
                                         onFocus={() => setFocusedField('password')}
                                         onBlur={() => setFocusedField(null)}
                                     />
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-on-surface transition-colors focus:outline-none"
@@ -246,7 +246,7 @@ export default function LoginPage() {
                             </div>
 
                             <div className="pt-4">
-                                <button 
+                                <button
                                     className={`w-full relative overflow-hidden rounded-2xl font-bold uppercase tracking-[0.2em] text-xs h-14 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 ${isStudent ? 'bg-primary text-white hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]' : 'bg-tertiary text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]'}`}
                                     type="submit"
                                     disabled={loading}
