@@ -21,6 +21,7 @@ export default function FacultyMarks() {
   const toast = useToast()
 
   useEffect(() => {
+    fetchMySubjects().then(res => {
       const subjs = res.subjects || []
       setSubjects(subjs)
       const preselect = localStorage.getItem('faculty_preselect_subject')
