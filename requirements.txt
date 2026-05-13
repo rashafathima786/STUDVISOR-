@@ -22,6 +22,7 @@ langchain
 langchain-community
 langchain-huggingface
 langchain-ollama
+google-genai
 faiss-cpu
 sentence-transformers
 spacy

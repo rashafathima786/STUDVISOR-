@@ -13,15 +13,21 @@ class AIService:
         # User-Prioritized Model Fleet\                                                                             e
         # User-Prioritized Model Fleet
         self.performance_fleet = [
-            "gemini-2.0-flash",       # Gemini 2.0 Flash
-            "gemini-1.5-flash",       # Gemini 1.5 Flash
-            "gemini-1.5-pro",        # Gemini 1.5 Pro
-            "gemini-2.0-flash-lite-preview-02-05" # Gemini 2.0 Flash Lite (Real Preview)
+            "gemini-3.1-pro-preview",     # Gemini 3.1 Pro (2026 Preview)
+            "gemini-3-flash-preview",      # Gemini 3 Flash (2026 Preview)
+            "gemini-3.1-flash-lite",      # Gemini 3.1 Flash Lite (Stable)
+            "gemini-2.5-pro",             # Gemini 2.5 Pro (Production Stable)
+            "gemini-2.5-flash",            # Gemini 2.5 Flash
+            "gemini-2.5-flash-lite"        # Gemini 2.5 Flash Lite
         ]
+
+
+
         
-        self.groq_model = "llama-3.1-70b-versatile" # Updated to a real Groq model
-        self.anthropic_model = "claude-3-5-sonnet-20240620" # Updated to Claude 3.5 Sonnet
+        self.groq_model = "llama-3.3-70b-versatile" # Updated to newest Llama 3.3
+        self.anthropic_model = "claude-3-5-sonnet-latest" # Updated to Claude 3.5 Sonnet Latest
         self._response_cache = {} # High-speed AI response caching
+
         
         self.api_key = os.getenv("ANTHROPIC_API_KEY") 
         self.model = self.anthropic_model
@@ -36,8 +42,10 @@ class AIService:
         return text
 
     async def _call_gemini_api(self, prompt: str, stream: bool = False):
-        """Robust helper to call Gemini with automatic API key rotation and model cycling."""
+        """Robust helper to call Gemini using the new google-genai SDK with key rotation."""
         from backend.core.config import get_settings
+        from google import genai
+        from google.genai import types
         settings = get_settings()
         
         # Collect all active Gemini keys
@@ -51,42 +59,43 @@ class AIService:
         if not active_keys:
             return None
 
-        async with httpx.AsyncClient() as client:
-            for api_key in active_keys:
-                key_index = active_keys.index(api_key) + 1
-                for model in self.performance_fleet:
-                    method = "streamGenerateContent" if stream else "generateContent"
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:{method}?key={api_key}"
-                    headers = {"Content-Type": "application/json"}
-                    data = {
-                        "contents": [{
-                            "parts": [{"text": prompt}]
-                        }]
-                    }
-                    try:
-                        if stream:
-                            response = await client.post(url, headers=headers, json=data, timeout=30.0)
-                            if response.status_code == 200:
-                                return response
-                        else:
-                            response = await client.post(url, headers=headers, json=data, timeout=30.0)
-                            if response.status_code == 200:
-                                result = response.json()
-                                return result["candidates"][0]["content"]["parts"][0]["text"]
-                        
-                        if response.status_code in [429, 503, 500]:
-                            print(f"[AI FALLBACK] Key #{key_index} | Model {model} hit limit ({response.status_code}). Cycling...")
-                            continue
-                        else:
-                            print(f"[AI ERROR] Key #{key_index} | Model {model} error: {response.status_code}")
-                            continue
-                    except Exception as e:
+        for api_key in active_keys:
+            key_index = active_keys.index(api_key) + 1
+            client = genai.Client(api_key=api_key, http_options={'api_version': 'v1beta'})
+            
+            for model in self.performance_fleet:
+                try:
+                    if stream:
+                        # Return the streaming iterator directly (async)
+                        return await client.aio.models.generate_content_stream(
+                            model=model,
+                            contents=prompt
+                        )
+                    else:
+                        response = await client.aio.models.generate_content(
+                            model=model,
+                            contents=prompt
+                        )
+                        if response and response.text:
+                            return response.text
+
+                
+                except Exception as e:
+                    err_msg = str(e)
+                    if "429" in err_msg or "Resource exhausted" in err_msg:
+                        print(f"[AI FALLBACK] Key #{key_index} | Model {model} hit rate limit. Cycling...")
+                        continue
+                    elif "404" in err_msg or "not found" in err_msg.lower():
+                        print(f"[AI ERROR] Key #{key_index} | Model {model} not found (404).")
+                        continue
+                    else:
                         print(f"[AI EXCEPTION] Key #{key_index} | Model {model} failed: {e}")
                         continue
-                
-                print(f"[AI CRITICAL] API Key #{key_index} exhausted all models. Trying next key...")
+            
+            print(f"[AI CRITICAL] API Key #{key_index} exhausted all models. Trying next key...")
         
         return None
+
 
     async def get_welcome_package(self, db_context: str, user_name: str) -> Dict:
         """Generates a personalized welcome message and quick actions."""
@@ -403,32 +412,21 @@ class AIService:
             await asyncio.sleep(0.01)
 
     async def chat_stream(self, system_prompt: str, user_query: str) -> AsyncGenerator[str, None]:
-        """Generic streaming chat with fleet cycling."""
+        """Generic streaming chat with fleet cycling using the google-genai SDK."""
         prompt = f"System: {system_prompt}\nUser: {user_query}"
         
         # Try Gemini fleet first (automatically cycles through models on limits)
-        response = await self._call_gemini_api(prompt, stream=True)
-        if response:
+        response_stream = await self._call_gemini_api(prompt, stream=True)
+        if response_stream:
             try:
-                # Gemini streaming returns JSON array chunks
-                result = response.json()
-                for candidate in result:
-                    try:
-                        text = candidate["candidates"][0]["content"]["parts"][0]["text"]
-                        yield text
-                    except (KeyError, IndexError):
-                        continue
+                async for chunk in response_stream:
+                    if chunk.text:
+                        yield chunk.text
                 return
-            except Exception:
-                # If JSON parsing fails, try line-by-line
-                for line in response.text.split("\n"):
-                    if line.strip():
-                        try:
-                            chunk = json.loads(line)
-                            text = chunk["candidates"][0]["content"]["parts"][0]["text"]
-                            yield text
-                        except: continue
-                return
+
+            except Exception as e:
+                print(f"[AI STREAM ERROR] {e}")
+                pass
 
         # Fallback: mock streaming
         yield "[AI Fleet Exhausted] All models are currently at capacity. Please try again in a moment."

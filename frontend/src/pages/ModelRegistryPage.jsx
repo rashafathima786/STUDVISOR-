@@ -25,13 +25,19 @@ export default function ModelRegistryPage() {
   const [loading, setLoading] = useState(true)
 
   const models = [
-    { name: "Gemini 2.0 Flash", category: "Text-out", rpm: 15, tpm: "1M", rpd: 1500, status: "Active", latency: "120ms" },
-    { name: "Gemini 1.5 Pro", category: "Text-out", rpm: 2, tpm: "32K", rpd: 50, status: "Active", latency: "850ms" },
-    { name: "Gemini 1.5 Flash", category: "Text-out", rpm: 15, tpm: "1M", rpd: 1500, status: "Active", latency: "140ms" },
-    { name: "Llama 3.1 70B (Groq)", category: "Text-out", rpm: 30, tpm: "250K", rpd: 14400, status: "Active", latency: "85ms" },
+    { name: "Gemini 3.1 Pro (Preview)", category: "Text-out", rpm: 5, tpm: "1M", rpd: 1000, status: "Active", latency: "650ms" },
+    { name: "Gemini 3 Flash (Preview)", category: "Text-out", rpm: 30, tpm: "2M", rpd: 5000, status: "Active", latency: "95ms" },
+    { name: "Gemini 3.1 Flash-Lite", category: "Text-out", rpm: 100, tpm: "5M", rpd: "Unl", status: "Active", latency: "45ms" },
+    { name: "Gemini 2.5 Pro", category: "Text-out", rpm: 5, tpm: "1M", rpd: 2000, status: "Active", latency: "820ms" },
+    { name: "Gemini 2.5 Flash", category: "Text-out", rpm: 15, tpm: "1M", rpd: 1500, status: "Active", latency: "110ms" },
+    { name: "Gemini 2.5 Flash-Lite", category: "Text-out", rpm: 30, tpm: "1M", rpd: "Unl", status: "Active", latency: "65ms" },
+
+    { name: "Llama 3.3 70B (Groq)", category: "Text-out", rpm: 30, tpm: "250K", rpd: 14400, status: "Active", latency: "75ms" },
     { name: "Claude 3.5 Sonnet", category: "Text-out", rpm: 5, tpm: "40K", rpd: 500, status: "Active", latency: "650ms" },
-    { name: "Heuristic Fallback v3", category: "Grounding", rpm: "Unl", tpm: "Unl", rpd: "Unl", status: "Operational", latency: "5ms" },
-    { name: "Search Grounding (Gemini)", category: "Grounding", rpm: 5, tpm: "10K", rpd: "1.5K", status: "Active", latency: "800ms" }
+    { name: "Heuristic Fallback v3", category: "Grounding", rpm: "Unl", tpm: "Unl", rpd: "Unl", status: "Operational", latency: "5ms" }
+
+
+
   ]
 
   const categories = ["All", "Text-out", "Multi-modal", "Live API", "Grounding", "Other"]
