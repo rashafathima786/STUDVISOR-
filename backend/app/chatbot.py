@@ -92,6 +92,16 @@ def detect_intent(message: str) -> str:
     return "unknown"
 
 
+def is_subject_mentioned(db: Session, message: str) -> bool:
+    normalized = normalize_text(message)
+    subjects = db.query(Subject).all()
+    for subj in subjects:
+        subj_name = normalize_text(subj.name)
+        if subj_name in normalized or (subj.code and subj.code.lower() in normalized):
+            return True
+    return False
+
+
 # ─── EMOTION DETECTION ───────────────────────────────────────────────────────
 
 def detect_emotion(message: str) -> str:
@@ -446,7 +456,7 @@ def handle_eligibility(db: Session, student: Student) -> str:
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 100
         target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
         status = "ELIGIBLE" if pct >= target else "INELIGIBLE"
-        lines.append(f"• **{subj.name if subj else '?'}: {status} ({pct}%)")
+        lines.append(f"• **{subj.name if subj else '?'}**: {status} ({pct}%)")
 
     return "Exam Eligibility:\n" + "\n".join(lines)
 
@@ -509,17 +519,20 @@ def handle_upcoming_event(db: Session) -> str:
     return f"The next campus event is **{event.title}** scheduled for **{event.event_date}** at **{event.venue or 'TBA'}**.\n\n{event.description or ''}"
 
 
-def handle_frustrated(student: Student) -> str:
-    return f"I can sense you're feeling a bit overwhelmed, {student.full_name.split()[0]}. I'm here to support you. Let's look at a Recovery Plan or I can help you connect with a faculty advisor to discuss any challenges you're facing."
+def handle_frustrated(user) -> str:
+    name = getattr(user, "full_name", getattr(user, "name", "User")).split()[0]
+    return f"I can sense you're feeling a bit overwhelmed, {name}. Please take a deep breath—I'm right here to support you. Let's look at a Recovery Plan together, or I can help you connect with a faculty advisor to discuss any challenges you're facing."
 
 
-def handle_thank(student: Student) -> str:
-    return f"You're very welcome, {student.full_name.split()[0]}! Happy to help. Is there anything else I can assist you with?"
+def handle_thank(user) -> str:
+    name = getattr(user, "full_name", getattr(user, "name", "User")).split()[0]
+    return f"You're very welcome, {name}! Happy to help. Let me know if there's anything else I can assist you with!"
 
 
-def handle_distressed(student: Student) -> dict:
+def handle_distressed(user) -> dict:
+    name = getattr(user, "full_name", getattr(user, "name", "User")).split()[0]
     return {
-        "reply": f"I'm concerned about you, {student.full_name.split()[0]}. Please know that you're not alone. I've triggered a priority support alert. You can call our 24/7 Support Cell at 1800-Studvisor-CARE immediately for professional assistance.",
+        "reply": f"I'm really concerned about you, {name}. Please know that you're not alone and there are people who want to help. I've triggered a priority support alert, and you can call our 24/7 Support Cell at 1800-Studvisor-CARE immediately for professional, caring assistance. We're here for you.",
         "actions": [{"label": "📞 Emergency Support", "action": "call", "payload": "18005550199"}]
     }
 
@@ -535,6 +548,12 @@ async def process_chat(db: Session, user, message: str) -> dict:
     intent = detect_intent(message)
     is_student = getattr(user, "user_role", "student") == "student"
 
+    if is_student and is_subject_mentioned(db, message) and intent in [
+        "attendance_overall", "attendance_subject", "marks", "eligibility", 
+        "bunk_check", "reach_75", "attendance_recovery", "low_marks"
+    ]:
+        intent = "unknown"
+
     # Emotion override
     if emotion == "distressed":
         return handle_distressed(user) if is_student else {"reply": "I'm here to help, Professor. If you're feeling stressed, please reach out to the staff wellness coordinator.", "protocol": "Safety"}
@@ -543,38 +562,16 @@ async def process_chat(db: Session, user, message: str) -> dict:
         res = handle_frustrated(user)
         return {"reply": res, "actions": [{"label": "Talk to Counselor", "query": "connect me to counselor"}], "protocol": "Safety"}
 
-    # Unified handlers
-    handlers = {
-        "greeting": lambda: handle_greeting(user),
-        "help": lambda: handle_help(),
-        "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
-        "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
-        "thank": lambda: {"reply": handle_thank(user), "actions": []},
-    }
-
-    # Student-specific handlers
-    if is_student:
-        handlers.update({
-            "attendance_overall": lambda: handle_attendance_overall(db, user),
-            "attendance_subject": lambda: {"reply": handle_attendance_subject(db, user), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
-            "bunk_check": lambda: {"reply": handle_bunk_check(db, user), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
-            "reach_75": lambda: {"reply": handle_reach_75(db, user), "actions": []},
-            "attendance_recovery": lambda: {"reply": handle_reach_75(db, user), "actions": []},
-            "od_help": lambda: {"reply": handle_od_help(db, user), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
-            "marks": lambda: {"reply": handle_marks(db, user), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
-            "cgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
-            "sgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
-            "best_subject": lambda: {"reply": handle_best_subject(db, user), "actions": []},
-            "weakest_subject": lambda: {"reply": handle_weakest_subject(db, user), "actions": []},
-            "low_marks": lambda: {"reply": handle_low_marks(db, user), "actions": [{"label": "View Marks", "action": "navigate", "payload": "/performance"}]},
-            "academic_comparison": lambda: {"reply": handle_academic_comparison(db, user), "actions": []},
-            "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},
-            "eligibility": lambda: {"reply": handle_eligibility(db, user), "actions": []},
-            "profile": lambda: {"reply": handle_profile(user), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
-            "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
-            "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
-            "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
-        })
+    # Unified handlers (Only for Faculty/Staff/Admin)
+    handlers = {}
+    if not is_student:
+        handlers = {
+            "greeting": lambda: handle_greeting(user),
+            "help": lambda: handle_help(),
+            "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
+            "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
+            "thank": lambda: {"reply": handle_thank(user), "actions": []},
+        }
 
     if intent in handlers:
         result = handlers[intent]()
@@ -605,6 +602,12 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
     intent = detect_intent(message)
     is_student = getattr(user, "user_role", "student") == "student"
 
+    if is_student and is_subject_mentioned(db, message) and intent in [
+        "attendance_overall", "attendance_subject", "marks", "eligibility", 
+        "bunk_check", "reach_75", "attendance_recovery", "low_marks"
+    ]:
+        intent = "unknown"
+
     # Emotion override
     if emotion == "distressed":
         res = handle_distressed(user) if is_student else {"reply": "I'm here to help, Professor. If you're feeling stressed, please reach out to the staff wellness coordinator.", "actions": []}
@@ -612,37 +615,16 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
         yield {"type": "chunk", "token": res.get("reply", res)}
         return
 
-    # Unified handlers
-    handlers = {
-        "greeting": lambda: handle_greeting(user),
-        "help": lambda: handle_help(),
-        "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
-        "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
-        "thank": lambda: {"reply": handle_thank(user), "actions": []},
-    }
-
-    if is_student:
-        handlers.update({
-            "attendance_overall": lambda: handle_attendance_overall(db, user),
-            "attendance_subject": lambda: {"reply": handle_attendance_subject(db, user), "actions": [{"label": "Subject Breakdown", "action": "navigate", "payload": "/attendance"}]},
-            "bunk_check": lambda: {"reply": handle_bunk_check(db, user), "actions": [{"label": "Simulate Bunk", "action": "navigate", "payload": "/attendance"}]},
-            "reach_75": lambda: {"reply": handle_reach_75(db, user), "actions": []},
-            "attendance_recovery": lambda: {"reply": handle_reach_75(db, user), "actions": []},
-            "od_help": lambda: {"reply": handle_od_help(db, user), "actions": [{"label": "Apply OD", "action": "navigate", "payload": "/leave"}]},
-            "marks": lambda: {"reply": handle_marks(db, user), "actions": [{"label": "Performance Analysis", "action": "navigate", "payload": "/performance"}]},
-            "cgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
-            "sgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
-            "best_subject": lambda: {"reply": handle_best_subject(db, user), "actions": []},
-            "weakest_subject": lambda: {"reply": handle_weakest_subject(db, user), "actions": []},
-            "low_marks": lambda: {"reply": handle_low_marks(db, user), "actions": [{"label": "View Marks", "action": "navigate", "payload": "/performance"}]},
-            "academic_comparison": lambda: {"reply": handle_academic_comparison(db, user), "actions": []},
-            "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},
-            "eligibility": lambda: {"reply": handle_eligibility(db, user), "actions": []},
-            "profile": lambda: {"reply": handle_profile(user), "actions": [{"label": "Edit Profile", "action": "navigate", "payload": "/profile"}]},
-            "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": [{"label": "My Requests", "action": "navigate", "payload": "/leave"}]},
-            "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user), "actions": [{"label": "Full Schedule", "action": "navigate", "payload": "/exams"}]},
-            "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
-        })
+    # Unified handlers (Only for Faculty/Staff/Admin)
+    handlers = {}
+    if not is_student:
+        handlers = {
+            "greeting": lambda: handle_greeting(user),
+            "help": lambda: handle_help(),
+            "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
+            "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
+            "thank": lambda: {"reply": handle_thank(user), "actions": []},
+        }
 
     if intent in handlers:
         result = handlers[intent]()
@@ -651,7 +633,19 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
         return
 
     # Fallback to AI Service Stream
-    yield {"type": "meta", "actions": [], "protocol": "Ensemble Stream"}
+    stream_actions = []
+    is_academic_query = any(k in message.upper() for k in ["ATTENDANCE", "BUNK", "CGPA", "GPA", "MARKS", "LEAVE", "PROFILE", "EXAM"])
+    if is_academic_query:
+        if any(k in message.upper() for k in ["ATTENDANCE", "BUNK"]):
+            stream_actions.append({"label": "View Attendance", "action": "navigate", "payload": "/attendance"})
+        if any(k in message.upper() for k in ["EXAM", "SCHEDULE"]):
+            stream_actions.append({"label": "Check Exams", "action": "navigate", "payload": "/exams"})
+        if any(k in message.upper() for k in ["LEAVE", "REQUEST"]):
+            stream_actions.append({"label": "My Requests", "action": "navigate", "payload": "/leave"})
+        if any(k in message.upper() for k in ["PROFILE"]):
+            stream_actions.append({"label": "Edit Profile", "action": "navigate", "payload": "/profile"})
+
+    yield {"type": "meta", "actions": stream_actions, "protocol": "Ensemble Stream"}
     context = build_student_context(db, user.id) if is_student else build_faculty_context(db, user.id)
     async for token in ai_service.ensemble_chat_stream(message, context):
         yield {"type": "chunk", "token": token}

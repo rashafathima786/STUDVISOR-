@@ -9,10 +9,36 @@ from pydantic import BaseModel
 
 # Calendar
 calendar_router = APIRouter(prefix="/calendar", tags=["Calendar"])
+
 @calendar_router.get("/")
-def get_calendar(db: Session = Depends(get_db)):
-    days = db.query(AcademicCalendar).order_by(AcademicCalendar.date).all()
-    return {"calendar": [{"date": d.date, "day": d.day_name, "working": d.is_working_day, "holiday": d.holiday_name, "note": d.note} for d in days]}
+@calendar_router.get("/month/")
+def get_calendar(db: Session = Depends(get_db), year: int = None, month: int = None):
+    query = db.query(AcademicCalendar)
+    if year and month:
+        prefix = f"{year}-{month:02d}-"
+        query = query.filter(AcademicCalendar.date.like(f"{prefix}%"))
+    days = query.order_by(AcademicCalendar.date).all()
+    return {"calendar": [
+        {
+            "date": d.date,
+            "day_name": d.day_name,
+            "is_working_day": d.is_working_day,
+            "working": d.is_working_day,
+            "holiday_name": d.holiday_name,
+            "holiday": d.holiday_name,
+            "working_hours": d.working_hours,
+            "note": d.note
+        }
+        for d in days
+    ]}
+
+@calendar_router.get("/upcoming-holidays/")
+def upcoming_holidays(db: Session = Depends(get_db)):
+    from backend.app.models import Holiday
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+    items = db.query(Holiday).filter(Holiday.date >= today).order_by(Holiday.date).limit(10).all()
+    return {"holidays": [{"holiday_name": h.name, "date": h.date, "type": h.type} for h in items]}
 
 # Documents
 documents_router = APIRouter(prefix="/documents", tags=["Documents"])

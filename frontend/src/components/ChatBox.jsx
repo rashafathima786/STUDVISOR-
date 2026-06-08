@@ -1,88 +1,920 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { SendHorizonal, User, ArrowRight, ExternalLink } from 'lucide-react'
+import {
+  SendHorizonal, User, ArrowRight, ExternalLink, Mic,
+  Sparkles, AlertTriangle, CheckCircle2, Zap, ChevronRight,
+  Clock, Copy, Check
+} from 'lucide-react'
 import ChatbotLogo from './ui/ChatbotLogo'
 import { fetchChatHistory, sendChatMessage, streamChatMessage, fetchChatWelcome } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 
-const messageVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95, filter: 'blur(10px)' },
-  visible: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
-  exit: { opacity: 0, y: -10, scale: 0.95, filter: 'blur(5px)' },
+// ── Animation Variants ─────────────────────────────────────────────
+const botVariants = {
+  hidden: { opacity: 0, x: -14, scale: 0.96, filter: 'blur(6px)' },
+  visible: { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', transition: { duration: 0.28, ease: [0.34, 1.56, 0.64, 1] } },
+  exit:    { opacity: 0, x: -8, scale: 0.97, filter: 'blur(4px)', transition: { duration: 0.18 } },
+}
+const userVariants = {
+  hidden: { opacity: 0, x: 14, scale: 0.96, filter: 'blur(6px)' },
+  visible: { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', transition: { duration: 0.28, ease: [0.34, 1.56, 0.64, 1] } },
+  exit:    { opacity: 0, x: 8, scale: 0.97, filter: 'blur(4px)', transition: { duration: 0.18 } },
 }
 
+// ── Helpers ────────────────────────────────────────────────────────
+function formatTime(d = new Date()) {
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function useTimestamp() {
+  return formatTime()
+}
+
+// ── Copy Button ────────────────────────────────────────────────────
+function CopyBtn({ text }) {
+  const [copied, setCopied] = useState(false)
+  const handle = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    })
+  }, [text])
+  return (
+    <button className="cb2-copy-btn" onClick={handle} aria-label="Copy message" title="Copy">
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+    </button>
+  )
+}
+
+// ── Provider Badge ─────────────────────────────────────────────────
+function ProviderBadge({ meta }) {
+  const label = meta?.protocol || meta?.orchestration?.provider_summary?.label
+  if (!label) return null
+  const isGemini = label.toLowerCase().includes('gemini')
+  const isGroq   = label.toLowerCase().includes('groq')
+  const color = isGemini ? '#22d3ee' : isGroq ? '#a78bfa' : '#94a3b8'
+  return (
+    <div className="cb2-provider-badge" style={{ color }}>
+      <Zap size={9} />
+      <span>{label}</span>
+    </div>
+  )
+}
+
+// ── Emotion Strip ──────────────────────────────────────────────────
+function EmotionStrip({ emotion }) {
+  if (!emotion || emotion === 'neutral') return null
+  const map = {
+    distressed: { label: 'Support mode active', color: '#ef4444', icon: '🆘' },
+    frustrated:  { label: 'I hear you — let\'s sort this',   color: '#f97316', icon: '😤' },
+    anxious:     { label: 'You\'ve got this — one step at a time', color: '#f59e0b', icon: '💛' },
+    positive:    { label: 'Great energy!', color: '#10b981', icon: '✨' },
+  }
+  const e = map[emotion]
+  if (!e) return null
+  return (
+    <div className="cb2-emotion-strip" style={{ borderColor: e.color + '44', background: e.color + '14', color: e.color }}>
+      <span>{e.icon}</span>
+      <span>{e.label}</span>
+    </div>
+  )
+}
+
+// ── Attendance / Subject data parser ──────────────────────────────
+// Detects backend bullet format:
+//   • Subject Name: 83.5% (Safe)
+//   • Subject Name: 20.0% (Requires 11 more classes)
+//   • Subject: ELIGIBLE (83.5%) / INELIGIBLE
+//   • Subject (CIA1): 45/50 (90.0%) -> A+
+//   • Subject Name: 15/50 (30.0%) in CIA1
+const ATT_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}:\s*(\d+(?:\.\d+)?)%\s*\(([^)]+)\)/
+const MARKS_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}\s*\(([^)]+)\):\s*(\d+)\/(\d+)\s*\((\d+(?:\.\d+)?)%\)\s*->\s*(.+)/
+const ELIGIBILITY_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?):\s*(ELIGIBLE|INELIGIBLE)\s*\((\d+(?:\.\d+)?)%\)/i
+const BUNK_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}:\s*(\d+)\s+classes?\s*\((SAFE|WARN|CRIT)\)/i
+const LOW_MARKS_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}:\s*(\d+)\/(\d+)\s*\((\d+(?:\.\d+)?)%\)\s+in\s+(.+)/i
+
+function parseAttendanceLines(text) {
+  const lines = text.split(/\n|(?=•)/g).map(l => l.trim()).filter(Boolean)
+  const rows = []
+  for (const line of lines) {
+    // Marks format
+    const mMark = MARKS_LINE_RE.exec(line)
+    if (mMark) {
+      const subjectName = mMark[1].trim().replace(/^\*+|\*+$/g, '').trim()
+      if (/overall\s+attendance/i.test(subjectName)) continue
+      const pct = parseFloat(mMark[5])
+      rows.push({ type: 'marks', subject: subjectName, assessment: mMark[2], obtained: mMark[3], max: mMark[4], pct, grade: mMark[6].trim() })
+      continue
+    }
+    // Low Marks format
+    const mLowMark = LOW_MARKS_LINE_RE.exec(line)
+    if (mLowMark) {
+      const subjectName = mLowMark[1].trim().replace(/^\*+|\*+$/g, '').trim()
+      if (/overall\s+attendance/i.test(subjectName)) continue
+      const pct = parseFloat(mLowMark[4])
+      rows.push({ type: 'marks', subject: subjectName, assessment: mLowMark[5].trim(), obtained: mLowMark[2], max: mLowMark[3], pct, grade: pct >= 40 ? 'PASS' : 'FAIL' })
+      continue
+    }
+    // Eligibility format
+    const mElig = ELIGIBILITY_LINE_RE.exec(line)
+    if (mElig) {
+      const subjectName = mElig[1].trim().replace(/^\*+|\*+$/g, '').trim()
+      if (/overall\s+attendance/i.test(subjectName)) continue
+      rows.push({ type: 'eligibility', subject: subjectName, status: mElig[2].toUpperCase(), pct: parseFloat(mElig[3]) })
+      continue
+    }
+    // Bunk format
+    const mBunk = BUNK_LINE_RE.exec(line)
+    if (mBunk) {
+      const subjectName = mBunk[1].trim().replace(/^\*+|\*+$/g, '').trim()
+      if (/overall\s+attendance/i.test(subjectName)) continue
+      rows.push({ type: 'bunk', subject: subjectName, canMiss: parseInt(mBunk[2]), status: mBunk[3].toUpperCase() })
+      continue
+    }
+    // Attendance % format  — backend wraps number in **bold**: (Requires **11** more classes)
+    const mAtt = ATT_LINE_RE.exec(line)
+    if (mAtt) {
+      const subjectName = mAtt[1].trim().replace(/^\*+|\*+$/g, '').trim()
+      if (/overall\s+attendance/i.test(subjectName)) continue
+      const detail = mAtt[3].trim()
+      const isSafe = /safe|ok/i.test(detail)
+      // Strip optional **markdown** bold around the number e.g. **11** or 11
+      const needMatch = detail.match(/\*{0,2}(\d+)\*{0,2}\s+more/i)
+      rows.push({ type: 'attendance', subject: subjectName, pct: parseFloat(mAtt[2]), isSafe, needed: needMatch ? parseInt(needMatch[1]) : null, detail })
+    }
+  }
+  return rows
+}
+
+function hasStructuredData(text) {
+  if (!text) return false
+  const lines = text.split(/\n|(?=•)/g).map(l => l.trim()).filter(Boolean)
+  const matchCount = lines.filter(l => {
+    const m = ATT_LINE_RE.exec(l) || MARKS_LINE_RE.exec(l) || ELIGIBILITY_LINE_RE.exec(l) || BUNK_LINE_RE.exec(l) || LOW_MARKS_LINE_RE.exec(l)
+    if (!m) return false
+    const subjectName = m[1].trim().replace(/^\*+|\*+$/g, '').trim()
+    return !/overall\s+attendance/i.test(subjectName)
+  }).length
+  return matchCount >= 2
+}
+
+// ── Attendance Card ─────────────────────────────────────────────────
+function AttendanceRow({ row, idx }) {
+  const delay = idx * 0.06
+
+  if (row.type === 'marks') {
+    const pct = row.pct
+    const isGood = pct >= 75
+    return (
+      <motion.div
+        className={`cb2-att-row ${isGood ? 'safe' : 'warn'}`}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay, duration: 0.25, ease: [0.34,1.56,0.64,1] }}
+      >
+        <span className="cb2-att-icon">{isGood ? <CheckCircle2 size={12}/> : <AlertTriangle size={12}/>}</span>
+        <span className="cb2-att-name">{row.subject}</span>
+        <span className="cb2-att-meta">{row.assessment}</span>
+        <span className="cb2-att-score">{row.obtained}/{row.max}</span>
+        <span className="cb2-att-grade">{row.grade}</span>
+        <div className="cb2-att-bar-wrap">
+          <motion.div className="cb2-att-bar" initial={{ width: 0 }} animate={{ width: `${Math.min(pct,100)}%` }} transition={{ delay: delay+0.1, duration: 0.7, ease:[0.34,1.56,0.64,1] }} />
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (row.type === 'eligibility') {
+    const ok = row.status === 'ELIGIBLE'
+    return (
+      <motion.div
+        className={`cb2-att-row ${ok ? 'safe' : 'warn'}`}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay, duration: 0.25, ease: [0.34,1.56,0.64,1] }}
+      >
+        <span className="cb2-att-icon">{ok ? <CheckCircle2 size={12}/> : <AlertTriangle size={12}/>}</span>
+        <span className="cb2-att-name">{row.subject}</span>
+        <span className={`cb2-elig-badge ${ok ? 'safe' : 'warn'}`}>{ok ? 'ELIGIBLE' : 'INELIGIBLE'}</span>
+        <span className="cb2-att-pct">{row.pct}%</span>
+        <div className="cb2-att-bar-wrap">
+          <motion.div className="cb2-att-bar" initial={{ width: 0 }} animate={{ width: `${Math.min(row.pct,100)}%` }} transition={{ delay: delay+0.1, duration: 0.7, ease:[0.34,1.56,0.64,1] }} />
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (row.type === 'bunk') {
+    const ok = row.status === 'SAFE'
+    const warn = row.status === 'WARN'
+    const cls = ok ? 'safe' : warn ? 'warn' : 'crit'
+    return (
+      <motion.div
+        className={`cb2-att-row ${cls}`}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay, duration: 0.25, ease: [0.34,1.56,0.64,1] }}
+      >
+        <span className="cb2-att-icon">{ok ? <CheckCircle2 size={12}/> : <AlertTriangle size={12}/>}</span>
+        <span className="cb2-att-name">{row.subject}</span>
+        <span className="cb2-att-pct" style={{ marginLeft: 'auto' }}>{row.canMiss} can miss</span>
+      </motion.div>
+    )
+  }
+
+  // Default: attendance %
+  const isSafe = row.isSafe
+  const pct = row.pct
+  return (
+    <motion.div
+      className={`cb2-att-row ${isSafe ? 'safe' : 'warn'}`}
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.25, ease: [0.34,1.56,0.64,1] }}
+    >
+      <span className="cb2-att-icon">
+        {isSafe ? <CheckCircle2 size={12}/> : <AlertTriangle size={12}/>}
+      </span>
+      <span className="cb2-att-name">{row.subject}</span>
+      {!isSafe && row.needed != null && (
+        <span className="cb2-need-badge">+{row.needed} classes</span>
+      )}
+      <span className="cb2-att-pct">{pct}%</span>
+      <div className="cb2-att-bar-wrap">
+        <motion.div
+          className="cb2-att-bar"
+          initial={{ width: 0 }}
+          animate={{ width: `${Math.min(pct, 100)}%` }}
+          transition={{ delay: delay + 0.1, duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
+        />
+      </div>
+    </motion.div>
+  )
+}
+
+function AttendanceCard({ rows, preamble }) {
+  const warnRows = rows.filter(r => r.type === 'attendance' ? !r.isSafe : r.type === 'eligibility' ? r.status !== 'ELIGIBLE' : r.type === 'bunk' ? r.status === 'CRIT' : r.type === 'marks' ? r.pct < 40 : false)
+  const safeRows = rows.filter(r => !warnRows.includes(r))
+  const isAttendance = rows.some(r => r.type === 'attendance')
+  const isMarks      = rows.some(r => r.type === 'marks')
+  const isElig       = rows.some(r => r.type === 'eligibility')
+  const isBunk       = rows.some(r => r.type === 'bunk')
+
+  return (
+    <div className="cb2-att-card">
+      {preamble && <p className="cb2-att-preamble">{preamble}</p>}
+      {isAttendance && warnRows.length > 0 && (
+        <>
+          <div className="cb2-att-section-label warn">
+            <AlertTriangle size={11}/> Needs attention
+          </div>
+          {warnRows.map((row, i) => <AttendanceRow key={i} row={row} idx={i} />)}
+        </>
+      )}
+      {isAttendance && safeRows.length > 0 && (
+        <>
+          <div className="cb2-att-section-label safe">
+            <CheckCircle2 size={11}/> You&apos;re safe
+          </div>
+          {safeRows.map((row, i) => <AttendanceRow key={i} row={row} idx={i} />)}
+        </>
+      )}
+      {(isMarks || isElig || isBunk) && rows.map((row, i) => <AttendanceRow key={i} row={row} idx={i} />)}
+    </div>
+  )
+}
+
+// ── Overall Attendance data parser ───────────────────────────────
+function hasOverallAttendance(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return lower.includes('overall attendance') && lower.includes('present') && lower.includes('absent')
+}
+
+function parseOverallAttendance(text) {
+  const lines = text.split(/\n|(?=•)/g).map(l => l.trim()).filter(Boolean)
+  let pct = null
+  let present = null
+  let absent = null
+  let status = null
+
+  for (const line of lines) {
+    const clean = line.replace(/\*/g, '').trim() // clean markdown asterisks
+    const mPct = /overall\s+attendance\s*:\s*(\d+(?:\.\d+)?)/i.exec(clean)
+    if (mPct) {
+      pct = parseFloat(mPct[1])
+      continue
+    }
+    const mPres = /present\s*:\s*(\d+)/i.exec(clean)
+    if (mPres) {
+      present = parseInt(mPres[1], 10)
+      continue
+    }
+    const mAbs = /absent\s*:\s*(\d+)/i.exec(clean)
+    if (mAbs) {
+      absent = parseInt(mAbs[1], 10)
+      continue
+    }
+    const mStat = /status\s*:\s*([a-zA-Z]+)/i.exec(clean)
+    if (mStat) {
+      status = mStat[1].toUpperCase()
+      continue
+    }
+  }
+
+  if (pct !== null && present !== null && absent !== null) {
+    return { pct, present, absent, status: status || 'STABLE' }
+  }
+  return null
+}
+
+function OverallAttendanceCard({ data }) {
+  const { pct, present, absent, status } = data
+  const total = present + absent
+  const statusCls = status.toLowerCase()
+
+  const icon = statusCls === 'stable' ? (
+    <CheckCircle2 size={12} />
+  ) : (
+    <AlertTriangle size={12} />
+  )
+
+  return (
+    <div className="cb2-overall-att-card">
+      <div className="cb2-overall-header">
+        <span className="cb2-overall-title">Overall Attendance Summary</span>
+        <span className={`cb2-overall-status ${statusCls}`}>
+          {icon}
+          {status}
+        </span>
+      </div>
+      <div className="cb2-overall-content">
+        <div className={`cb2-overall-radial ${statusCls}`}>
+          <svg className="cb2-overall-radial-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="stable-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#34d399" />
+              </linearGradient>
+              <linearGradient id="warning-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#fbbf24" />
+              </linearGradient>
+              <linearGradient id="critical-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="100%" stopColor="#f87171" />
+              </linearGradient>
+            </defs>
+            <circle className="cb2-overall-radial-bg" cx="50" cy="50" r="42" />
+            <motion.circle
+              className="cb2-overall-radial-progress"
+              cx="50"
+              cy="50"
+              r="42"
+              strokeDasharray={2 * Math.PI * 42}
+              initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+              animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - pct / 100) }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+            />
+          </svg>
+          <div className="cb2-overall-pct-text">
+            <span>{pct}%</span>
+            <span className="cb2-overall-pct-sub">ATTENDED</span>
+          </div>
+        </div>
+        <div className="cb2-overall-stats">
+          <div className="cb2-overall-stat-item">
+            <span className="cb2-overall-stat-label">
+              <span className="cb2-overall-stat-dot present" />
+              Present
+            </span>
+            <span className="cb2-overall-stat-value">{present} classes</span>
+          </div>
+          <div className="cb2-overall-stat-item">
+            <span className="cb2-overall-stat-label">
+              <span className="cb2-overall-stat-dot absent" />
+              Absent
+            </span>
+            <span className="cb2-overall-stat-value">{absent} classes</span>
+          </div>
+          <div className="cb2-overall-stat-item">
+            <span className="cb2-overall-stat-label">
+              <span className="cb2-overall-stat-dot total" />
+              Total
+            </span>
+            <span className="cb2-overall-stat-value">{total} classes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── GPA Summary data parser & component ──────────────────────────
+function hasGPASummary(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return (lower.includes('cgpa') || lower.includes('sgpa')) && lower.includes('sem')
+}
+
+function parseGPASummary(text) {
+  const lines = text.split(/\n/g).map(l => l.trim()).filter(Boolean)
+  let cgpa = null
+  const semesters = []
+
+  for (const line of lines) {
+    const clean = line.replace(/\*/g, '').trim()
+    const mCgpa = /current\s+cgpa\s*:\s*(\d+(?:\.\d+)?)/i.exec(clean)
+    if (mCgpa) {
+      cgpa = parseFloat(mCgpa[1])
+      continue
+    }
+    const mSem = /sem\s*(\d+)\s+sgpa\s*:\s*(\d+(?:\.\d+)?)/i.exec(clean)
+    if (mSem) {
+      semesters.push({ semester: parseInt(mSem[1], 10), sgpa: parseFloat(mSem[2]) })
+    }
+  }
+
+  if (cgpa !== null || semesters.length > 0) {
+    return { cgpa, semesters }
+  }
+  return null
+}
+
+function GPASummaryCard({ data }) {
+  const { cgpa, semesters } = data
+
+  return (
+    <div className="cb2-gpa-card">
+      <div className="cb2-gpa-header">
+        <span className="cb2-gpa-title">Academic Performance Hub</span>
+        {cgpa !== null && (
+          <span className="cb2-gpa-badge">
+            <Zap size={11} />
+            CGPA: {cgpa}
+          </span>
+        )}
+      </div>
+      <div className="cb2-gpa-content">
+        {cgpa !== null && (
+          <div className="cb2-gpa-radial-wrap">
+            <div className="cb2-gpa-radial">
+              <svg className="cb2-gpa-radial-svg" viewBox="0 0 100 100">
+                <defs>
+                  <linearGradient id="gpa-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#ec4899" />
+                  </linearGradient>
+                </defs>
+                <circle className="cb2-gpa-radial-bg" cx="50" cy="50" r="42" />
+                <motion.circle
+                  className="cb2-gpa-radial-progress"
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  strokeDasharray={2 * Math.PI * 42}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - cgpa / 10) }}
+                  transition={{ duration: 1.2, ease: 'easeOut' }}
+                />
+              </svg>
+              <div className="cb2-gpa-text">
+                <span>{cgpa}</span>
+                <span className="cb2-gpa-sub">CGPA</span>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="cb2-gpa-list">
+          {semesters.map((sem, i) => {
+            const pct = (sem.sgpa / 10) * 100
+            return (
+              <div key={i} className="cb2-gpa-item">
+                <div className="cb2-gpa-item-info">
+                  <span className="cb2-gpa-item-name">Semester {sem.semester}</span>
+                  <span className="cb2-gpa-item-val">{sem.sgpa} SGPA</span>
+                </div>
+                <div className="cb2-gpa-bar-wrap">
+                  <motion.div
+                    className="cb2-gpa-bar"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ delay: i * 0.1, duration: 0.8 }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Student Profile data parser & component ──────────────────────
+function hasProfile(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return lower.includes('roll number') && lower.includes('merit points')
+}
+
+function parseProfile(text) {
+  const lines = text.split(/\n|(?=•)/g).map(l => l.trim()).filter(Boolean)
+  const data = {}
+
+  for (const line of lines) {
+    const clean = line.replace(/\*/g, '').replace(/^[•\-*]/, '').trim()
+    const parts = clean.split(':')
+    if (parts.length >= 2) {
+      const key = parts[0].trim().toLowerCase()
+      const val = parts.slice(1).join(':').trim()
+      if (key.includes('name')) data.name = val
+      else if (key.includes('roll number')) data.rollNumber = val
+      else if (key.includes('department')) data.department = val
+      else if (key.includes('semester')) data.semester = val
+      else if (key.includes('merit points')) {
+        const m = /(\d+)\s*\(([^)]+)\)/.exec(val)
+        if (m) {
+          data.meritPoints = parseInt(m[1], 10)
+          data.meritTier = m[2]
+        } else {
+          data.meritPoints = val
+        }
+      }
+      else if (key.includes('contact')) data.contact = val
+    }
+  }
+  return Object.keys(data).length > 0 ? data : null
+}
+
+function ProfileCard({ data }) {
+  const { name, rollNumber, department, semester, meritPoints, meritTier } = data
+  const tierColor = meritTier?.toLowerCase() || 'novice'
+
+  return (
+    <div className="cb2-profile-card">
+      <div className="cb2-profile-header">
+        <div className="cb2-profile-avatar">
+          <User size={20} />
+        </div>
+        <div className="cb2-profile-meta">
+          <div className="cb2-profile-name">{name || 'Student Profile'}</div>
+          <div className="cb2-profile-roll">{rollNumber || 'N/A'}</div>
+        </div>
+      </div>
+      <div className="cb2-profile-grid">
+        <div className="cb2-profile-item">
+          <span className="cb2-profile-label">Department</span>
+          <span className="cb2-profile-val">{department || 'N/A'}</span>
+        </div>
+        <div className="cb2-profile-item">
+          <span className="cb2-profile-label">Semester</span>
+          <span className="cb2-profile-val">{semester || 'N/A'}</span>
+        </div>
+        {meritPoints !== undefined && (
+          <div className="cb2-profile-item span-2">
+            <span className="cb2-profile-label">Academic Standing</span>
+            <div className="cb2-profile-tier-wrap">
+              <span className={`cb2-profile-tier-badge ${tierColor}`}>
+                <Sparkles size={10} />
+                {meritTier || 'Standard'} ({meritPoints} pts)
+              </span>
+            </div>
+          </div>
+        )}
+        {data.contact && (
+          <div className="cb2-profile-item span-2">
+            <span className="cb2-profile-label">Contact Email</span>
+            <span className="cb2-profile-val">{data.contact}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Leave Requests data parser & component ───────────────────────
+function hasLeaveRequests(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return lower.includes('recent leaves') || lower.includes('leave requests')
+}
+
+function parseLeaveRequests(text) {
+  const lines = text.split(/\n/g).map(l => l.trim()).filter(Boolean)
+  const leaves = []
+
+  for (const line of lines) {
+    const clean = line.replace(/\*/g, '').replace(/^[-•*]/, '').trim()
+    const m = /([a-zA-Z\s]+)\s*\(([^)]+)\)\s*:\s*([a-zA-Z\s]+)/.exec(clean)
+    if (m) {
+      leaves.push({ type: m[1].trim(), dates: m[2].trim(), status: m[3].trim() })
+    }
+  }
+  return leaves.length > 0 ? leaves : null
+}
+
+function LeaveRequestsCard({ leaves }) {
+  return (
+    <div className="cb2-leaves-card">
+      <div className="cb2-leaves-header">
+        <span className="cb2-leaves-title">Recent Leave Requests</span>
+      </div>
+      <div className="cb2-leaves-list">
+        {leaves.map((leave, i) => {
+          const statusCls = leave.status.toLowerCase()
+          return (
+            <div key={i} className="cb2-leave-item">
+              <div className="cb2-leave-info">
+                <span className="cb2-leave-type">{leave.type}</span>
+                <span className="cb2-leave-dates">{leave.dates}</span>
+              </div>
+              <span className={`cb2-leave-status ${statusCls}`}>
+                {leave.status}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Exam Schedule data parser & component ────────────────────────
+function hasExamSchedule(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return lower.includes('upcoming exams') || lower.includes('exam schedule')
+}
+
+function parseExamSchedule(text) {
+  const lines = text.split(/\n|(?=•)/g).map(l => l.trim()).filter(Boolean)
+  const exams = []
+
+  for (const line of lines) {
+    const clean = line.replace(/\*/g, '').replace(/^[•\-*]/, '').trim()
+    const m = /(\d{4}-\d{2}-\d{2})\s*:\s*(.+?)\s*\((.+?)\)\s*@\s*(.+)/.exec(clean)
+    if (m) {
+      exams.push({ date: m[1], subject: m[2].trim(), type: m[3].trim(), venue: m[4].trim() })
+    }
+  }
+  return exams.length > 0 ? exams : null
+}
+
+function ExamScheduleCard({ exams }) {
+  return (
+    <div className="cb2-exams-card">
+      <div className="cb2-exams-header">
+        <span className="cb2-exams-title">Upcoming Exam Schedule</span>
+      </div>
+      <div className="cb2-exams-list">
+        {exams.map((exam, i) => (
+          <div key={i} className="cb2-exam-item">
+            <div className="cb2-exam-date-box">
+              <Clock size={11} className="cb2-exam-icon" />
+              <span>{exam.date}</span>
+            </div>
+            <div className="cb2-exam-details">
+              <span className="cb2-exam-subj">{exam.subject}</span>
+              <div className="cb2-exam-subdetails">
+                <span className="cb2-exam-type">{exam.type}</span>
+                <span className="cb2-exam-venue">📍 {exam.venue}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Holiday data parser & component ──────────────────────────────
+function hasHoliday(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return lower.includes('next holiday')
+}
+
+function parseHoliday(text) {
+  const clean = text.replace(/\*/g, '').replace(/^[-•*]/, '').trim()
+  const m = /next\s+holiday\s*:\s*(.+?)\s*\(([^)]+)\)\s*(?:\[([^\]]+)\])?/i.exec(clean)
+  if (m) {
+    return { name: m[1].trim(), date: m[2].trim(), type: m[3] ? m[3].trim() : 'Holiday' }
+  }
+  return null
+}
+
+function HolidayCard({ data }) {
+  const { name, date, type } = data
+  return (
+    <div className="cb2-holiday-card">
+      <div className="cb2-holiday-badge">{type}</div>
+      <div className="cb2-holiday-icon">📅</div>
+      <div className="cb2-holiday-info">
+        <span className="cb2-holiday-title">{name}</span>
+        <span className="cb2-holiday-date">{date}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Uncovered Absences data parser & component ───────────────────
+function hasUncoveredAbsences(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return lower.includes('uncovered absences')
+}
+
+function parseUncoveredAbsences(text) {
+  const lines = text.split(/\n/g).map(l => l.trim()).filter(Boolean)
+  const absences = []
+
+  for (const line of lines) {
+    const clean = line.replace(/\*/g, '').replace(/^[-•*]/, '').trim()
+    const m = /(\d{4}-\d{2}-\d{2})\s*:\s*(.+?)\s*(?:\(Hour\s*(\d+)\))?$/i.exec(clean)
+    if (m) {
+      absences.push({ date: m[1], subject: m[2].trim(), hour: m[3] ? parseInt(m[3], 10) : null })
+    }
+  }
+  return absences.length > 0 ? absences : null
+}
+
+function UncoveredAbsencesCard({ absences }) {
+  return (
+    <div className="cb2-uncovered-card">
+      <div className="cb2-uncovered-header">
+        <AlertTriangle size={14} />
+        <span className="cb2-uncovered-title">Uncovered Absences</span>
+      </div>
+      <p className="cb2-uncovered-desc">
+        The following absences do not have approved ODs applied. Please submit OD requests to avoid attendance penalties:
+      </p>
+      <div className="cb2-uncovered-list">
+        {absences.map((abs, i) => (
+          <div key={i} className="cb2-uncovered-item">
+            <span className="cb2-uncovered-date">{abs.date}</span>
+            <span className="cb2-uncovered-subj">
+              {abs.subject} {abs.hour ? `(Hour ${abs.hour})` : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Smart BotMessage — detects structured data and renders cards ────
 function BotMessage({ text }) {
+  if (!text) return <p className="cb2-para">No response received.</p>
+
+  // Try parsing overall attendance summary first
+  if (hasOverallAttendance(text)) {
+    const data = parseOverallAttendance(text)
+    if (data) return <OverallAttendanceCard data={data} />
+  }
+
+  // Try parsing GPA Summary
+  if (hasGPASummary(text)) {
+    const data = parseGPASummary(text)
+    if (data) return <GPASummaryCard data={data} />
+  }
+
+  // Try parsing Student Profile
+  if (hasProfile(text)) {
+    const data = parseProfile(text)
+    if (data) return <ProfileCard data={data} />
+  }
+
+  // Try parsing Leave Requests
+  if (hasLeaveRequests(text)) {
+    const data = parseLeaveRequests(text)
+    if (data) return <LeaveRequestsCard leaves={data} />
+  }
+
+  // Try parsing Exam Schedule
+  if (hasExamSchedule(text)) {
+    const data = parseExamSchedule(text)
+    if (data) return <ExamScheduleCard exams={data} />
+  }
+
+  // Try parsing Holiday
+  if (hasHoliday(text)) {
+    const data = parseHoliday(text)
+    if (data) return <HolidayCard data={data} />
+  }
+
+  // Try parsing Uncovered Absences
+  if (hasUncoveredAbsences(text)) {
+    const data = parseUncoveredAbsences(text)
+    if (data) return <UncoveredAbsencesCard absences={data} />
+  }
+
+  // Split text into preamble (non-data lines) and data lines
+  if (hasStructuredData(text)) {
+    const allLines = text.split(/\n|(?=•)/g).map(l => l.trim()).filter(Boolean)
+    const preambleLines = []
+    const dataLines = []
+    let inData = false
+    for (const line of allLines) {
+      const isData = (ATT_LINE_RE.test(line) || MARKS_LINE_RE.test(line) || ELIGIBILITY_LINE_RE.test(line) || BUNK_LINE_RE.test(line) || LOW_MARKS_LINE_RE.test(line)) && !/overall\s+attendance/i.test(line)
+      if (isData) { inData = true; dataLines.push(line) }
+      else if (!inData) preambleLines.push(line)
+    }
+    const rows = parseAttendanceLines(dataLines.join('\n'))
+    const preamble = preambleLines.join(' ').replace(/^[•\-*]/, '').trim()
+    if (rows.length > 0) {
+      return <AttendanceCard rows={rows} preamble={preamble || null} />
+    }
+  }
+
+  // Default markdown renderer
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
         a: ({ children, ...props }) => (
-          <a {...props} target="_blank" rel="noreferrer">
-            {children}
-          </a>
+          <a {...props} target="_blank" rel="noreferrer" className="cb2-link">{children}</a>
         ),
+        strong: ({ children }) => <strong className="cb2-strong">{children}</strong>,
+        ul: ({ children }) => <ul className="cb2-list">{children}</ul>,
+        li: ({ children }) => <li className="cb2-list-item"><span className="cb2-bullet" />{children}</li>,
+        p: ({ children }) => <p className="cb2-para">{children}</p>,
+        code: ({ children }) => <code className="cb2-code">{children}</code>,
       }}
     >
-      {text || 'No response received.'}
+      {text}
     </ReactMarkdown>
   )
 }
 
-function ProviderBadge({ meta }) {
-  const protocol = meta?.protocol || meta?.orchestration?.provider_summary?.label
-  if (!protocol) return null
-
-  return <div className="provider-badge">{protocol}</div>
+// ── Streaming Cursor ───────────────────────────────────────────────
+function StreamCursor() {
+  return (
+    <motion.span
+      className="cb2-stream-cursor"
+      animate={{ opacity: [1, 0, 1] }}
+      transition={{ repeat: Infinity, duration: 0.7 }}
+    >▋</motion.span>
+  )
 }
 
+// ── Action Buttons ─────────────────────────────────────────────────
 function ActionButtons({ actions, onAction }) {
   if (!actions || actions.length === 0) return null
-
   return (
-    <div className="chat-action-container">
+    <div className="cb2-actions">
       {actions.map((action, idx) => (
         <motion.button
           key={`${action.label}-${idx}`}
-          className={`chat-action-btn ${action.category || ''}`}
+          className={`cb2-action-btn ${action.category || ''}`}
           onClick={() => onAction(action)}
-          whileHover={{ scale: 1.02, x: 2 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.04, y: -1 }}
+          whileTap={{ scale: 0.96 }}
         >
           {action.label}
-          {action.action === 'navigate' ? <ExternalLink size={12} className="ml-1 opacity-60" /> : <ArrowRight size={12} className="ml-1 opacity-60" />}
+          {action.action === 'navigate'
+            ? <ExternalLink size={11} className="ml-1 opacity-60" />
+            : <ChevronRight size={11} className="ml-1 opacity-60" />}
         </motion.button>
       ))}
     </div>
   )
 }
 
+// ── Typing Indicator ───────────────────────────────────────────────
 function TypingIndicator() {
   return (
     <motion.div
-      className="chat-message bot"
-      variants={messageVariants}
+      className="cb2-message bot"
+      variants={botVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
-      transition={{ duration: 0.22, ease: 'easeOut' }}
     >
-      <div className="chat-avatar bot-avatar-premium">
-        <ChatbotLogo size={20} />
+      <div className="cb2-avatar bot">
+        <ChatbotLogo size={18} />
       </div>
-      <div className="chat-bubble bot bot-bubble-premium typing-bubble" aria-live="polite">
-        <span className="typing-copy typing-shimmer">Analyzing your academic profile...</span>
-        <span className="typing-dots" aria-hidden="true">
-          <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} />
-          <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} />
-          <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} />
-        </span>
+      <div className="cb2-bubble bot typing-bubble" aria-live="polite">
+        <div className="cb2-typing-row">
+          <span className="cb2-typing-label">Analyzing</span>
+          <div className="cb2-typing-dots">
+            {[0, 0.18, 0.36].map((delay, i) => (
+              <motion.span
+                key={i}
+                animate={{ y: [0, -4, 0], opacity: [0.3, 1, 0.3] }}
+                transition={{ repeat: Infinity, duration: 0.9, delay }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </motion.div>
   )
 }
 
+// ── Prompt Sets ────────────────────────────────────────────────────
 const promptSets = {
   attendance: [
     ['which classes did i miss today', 'Missed today', 'attendance'],
@@ -128,6 +960,16 @@ const promptSets = {
   ],
 }
 
+// ── Date Divider ───────────────────────────────────────────────────
+function DateDivider({ label }) {
+  return (
+    <div className="cb2-date-divider">
+      <span>{label}</span>
+    </div>
+  )
+}
+
+// ── Main ChatBox ───────────────────────────────────────────────────
 export default function ChatBox({ onNewChat, resetToken = 0, className = '', contextPage = 'dashboard', compact = false }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -135,22 +977,29 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
   const [showTyping, setShowTyping] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [welcomeData, setWelcomeData] = useState(null)
+  const [inputFocused, setInputFocused] = useState(false)
   const navigate = useNavigate()
   const chatEndRef = useRef(null)
   const hasMountedRef = useRef(false)
   const currentMetaRef = useRef(null)
+  const textareaRef = useRef(null)
+  const streamTargetTextRef = useRef('')
+  const streamDisplayedTextRef = useRef('')
+  const streamTimerRef = useRef(null)
+  const streamRequestDoneRef = useRef(false)
+  const botMessageIdRef = useRef(null)
 
   useEffect(() => {
-    loadInitialChats()
+    return () => {
+      if (streamTimerRef.current) clearInterval(streamTimerRef.current)
+    }
   }, [])
 
-  useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true
-      return
-    }
+  useEffect(() => { loadInitialChats() }, [])
 
-    setMessages([{ sender: 'bot', text: 'Chat history cleared. Ask me anything about your ERP data.' }])
+  useEffect(() => {
+    if (!hasMountedRef.current) { hasMountedRef.current = true; return }
+    setMessages([{ id: `reset-${Date.now()}`, sender: 'bot', text: 'Chat history cleared. Ask me anything about your academic data.', timestamp: new Date() }])
   }, [resetToken])
 
   useEffect(() => {
@@ -162,41 +1011,40 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
     try {
       const [history, welcome] = await Promise.all([
         fetchChatHistory(),
-        fetchChatWelcome().catch(() => null)
+        fetchChatWelcome().catch(() => null),
       ])
-
       const formatted = []
-      history
-        .slice()
-        .reverse()
-        .slice(-10)
-        .forEach((item) => {
-          formatted.push({ sender: 'user', text: item.query })
-          formatted.push({ sender: 'bot', text: item.response })
-        })
-
+      history.slice().reverse().slice(-10).forEach((item) => {
+        formatted.push({ id: `h-u-${Math.random()}`, sender: 'user', text: item.query, timestamp: new Date(item.date) })
+        formatted.push({ id: `h-b-${Math.random()}`, sender: 'bot',  text: item.response, timestamp: new Date(item.date) })
+      })
       setWelcomeData(welcome)
-      
       const hour = new Date().getHours()
       const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-      
       if (formatted.length === 0 && welcome) {
-         const isFaculty = welcome.message.toLowerCase().includes('professor') || welcome.message.toLowerCase().includes('faculty')
-         setMessages([{ 
-           sender: 'bot', 
-           text: `✨ **${greeting}, ${welcome.message.split('!')[0].split(' ').pop() || ''}!** ${welcome.message}`,
-           actions: welcome.actions,
-           protocol: isFaculty ? 'Staff AI Ensemble' : 'Studvisor AI'
-         }])
+        const isFaculty = welcome.message?.toLowerCase().includes('professor') || welcome.message?.toLowerCase().includes('faculty')
+        setMessages([{
+          id: `welcome-${Date.now()}`,
+          sender: 'bot',
+          text: `✨ **${greeting}!** ${welcome.message}`,
+          actions: welcome.actions,
+          protocol: isFaculty ? 'Staff AI Ensemble' : 'Studvisor AI',
+          timestamp: new Date(),
+        }])
       } else {
         setMessages(
           formatted.length
             ? formatted
-            : [{ sender: 'bot', text: `✨ **${greeting}!** I'm **Studvisor AI**, your premium ERP Assistant. I can help you analyze your ${welcome?.role === 'student' ? 'attendance and marks' : 'class performance and schedules'}.\n\nType **help** to see everything I can do for you!` }],
+            : [{
+                id: `welcome-${Date.now()}`,
+                sender: 'bot',
+                text: `✨ **${greeting}!** I'm **Studvisor AI**, your premium ERP assistant. I can help you analyze your ${welcome?.role === 'student' ? 'attendance, marks & eligibility' : 'class performance and schedules'}.\n\nType **help** to see everything I can do for you!`,
+                timestamp: new Date(),
+              }]
         )
       }
     } catch {
-      setMessages([{ sender: 'bot', text: 'Unable to load previous chat history.' }])
+      setMessages([{ id: 'err', sender: 'bot', text: 'Unable to load previous chat history.', timestamp: new Date() }])
     } finally {
       setLoadingHistory(false)
     }
@@ -207,133 +1055,249 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
       navigate(action.payload)
     } else if (action.query) {
       setInput(action.query)
-      setTimeout(() => document.getElementById('chat-send-btn')?.click(), 10)
+      setTimeout(() => document.getElementById('cb2-send-btn')?.click(), 10)
     }
+  }
+
+  function startTypingAnimation(botMessageId) {
+    botMessageIdRef.current = botMessageId
+    streamTargetTextRef.current = ''
+    streamDisplayedTextRef.current = ''
+    streamRequestDoneRef.current = false
+    
+    if (streamTimerRef.current) clearInterval(streamTimerRef.current)
+    
+    const startTime = Date.now()
+    const minThinkingTime = 800 // ms thinking delay
+    let hasStartedTyping = false
+
+    streamTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      
+      // 1. Enforce thinking delay: show typing indicator for at least minThinkingTime
+      if (elapsed < minThinkingTime) {
+        return
+      }
+
+      const target = streamTargetTextRef.current
+      const displayed = streamDisplayedTextRef.current
+
+      // 2. Hide typing indicator when there is text ready to type
+      if (!hasStartedTyping && target) {
+        hasStartedTyping = true
+        setShowTyping(false)
+      }
+
+      // 3. Check if we have caught up
+      if (displayed === target) {
+        if (streamRequestDoneRef.current) {
+          clearInterval(streamTimerRef.current)
+          streamTimerRef.current = null
+          setSending(false)
+          setShowTyping(false)
+          setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, streaming: false } : m))
+        }
+        return
+      }
+
+      // 4. Typing incremental calculation
+      const remaining = target.slice(displayed.length)
+      if (!remaining) return
+
+      let nextChunk = ''
+      if (remaining.startsWith('\n')) {
+        nextChunk = '\n'
+      } else if (remaining.startsWith(' ')) {
+        nextChunk = ' '
+      } else {
+        const nextSpaceIdx = remaining.search(/\s/)
+        if (nextSpaceIdx === -1) {
+          nextChunk = remaining
+        } else if (nextSpaceIdx === 0) {
+          nextChunk = remaining[0]
+        } else {
+          nextChunk = remaining.slice(0, nextSpaceIdx)
+        }
+      }
+
+      const nextText = displayed + nextChunk
+      streamDisplayedTextRef.current = nextText
+
+      setMessages(prev => prev.map(m => {
+        if (m.id === botMessageId) {
+          return {
+            ...m,
+            text: nextText,
+            streaming: true
+          }
+        }
+        return m
+      }))
+    }, 45)
   }
 
   async function handleSend() {
     if (!input.trim() || sending) return
-
     const userMessage = input.trim()
     const botMessageId = `bot-${Date.now()}`
     currentMetaRef.current = null
-    setMessages((prev) => [...prev, { id: `user-${Date.now()}`, sender: 'user', text: userMessage }])
+    
+    setMessages(prev => [...prev, { id: `user-${Date.now()}`, sender: 'user', text: userMessage, timestamp: new Date() }])
     setInput('')
     setSending(true)
     setShowTyping(true)
+    textareaRef.current?.focus()
+
+    // Start typing loop
+    startTypingAnimation(botMessageId)
 
     try {
       const streamed = await streamChatMessage(userMessage, {
         contextPage,
         onMeta: (meta) => {
           currentMetaRef.current = meta
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === botMessageId ? { ...msg, meta } : msg,
-            ),
-          )
+          setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, meta } : m))
         },
         onChunk: (_chunk, finalText) => {
-          setShowTyping(false)
-          setMessages((prev) => {
-            const existing = prev.some((msg) => msg.id === botMessageId)
-            if (!existing) {
-              return [...prev, { id: botMessageId, sender: 'bot', text: finalText, streaming: true, meta: currentMetaRef.current }]
-            }
-
-            return prev.map((msg) =>
-              msg.id === botMessageId ? { 
-                ...msg, 
-                text: finalText, 
-                streaming: true, 
-                meta: currentMetaRef.current || msg.meta,
-                actions: currentMetaRef.current?.actions || msg.actions
-              } : msg,
-            )
+          streamTargetTextRef.current = finalText
+          
+          setMessages(prev => {
+            const exists = prev.some(m => m.id === botMessageId)
+            if (exists) return prev
+            return [...prev, {
+              id: botMessageId,
+              sender: 'bot',
+              text: '',
+              streaming: true,
+              meta: currentMetaRef.current,
+              timestamp: new Date()
+            }]
           })
         },
         onDone: (finalText) => {
-          setShowTyping(false)
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === botMessageId ? { 
-                ...msg, 
-                text: finalText || msg.text, 
-                streaming: false, 
-                meta: currentMetaRef.current || msg.meta,
-                actions: currentMetaRef.current?.actions || msg.actions
-              } : msg,
-            ),
-          )
+          streamTargetTextRef.current = finalText
+          streamRequestDoneRef.current = true
         },
       })
 
       if (!streamed.reply) {
         const response = await sendChatMessage(userMessage, contextPage)
-        setShowTyping(false)
-        setMessages((prev) => [...prev, { 
-          id: botMessageId, 
-          sender: 'bot', 
-          text: response.reply || 'No reply received.', 
-          meta: response.meta,
-          actions: response.actions
-        }])
+        streamTargetTextRef.current = response.reply || 'No reply received.'
+        
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === botMessageId)
+          if (exists) {
+            return prev.map(m => m.id === botMessageId ? { 
+              ...m, 
+              meta: response.meta, 
+              actions: response.actions, 
+              emotion: response.emotion 
+            } : m)
+          }
+          return [...prev, {
+            id: botMessageId,
+            sender: 'bot',
+            text: '',
+            streaming: true,
+            meta: response.meta,
+            actions: response.actions,
+            emotion: response.emotion,
+            timestamp: new Date(),
+          }]
+        })
+        streamRequestDoneRef.current = true
       }
 
-      if (onNewChat) {
-        onNewChat()
-      }
+      onNewChat?.()
       window.dispatchEvent(new CustomEvent('chat-history-updated'))
     } catch {
       try {
         const response = await sendChatMessage(userMessage, contextPage)
-        setMessages((prev) => [...prev, { id: botMessageId, sender: 'bot', text: response.reply || 'No reply received.', meta: response.meta }])
-        if (onNewChat) {
-          onNewChat()
-        }
+        streamTargetTextRef.current = response.reply || 'No reply received.'
+        
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === botMessageId)
+          if (exists) {
+            return prev.map(m => m.id === botMessageId ? { 
+              ...m, 
+              meta: response.meta, 
+              actions: response.actions, 
+              emotion: response.emotion 
+            } : m)
+          }
+          return [...prev, {
+            id: botMessageId,
+            sender: 'bot',
+            text: '',
+            streaming: true,
+            meta: response.meta,
+            actions: response.actions,
+            emotion: response.emotion,
+            timestamp: new Date(),
+          }]
+        })
+        streamRequestDoneRef.current = true
+        onNewChat?.()
         window.dispatchEvent(new CustomEvent('chat-history-updated'))
       } catch {
-        setMessages((prev) => [
-          ...prev,
-          { id: botMessageId, sender: 'bot', text: 'Failed to connect to chatbot backend.' },
-        ])
+        streamTargetTextRef.current = 'Failed to connect to the AI backend. Please try again.'
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === botMessageId)
+          if (exists) return prev
+          return [...prev, {
+            id: botMessageId,
+            sender: 'bot',
+            text: '',
+            streaming: true,
+            timestamp: new Date(),
+          }]
+        })
+        streamRequestDoneRef.current = true
       }
-    } finally {
-      setSending(false)
-      setShowTyping(false)
     }
   }
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
-  return (
-    <div className={`card chatbot-card chatbot-card-premium ${compact ? 'compact-chatbot-card' : ''} ${className}`}>
-      <div className="chatbot-header">
-        {!compact && <h3 className="section-title">Studvisor AI</h3>}
-        {!compact ? (
-          <p className="chatbot-subtitle">
-            Ask about attendance, weakest subject, eligibility, marks, or a quick academic summary.
-          </p>
-        ) : null}
-        <div className="chat-prompt-row scrollbar-hide">
-          {(welcomeData?.actions || promptSets[contextPage] || (welcomeData?.role === 'student' ? promptSets.dashboard : promptSets.faculty)).map((item) => {
-            const prompt = Array.isArray(item) ? item[0] : item.query
-            const label = Array.isArray(item) ? item[1] : item.label
-            const category = Array.isArray(item) ? item[2] : item.category
+  const chips = welcomeData?.actions || promptSets[contextPage] || promptSets.dashboard
 
+  return (
+    <div className={`cb2-shell ${compact ? 'cb2-compact' : ''} ${className}`}>
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="cb2-header">
+        <div className="cb2-header-left">
+          <div className="cb2-header-avatar">
+            <ChatbotLogo size={compact ? 18 : 22} />
+            <span className="cb2-online-dot" />
+          </div>
+          {!compact && (
+            <div>
+              <div className="cb2-header-title">Studvisor AI</div>
+              <div className="cb2-header-sub">
+                <Sparkles size={9} />
+                Intelligence Ensemble · Online
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Chips */}
+        <div className="cb2-chips-row scrollbar-hide">
+          {chips.map((item, i) => {
+            const prompt    = Array.isArray(item) ? item[0] : item.query
+            const label     = Array.isArray(item) ? item[1] : item.label
+            const category  = Array.isArray(item) ? item[2] : item.category
             return (
-              <motion.button 
-                key={prompt} 
-                type="button" 
-                className={`chat-prompt-chip ${category || ''}`} 
+              <motion.button
+                key={`${prompt}-${i}`}
+                type="button"
+                className={`cb2-chip ${category || ''}`}
                 onClick={() => handleAction(Array.isArray(item) ? { query: prompt } : item)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
               >
                 {label}
               </motion.button>
@@ -342,65 +1306,119 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
         </div>
       </div>
 
-      <div className="chat-window custom-scrollbar">
-        {loadingHistory ? (
-          <div className="chat-history-loader">
-            <motion.div 
-              animate={{ rotate: 360 }} 
-              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-              className="loader-spinner"
+      {/* ── Messages ────────────────────────────────────────────── */}
+      <div className="cb2-window custom-scrollbar">
+        {loadingHistory && (
+          <div className="cb2-loader-row">
+            <motion.div
+              className="cb2-loader-spinner"
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
             />
-            Synchronizing your academic data...
+            <span>Syncing your academic profile…</span>
           </div>
-        ) : null}
+        )}
 
         <AnimatePresence initial={false}>
-          {messages.map((msg, index) => (
-            <motion.div
-              key={msg.id || `${msg.sender}-${index}-${msg.text.slice(0, 18)}`}
-              className={`chat-message ${msg.sender}`}
-              variants={messageVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.24, ease: 'easeOut' }}
-              layout
-            >
-              <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar-premium' : 'bot-avatar-premium'}`}>
-                {msg.sender === 'user' ? <User size={16} /> : <ChatbotLogo size={20} />}
-              </div>
-              <div
-                className={`chat-bubble ${msg.sender} ${msg.sender === 'bot' ? 'markdown-body bot-bubble-premium' : 'user-bubble-premium'} ${
-                  msg.streaming ? 'streaming-bubble' : ''
-                }`}
-              >
-                {msg.sender === 'bot' ? (
-                  <>
-                    <BotMessage text={msg.text} />
-                    <ActionButtons actions={msg.actions} onAction={handleAction} />
-                    <ProviderBadge meta={msg.meta} />
-                  </>
-                ) : msg.text}
-              </div>
-            </motion.div>
-          ))}
-          {showTyping ? <TypingIndicator key="typing-indicator" /> : null}
+          {messages.map((msg, idx) => {
+            const isBot  = msg.sender === 'bot'
+            const isUser = msg.sender === 'user'
+            const prevMsg = messages[idx - 1]
+            const showDate = !prevMsg || (msg.timestamp && prevMsg.timestamp && new Date(msg.timestamp).toDateString() !== new Date(prevMsg.timestamp).toDateString())
+
+            return (
+              <motion.div key={msg.id || `${msg.sender}-${idx}`} layout>
+                {showDate && msg.timestamp && <DateDivider label={new Date(msg.timestamp).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })} />}
+
+                <motion.div
+                  className={`cb2-message ${msg.sender}`}
+                  variants={isBot ? botVariants : userVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  {/* Avatar */}
+                  <div className={`cb2-avatar ${msg.sender}`}>
+                    {isBot ? <ChatbotLogo size={18} /> : <User size={15} />}
+                  </div>
+
+                  {/* Bubble */}
+                  <div className="cb2-bubble-wrap">
+                    {isBot && msg.emotion && <EmotionStrip emotion={msg.emotion} />}
+                    <div className={`cb2-bubble ${msg.sender} ${msg.streaming ? 'streaming' : ''} markdown-body`}>
+                      {isBot ? (
+                        <>
+                          <BotMessage text={msg.text} />
+                          {msg.streaming && <StreamCursor />}
+                          <ActionButtons actions={msg.actions} onAction={handleAction} />
+                          <div className="cb2-bubble-footer">
+                            <ProviderBadge meta={msg.meta} />
+                            {!msg.streaming && <CopyBtn text={msg.text} />}
+                          </div>
+                        </>
+                      ) : (
+                        <span>{msg.text}</span>
+                      )}
+                    </div>
+                    {msg.timestamp && (
+                      <div className={`cb2-timestamp ${msg.sender}`}>
+                        <Clock size={9} />
+                        {formatTime(new Date(msg.timestamp))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )
+          })}
+          {showTyping && <TypingIndicator key="typing" />}
         </AnimatePresence>
         <div ref={chatEndRef} />
       </div>
 
-      <div className="chat-input-box">
+      {/* ── Input ───────────────────────────────────────────────── */}
+      <div className={`cb2-input-wrap ${inputFocused ? 'focused' : ''}`}>
         <textarea
-          placeholder="Ask Studvisor AI here..."
+          ref={textareaRef}
+          className="cb2-textarea"
+          placeholder="Ask about attendance, marks, eligibility…"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          rows={compact ? 1 : 2}
+          onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          rows={2}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setInputFocused(false)}
         />
-        <button id="chat-send-btn" className="send-btn" onClick={handleSend} disabled={sending}>
-          <SendHorizonal size={18} />
-          {sending ? 'Thinking...' : 'Send'}
-        </button>
+        <div className="cb2-input-actions">
+          <button
+            type="button"
+            className="cb2-mic-btn"
+            aria-label="Voice input"
+            title="Voice input (coming soon)"
+          >
+            <Mic size={15} />
+          </button>
+          <motion.button
+            id="cb2-send-btn"
+            className={`cb2-send-btn ${sending ? 'sending' : ''}`}
+            onClick={handleSend}
+            disabled={sending || !input.trim()}
+            whileHover={!sending ? { scale: 1.06, y: -1 } : {}}
+            whileTap={!sending ? { scale: 0.94 } : {}}
+            aria-label="Send message"
+          >
+            {sending ? (
+              <motion.div
+                className="cb2-send-spinner"
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 0.9, ease: 'linear' }}
+              />
+            ) : (
+              <SendHorizonal size={16} />
+            )}
+            <span>{sending ? 'Thinking…' : 'Send'}</span>
+          </motion.button>
+        </div>
       </div>
     </div>
   )

@@ -17,10 +17,10 @@ def test_root():
     r = client.get("/")
     assert r.status_code == 200
     assert r.json()["success"] is True
-    assert "2.0.0" in r.json()["version"]
+    assert "3.0.0" in r.json()["version"]
 
 def test_health():
-    r = client.get("/health")
+    r = client.get("/health/")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
 
@@ -39,16 +39,16 @@ def test_openapi_schema():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def test_login_missing_fields():
-    r = client.post("/login", json={})
+    r = client.post("/auth/login/", json={})
     assert r.status_code == 422
 
 def test_login_invalid_credentials():
-    r = client.post("/login", json={"username": "nonexistent_user", "password": "wrong_pass"})
+    r = client.post("/auth/login/", json={"username": "nonexistent_user", "password": "wrong_pass"})
     assert r.status_code == 401
 
 def test_register_and_login():
     # Register
-    r = client.post("/register", json={
+    r = client.post("/auth/register/", json={
         "username": "test_student_ci",
         "email": "test_ci@Studvisor.edu",
         "password": "testpassword123",
@@ -57,7 +57,7 @@ def test_register_and_login():
     assert r.status_code in (200, 400)  # 400 if already exists
 
     # Login
-    r = client.post("/login", json={"username": "test_student_ci", "password": "testpassword123"})
+    r = client.post("/auth/login/", json={"username": "test_student_ci", "password": "testpassword123"})
     if r.status_code == 200:
         data = r.json()
         assert "access_token" in data
@@ -70,19 +70,19 @@ def test_register_and_login():
 
 def test_student_routes_unauthorized():
     """Student routes should return 401/403 without auth."""
-    for path in ["/gpa/cgpa", "/fees/my-fees", "/attendance/overall", "/chat/history", "/leave/requests"]:
+    for path in ["/academic/gpa/cgpa/", "/campus/fees/my-fees/", "/academic/attendance/overall/", "/campus/chat/history/", "/user/leave/requests/", "/campus/events/", "/campus/polls/", "/campus/anon/posts/"]:
         r = client.get(path)
         assert r.status_code in (401, 403), f"Route {path} should be protected"
 
 def test_admin_routes_unauthorized():
     """Admin routes should return 401/403 without auth."""
-    for path in ["/admin/dashboard", "/admin/students", "/admin/analytics/at-risk-students"]:
+    for path in ["/admin/dashboard/v2/", "/admin/students/", "/admin/reports/attendance/"]:
         r = client.get(path)
         assert r.status_code in (401, 403), f"Route {path} should be protected"
 
 def test_faculty_routes_unauthorized():
     """Faculty routes should return 401/403 without auth."""
-    for path in ["/faculty-portal/dashboard", "/faculty-portal/attendance/defaulters"]:
+    for path in ["/faculty-portal/dashboard/", "/faculty-portal/attendance/defaulters/"]:
         r = client.get(path)
         assert r.status_code in (401, 403), f"Route {path} should be protected"
 
@@ -100,54 +100,42 @@ def test_ai_engine_unauthorized():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def test_library_catalog():
-    r = client.get("/library/catalog")
+    r = client.get("/user/library/catalog/")
     assert r.status_code == 200
     assert "books" in r.json()
 
 def test_placement_drives():
-    r = client.get("/placement/drives")
+    r = client.get("/campus/placement/drives/")
     assert r.status_code == 200
     assert "drives" in r.json()
 
-def test_events():
-    r = client.get("/events")
-    assert r.status_code == 200
-
 def test_announcements():
-    r = client.get("/announcements")
+    r = client.get("/campus/announcements/")
     assert r.status_code == 200
 
 def test_leaderboard():
-    r = client.get("/leaderboard")
+    r = client.get("/user/leaderboard/")
     assert r.status_code == 200
     assert "leaderboard" in r.json()
 
 def test_calendar():
-    r = client.get("/calendar")
+    r = client.get("/campus/calendar/month/")
     assert r.status_code == 200
 
 def test_exams():
-    r = client.get("/exams")
-    assert r.status_code == 200
-
-def test_polls():
-    r = client.get("/polls")
+    r = client.get("/academic/exams/")
     assert r.status_code == 200
 
 def test_notes():
-    r = client.get("/notes")
+    r = client.get("/academic/notes/")
     assert r.status_code == 200
 
 def test_lost_found():
-    r = client.get("/lost-found")
-    assert r.status_code == 200
-
-def test_anon_posts():
-    r = client.get("/anon/posts")
+    r = client.get("/campus/lost-found/")
     assert r.status_code == 200
 
 def test_faculty_directory():
-    r = client.get("/faculty/directory")
+    r = client.get("/campus/faculty/directory/")
     assert r.status_code == 200
 
 

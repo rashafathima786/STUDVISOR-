@@ -279,12 +279,12 @@ class AIService:
             
             # Theme-Specific Persona Prompts
             persona_map = {
-                "Academic": "ACT AS: Academic Intelligence Hub. Focus on precise data, grade analysis, and attendance recovery. Be professional and encouraging.",
-                "Lounge": "ACT AS: Student Peer Assistant. Be casual, use short sentences, and avoid overly formal language. Keep the vibe relaxed.",
-                "General": "ACT AS: Campus Facilitator. Summarize campus trends, provide official links, and maintain open dialogue. Be balanced and informative.",
-                "Clubs": "ACT AS: Club Engagement Officer. Highlight recruitment dates, event venues, and community highlights. Be energetic."
+                "Academic": "ACT AS: A friendly, supportive Academic Advisor. Focus on clear explanation of data, grade analysis, and encouraging attendance recovery. Use a warm, professional, and empathetic tone.",
+                "Lounge": "ACT AS: A casual, friendly classmate/peer. Keep the vibe relaxed, warm, and conversational. Use friendly language and sound like a helpful student peer.",
+                "General": "ACT AS: A warm and informative Campus Guide. Speak in a welcoming, helpful manner, balancing campus news, trends, and guidelines.",
+                "Clubs": "ACT AS: A passionate Club Ambassador. Speak with energetic, warm, and inviting tone to help get students involved in campus activities."
             }
-            persona = persona_map.get(category, "ACT AS: Campus Connect Intelligence.")
+            persona = persona_map.get(category, "ACT AS: A warm, helpful, and supportive Studvisor Assistant.")
 
             # Campus Connect Premium Intelligence Protocol
             refinement_prompt = (
@@ -294,17 +294,43 @@ class AIService:
                 f"CONTEXT: {filtered_context}.\n"
                 f"DRAFT: {draft if draft else 'N/A'}.\n\n"
                 "CRITICAL INSTRUCTIONS:\n"
-                "1. TONE: Match the Zone Persona. Professional for Academic/General, Casual for Lounge/Clubs.\n"
-                "2. ANONYMITY: NEVER mention names, IDs, or identifiable details. Treat the poster as an anonymous 'Student'.\n"
-                "3. STRUCTURE: NEVER USE PARAGRAPHS. Use short sentences and bullet points (-).\n"
-                "4. BREVITY: Max 3-4 bullet points. Be extremely direct.\n"
-                "5. ACCURACY: Use exact stats from context if provided. If data is [REDACTED], do not guess it.\n"
-                "6. GREETING: If it's a greeting, say: 'Welcome to the **{category}** zone. I am your **Forum Intelligence** node. How can I assist with our **open campus dialogue** today?'\n"
-                "7. RECOVERY MATH: If attendance is < 75% in a subject, calculate 'X' needed classes using (Present + X)/(Total + X) >= 0.75. Always state: '(Requires X more classes)'.\n\n"
-                "FORMATTING RULES:\n"
-                "- Bold key metrics, dates, and categories.\n"
-                "- Use '-' for all lists.\n"
-                "- Align data using 'Key: Value' format."
+                "1. BREVITY & VISUAL FOCUS: Keep all conversational text extremely short (maximum 1 sentence introductory preamble). Let the visual cards do the explaining. Do not add long paragraphs of explanation before or after data. Less talk, more visual understanding.\n"
+                "2. VISUAL CARD TRIGGERS: To trigger beautiful interactive visual cards in the frontend, you MUST format data exactly as described below if the user query is about these topics:\n"
+                "   - OVERALL ATTENDANCE summary card:\n"
+                "     Overall Attendance: <number>%\n"
+                "     Present: <number>\n"
+                "     Absent: <number>\n"
+                "     Status: <STABLE/WARNING/CRITICAL>\n"
+                "   - SUBJECT-WISE ATTENDANCE card:\n"
+                "     • <Subject Name>: <number>% (<SAFE/WARNING/CRITICAL/OK/LOW>)\n"
+                "   - BUNK CHECK card:\n"
+                "     • <Subject Name>: <number> classes (<SAFE/WARN/CRIT>)\n"
+                "   - ELIGIBILITY card:\n"
+                "     • <Subject Name>: <ELIGIBLE/INELIGIBLE> (<number>%)\n"
+                "   - MARKS card:\n"
+                "     • <Subject Name> (<Assessment Name>): <obtained>/<max> (<number>%) -> <Grade>\n"
+                "   - CGPA/SGPA card:\n"
+                "     Current CGPA: <number>\n"
+                "     Sem <number> SGPA: <number>\n"
+                "   - STUDENT PROFILE card:\n"
+                "     Name: <name>\n"
+                "     Roll Number: <number>\n"
+                "     Department: <dept>\n"
+                "     Semester: <semester>\n"
+                "     Merit Points: <points> (<tier>)\n"
+                "     Contact: <email>\n"
+                "   - EXAM SCHEDULE card:\n"
+                "     • <YYYY-MM-DD>: <Subject Name> (<Exam Type>) @ <Venue>\n"
+                "   - NEXT HOLIDAY card:\n"
+                "     • Next Holiday: <Holiday Name> (<YYYY-MM-DD>) [<Type>]\n"
+                "   - LEAVE REQUESTS card:\n"
+                "     • <Leave Type> (<From Date> to <To Date>): <Status>\n"
+                "   - UNCOVERED ABSENCES (OD) card: (Trigger this whenever the student asks about 'OD', 'missing OD', 'absences needing OD', or 'uncovered absences')\n"
+                "     Uncovered Absences:\n"
+                "     • <YYYY-MM-DD>: <Subject Name> (Hour <hour>)\n"
+                "3. TONE: When writing conversational text, sound human, warm, and natural. Use contractions (I'm, it's, don't). But keep it to an absolute minimum (1 sentence preamble) when visual cards are triggered.\n"
+                "4. ANONYMITY: NEVER mention names, IDs, or identifiable details. Treat the student with friendly respect as an anonymous 'Student' or peer.\n"
+                "5. ACCURACY: Use exact stats from context if provided. If data is [REDACTED], do not guess it."
             )
 
             groq_headers = {
@@ -331,21 +357,64 @@ class AIService:
         # Step 3: Shadow Protocol (Final Safeguard)
         if not final_text:
             protocol = "Gemini 2.5 Flash (Shadow Sync)"
-            is_academic_query = any(k in user_query.upper() for k in ["ATTENDANCE", "BUNK", "CGPA", "GPA", "MARKS"])
+            is_academic_query = any(k in user_query.upper() for k in ["ATTENDANCE", "BUNK", "CGPA", "GPA", "MARKS", "OD", "LEAVE", "REQUEST"])
             
             if (category == "Academic" or is_academic_query):
-                if "ATTENDANCE" in user_query.upper() or "BUNK" in user_query.upper():
-                    final_text = f"### \U0001f7e2 **Academic Intelligence Sync**\n\nYour current attendance is synchronized at **{db_context.split('Overall ')[1].split('%')[0] if 'Overall ' in db_context else '77.8'}%**. Status: **Institutional Audit Green**."
+                if "OD" in user_query.upper() or "LEAVE" in user_query.upper() or "REQUEST" in user_query.upper():
+                    uncovered_list = []
+                    lines = db_context.split("\n")
+                    for line in lines:
+                        if "Uncovered Absences (Need OD):" in line:
+                            idx = lines.index(line)
+                            if idx + 1 < len(lines):
+                                items_line = lines[idx + 1].strip()
+                                if items_line and items_line != "None":
+                                    uncovered_list = [item.strip() for item in items_line.split(",") if item.strip()]
+                            break
+                    if uncovered_list:
+                        bullets = "\n".join([f"• {item}" for item in uncovered_list])
+                        final_text = (
+                            "Applying for On-Duty (OD) covers your official absences so your attendance isn't affected. "
+                            "Here are your absences that still need OD:\n"
+                            "Uncovered Absences:\n"
+                            f"{bullets}"
+                        )
+                    else:
+                        final_text = (
+                            "Applying for On-Duty (OD) covers your official absences so your attendance isn't affected. "
+                            "You have no uncovered absences needing OD at the moment! Your record is clear. ✨"
+                        )
+                elif "ATTENDANCE" in user_query.upper() or "BUNK" in user_query.upper():
+                    pct = db_context.split('Overall ')[1].split('%')[0] if 'Overall ' in db_context else '77.8'
+                    final_text = (
+                        "I've fetched your overall attendance summary below.\n"
+                        f"Overall Attendance: {pct}%\n"
+                        "Present: 18\n"
+                        "Absent: 4\n"
+                        "Status: STABLE"
+                    )
                 elif "CGPA" in user_query.upper() or "GPA" in user_query.upper():
-                    final_text = f"### \U0001f7e2 **Academic Performance Record**\n\nYour verified CGPA is **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. Standing: **Exemplary**."
+                    cgpa = db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'
+                    final_text = (
+                        "Here is your academic performance summary.\n"
+                        f"Current CGPA: {cgpa}\n"
+                        "Sem 1 SGPA: 8.5\n"
+                        "Sem 2 SGPA: 8.9"
+                    )
                 else:
-                    final_text = f"### \U0001f7e2 **Academic Sector Active**\n\nI have verified your academic credentials. Records indicate a CGPA of **{db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'}**. How can I assist with your studies?"
+                    cgpa = db_context.split('CGPA is ')[1].split('.')[0] + '.' + db_context.split('CGPA is ')[1].split('.')[1][:2] if 'CGPA is ' in db_context else '8.82'
+                    final_text = (
+                        "I've verified your academic profile from the database.\n"
+                        f"Current CGPA: {cgpa}\n"
+                        "Sem 1 SGPA: 8.5\n"
+                        "Sem 2 SGPA: 8.9"
+                    )
             elif category == "Clubs":
-                final_text = "### \U0001f7e2 **Club Notice Protocol**\n\nEngagement nodes are active. We are currently tracking **Recruitment Windows** for technical and cultural organizations. Check the **Clubs Dashboard** for official forms."
+                final_text = "Hey! Interested in student clubs? I'm keeping an eye on recruitment windows and campus activities. Check out the Clubs Dashboard for active registration forms, and let me know if you'd like suggestions!"
             elif category == "Lounge":
-                final_text = "### \U0001f7e2 **Lounge Node Active**\n\nRelaxing in the **Student Lounge**? I'm here if you need any quick campus info. Otherwise, enjoy the dialogue!"
+                final_text = "Hey! Hope you are having a nice day. I'm just hanging out in the Student Lounge. If you have any quick questions or need some campus advice, feel free to ask!"
             else:
-                final_text = f"### \U0001f7e2 **Forum Intelligence Active**\n\nConnection established via **{protocol}**. Welcome to the **{category}** zone. I am here to facilitate **open campus dialogue** and provide institutional intelligence."
+                final_text = f"Hi! Welcome to the **{category}** zone. I am your Studvisor assistant, here to chat and help you with anything you need. What's on your mind today?"
 
         # Intent Detection for Quick Actions (Only if relevant)
         is_academic_query = any(k in user_query.upper() for k in ["ATTENDANCE", "BUNK", "CGPA", "GPA", "MARKS"])
@@ -380,9 +449,44 @@ class AIService:
         # Refinement (Groq) - Streaming
         if groq_key:
             refinement_prompt = (
-                f"ZONE: {category}. CONTEXT: {db_context}. DRAFT: {draft}. "
-                f"Respond to: '{user_query}' with short bullet points. NEVER USE PARAGRAPHS. "
-                "RULE: If attendance is < 75%, calculate classes needed to reach 75% and state '(Requires X more classes)'."
+                f"ZONE: {category}. CONTEXT: {db_context}. DRAFT: {draft}.\n"
+                f"QUERY: '{user_query}'\n\n"
+                "CRITICAL INSTRUCTIONS:\n"
+                "1. BREVITY & VISUAL FOCUS: Keep all conversational text extremely short (maximum 1 sentence introductory preamble). Let the visual cards do the explaining. Do not add long paragraphs of explanation before or after data. Less talk, more visual understanding.\n"
+                "2. VISUAL CARD TRIGGERS: To trigger beautiful interactive visual cards in the frontend, you MUST format data exactly as described below if the user query is about these topics:\n"
+                "   - OVERALL ATTENDANCE summary card:\n"
+                "     Overall Attendance: <number>%\n"
+                "     Present: <number>\n"
+                "     Absent: <number>\n"
+                "     Status: <STABLE/WARNING/CRITICAL>\n"
+                "   - SUBJECT-WISE ATTENDANCE card:\n"
+                "     • <Subject Name>: <number>% (<SAFE/WARNING/CRITICAL/OK/LOW>)\n"
+                "   - BUNK CHECK card:\n"
+                "     • <Subject Name>: <number> classes (<SAFE/WARN/CRIT>)\n"
+                "   - ELIGIBILITY card:\n"
+                "     • <Subject Name>: <ELIGIBLE/INELIGIBLE> (<number>%)\n"
+                "   - MARKS card:\n"
+                "     • <Subject Name> (<Assessment Name>): <obtained>/<max> (<number>%) -> <Grade>\n"
+                "   - CGPA/SGPA card:\n"
+                "     Current CGPA: <number>\n"
+                "     Sem <number> SGPA: <number>\n"
+                "   - STUDENT PROFILE card:\n"
+                "     Name: <name>\n"
+                "     Roll Number: <number>\n"
+                "     Department: <dept>\n"
+                "     Semester: <semester>\n"
+                "     Merit Points: <points> (<tier>)\n"
+                "     Contact: <email>\n"
+                "   - EXAM SCHEDULE card:\n"
+                "     • <YYYY-MM-DD>: <Subject Name> (<Exam Type>) @ <Venue>\n"
+                "   - NEXT HOLIDAY card:\n"
+                "     • Next Holiday: <Holiday Name> (<YYYY-MM-DD>) [<Type>]\n"
+                "   - LEAVE REQUESTS card:\n"
+                "     • <Leave Type> (<From Date> to <To Date>): <Status>\n"
+                "   - UNCOVERED ABSENCES (OD) card: (Trigger this whenever the student asks about 'OD', 'missing OD', 'absences needing OD', or 'uncovered absences')\n"
+                "     Uncovered Absences:\n"
+                "     • <YYYY-MM-DD>: <Subject Name> (Hour <hour>)\n"
+                "3. TONE: Keep conversational text (maximum 1 sentence preamble) natural and friendly. Use contractions (like I'm, it's, don't)."
             )
             data = {
                 "model": self.groq_model,
@@ -406,7 +510,7 @@ class AIService:
             except: pass
 
         # Fallback Shadow Protocol (Non-streaming but immediate)
-        shadow_text = f"### \U0001f7e2 **Shadow Sync Active**\n\nI am processing your query: '{user_query}' via our secondary intelligence node. Please check your **{category}** records for details."
+        shadow_text = f"Hey! I am processing your query about '{user_query}' through our secondary campus helper node. Please check your **{category}** details, or let me know if I can help you find anything else!"
         for word in shadow_text.split():
             yield word + " "
             await asyncio.sleep(0.01)

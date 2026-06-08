@@ -17,7 +17,21 @@ class LeaveCreate(BaseModel):
 @router.get("/requests/")
 def my_leaves(student=Depends(get_current_student), db: Session = Depends(get_db)):
     leaves = db.query(LeaveRequest).filter(LeaveRequest.student_id == student.id).order_by(LeaveRequest.applied_on.desc()).all()
-    return {"leaves": [{"id": l.id, "type": l.leave_type, "from": l.from_date, "to": l.to_date, "reason": l.reason, "status": l.status} for l in leaves]}
+    leave_list = [
+        {
+            "id": l.id,
+            "type": l.leave_type,
+            "leave_type": l.leave_type,
+            "from": l.from_date,
+            "from_date": l.from_date,
+            "to": l.to_date,
+            "to_date": l.to_date,
+            "reason": l.reason,
+            "status": l.status
+        }
+        for l in leaves
+    ]
+    return {"leaves": leave_list, "leave_requests": leave_list}
 
 @router.post("/requests/")
 def apply_leave(data: LeaveCreate, student=Depends(get_current_student), db: Session = Depends(get_db)):
