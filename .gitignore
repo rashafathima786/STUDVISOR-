@@ -3,6 +3,16 @@ node_modules/
 venv
 __pycache__/
 
+# Database
+*.db
+*.sqlite3
+
+# Sensitive data / secrets
+backend/data/anon_salt.bin
+
+# Vite cache/timestamp files
+frontend/vite.config.js.timestamp-*.mjs
+
 # Miscellaneous
 *.class
 *.log
