@@ -93,11 +93,11 @@ def detect_intent(message: str) -> str:
     return "unknown"
 
 
-def is_subject_mentioned(db: Session, message: str) -> bool:
-    return len(get_mentioned_subject_ids(db, message)) > 0
+def is_subject_mentioned(db: Session, message: str, semester: Optional[int] = None) -> bool:
+    return len(get_mentioned_subject_ids(db, message, semester)) > 0
 
 
-def get_mentioned_subject_ids(db: Session, message: str) -> List[int]:
+def get_mentioned_subject_ids(db: Session, message: str, semester: Optional[int] = None) -> List[int]:
     normalized = normalize_text(message)
     # Tokenize the message into words
     message_words = set(re.findall(r'\b\w+\b', normalized))
@@ -118,19 +118,26 @@ def get_mentioned_subject_ids(db: Session, message: str) -> List[int]:
         "os": ["operating systems", "operating system"],
     }
     
+    # Phase 1: Strong matches (Exact/substring name, code, or alias)
     for subj in subjects:
         subj_name = normalize_text(subj.name)
         subj_code = subj.code.lower() if subj.code else ""
         
-        # 1. Exact or Substring match of the full subject name in the message
-        if subj_name in normalized:
-            matched_ids.append(subj.id)
-            continue
+        # 1. Match full subject name using word boundaries to avoid false substring matches
+        if subj_name:
+            name_pattern = re.escape(subj_name)
+            name_pattern = name_pattern.replace(r'\-', '-').replace('-', '[- ]')
+            if re.search(rf"\b{name_pattern}\b", normalized):
+                matched_ids.append(subj.id)
+                continue
             
-        # 2. Match subject code
-        if subj_code and (subj_code in normalized or subj_code in message_words):
-            matched_ids.append(subj.id)
-            continue
+        # 2. Match subject code using word boundaries to avoid matching substrings (like "ca" in "can")
+        if subj_code:
+            code_pattern = re.escape(subj_code)
+            code_pattern = code_pattern.replace(r'\-', '-').replace('-', '[- ]')
+            if re.search(rf"\b{code_pattern}\b", normalized):
+                matched_ids.append(subj.id)
+                continue
             
         # 3. Handle common abbreviations/aliases
         matched_by_alias = False
@@ -142,22 +149,35 @@ def get_mentioned_subject_ids(db: Session, message: str) -> List[int]:
                     break
         if matched_by_alias:
             continue
+
+    # Phase 2: Loose token matching (fallback only)
+    if not matched_ids:
+        for subj in subjects:
+            subj_name = normalize_text(subj.name)
+            # Ignore common stop words
+            stop_words = {"and", "of", "in", "for", "the", "to", "with", "a", "an", "on", "subject", "attendance", "marks", "grade", "gpa", "bunk", "class", "classes"}
+            subj_tokens = [w for w in re.findall(r'\b\w+\b', subj_name) if w not in stop_words]
             
-        # 4. Token overlap matching for multi-word subjects (e.g. "Python Programming" matched by "python")
-        # Ignore common stop words
-        stop_words = {"and", "of", "in", "for", "the", "to", "with", "a", "an", "on", "subject", "attendance", "marks", "grade", "gpa", "bunk", "class", "classes"}
-        subj_tokens = [w for w in re.findall(r'\b\w+\b', subj_name) if w not in stop_words]
-        
-        # If the student typed a word that uniquely matches a significant word in the subject name
-        # E.g. "python" matching "python programming" or "networks" matching "computer networks"
-        # We require tokens to be at least 3 characters to avoid short word collision (like "it", "go")
-        significant_tokens = [t for t in subj_tokens if len(t) >= 3]
-        if significant_tokens:
-            if any(token in message_words for token in significant_tokens):
-                matched_ids.append(subj.id)
-                continue
+            # If the student typed a word that uniquely matches a significant word in the subject name
+            # We require tokens to be at least 3 characters to avoid short word collision
+            significant_tokens = [t for t in subj_tokens if len(t) >= 3]
+            if significant_tokens:
+                if any(token in message_words for token in significant_tokens):
+                    matched_ids.append(subj.id)
+                    continue
                 
+    # Prioritization: If multiple subjects match, but one belongs to the student's current semester,
+    # filter the matched_ids to only include subjects from their semester.
+    if semester is not None and matched_ids:
+        enrolled_matches = [
+            sid for sid in matched_ids
+            if db.query(Subject).filter(Subject.id == sid).first().semester == semester
+        ]
+        if enrolled_matches:
+            return enrolled_matches
+
     return matched_ids
+
 
 
 
@@ -748,8 +768,9 @@ async def process_chat(db: Session, user, message: str) -> dict:
     is_student = getattr(user, "user_role", "student") == "student"
 
     subject_ids = None
-    if is_student and is_subject_mentioned(db, message):
-        subject_ids = get_mentioned_subject_ids(db, message)
+    student_sem = getattr(user, "semester", None) if is_student else None
+    if is_student and is_subject_mentioned(db, message, student_sem):
+        subject_ids = get_mentioned_subject_ids(db, message, student_sem)
         if intent == "attendance_overall":
             intent = "attendance_subject"
 
@@ -825,8 +846,9 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
     is_student = getattr(user, "user_role", "student") == "student"
 
     subject_ids = None
-    if is_student and is_subject_mentioned(db, message):
-        subject_ids = get_mentioned_subject_ids(db, message)
+    student_sem = getattr(user, "semester", None) if is_student else None
+    if is_student and is_subject_mentioned(db, message, student_sem):
+        subject_ids = get_mentioned_subject_ids(db, message, student_sem)
         if intent == "attendance_overall":
             intent = "attendance_subject"
 
