@@ -2237,6 +2237,154 @@ html, body {
     border-radius: 2px;
   }
 
+  /* ── Overall Performance Card (combined) ─────────────── */
+  .cb2-overall-perf-card {
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 8px 0;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cb2-overall-perf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-bottom: 10px;
+  }
+  .cb2-overall-perf-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.92);
+    letter-spacing: -0.01em;
+  }
+  /* Top row: ring + gpa side-by-side */
+  .cb2-overall-perf-top {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  /* Attendance ring + stats */
+  .cb2-overall-perf-att {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .cb2-overall-perf-att-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.6);
+  }
+  .cb2-overall-perf-att-stats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  /* CGPA block */
+  .cb2-overall-perf-gpa {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+  }
+  .cb2-overall-perf-gpa-score {
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .cb2-overall-perf-gpa-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .cb2-overall-perf-sems {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .cb2-overall-perf-sem-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 5px 10px;
+  }
+  .cb2-overall-perf-sem-label {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+  }
+  .cb2-overall-perf-sem-val {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #a78bfa;
+  }
+  /* Best / weakest subjects */
+  .cb2-overall-perf-subjects {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 10px;
+  }
+  .cb2-overall-perf-subj {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 11px;
+    border-radius: 10px;
+    font-size: 0.74rem;
+  }
+  .cb2-overall-perf-subj.best {
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.2);
+    color: #6ee7b7;
+  }
+  .cb2-overall-perf-subj.weak {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.2);
+    color: #fbbf24;
+  }
+  .cb2-overall-perf-subj-label {
+    font-size: 0.58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.7;
+  }
+  .cb2-overall-perf-subj-name {
+    flex: 1;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cb2-overall-perf-subj-pct {
+    font-weight: 800;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+
   /* ── Student Profile Card ────────────────────────────── */
   .cb2-profile-card {
     background: rgba(255, 255, 255, 0.03);

@@ -419,6 +419,139 @@ function hasGPASummary(text) {
   return (lower.includes('cgpa') || lower.includes('sgpa')) && lower.includes('sem')
 }
 
+// ── Overall Performance: attendance + CGPA + subjects combined ───
+function hasOverallPerformance(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return (
+    lower.includes('overall attendance') &&
+    lower.includes('present') &&
+    lower.includes('absent') &&
+    (lower.includes('current cgpa') || lower.includes('cgpa'))
+  )
+}
+
+function parseOverallPerformance(text) {
+  const lines = text.split(/\n/g).map(l => l.trim()).filter(Boolean)
+  let attPct = null, present = null, absent = null, attStatus = null
+  let cgpa = null
+  const semesters = []
+  let bestSubject = null, weakestSubject = null
+
+  for (const line of lines) {
+    const clean = line.replace(/\*/g, '').trim()
+    const mAtt = /overall\s+attendance\s*:\s*(\d+(?:\.\d+)?)/i.exec(clean)
+    if (mAtt) { attPct = parseFloat(mAtt[1]); continue }
+    const mPres = /^present\s*:\s*(\d+)/i.exec(clean)
+    if (mPres) { present = parseInt(mPres[1]); continue }
+    const mAbs = /^absent\s*:\s*(\d+)/i.exec(clean)
+    if (mAbs) { absent = parseInt(mAbs[1]); continue }
+    const mStat = /^status\s*:\s*([a-zA-Z]+)/i.exec(clean)
+    if (mStat) { attStatus = mStat[1].toUpperCase(); continue }
+    const mCgpa = /current\s+cgpa\s*:\s*(\d+(?:\.\d+)?)/i.exec(clean)
+    if (mCgpa) { cgpa = parseFloat(mCgpa[1]); continue }
+    const mSem = /sem\s*(\d+)\s+sgpa\s*:\s*(\d+(?:\.\d+)?)/i.exec(clean)
+    if (mSem) { semesters.push({ semester: parseInt(mSem[1]), sgpa: parseFloat(mSem[2]) }); continue }
+    const mBest = /best\s+subject\s*:\s*(.+?)\s*\((\d+(?:\.\d+)?)%\)/i.exec(clean)
+    if (mBest) { bestSubject = { name: mBest[1].trim(), pct: parseFloat(mBest[2]) }; continue }
+    const mWeak = /weakest\s+subject\s*:\s*(.+?)\s*\((\d+(?:\.\d+)?)%\)/i.exec(clean)
+    if (mWeak) { weakestSubject = { name: mWeak[1].trim(), pct: parseFloat(mWeak[2]) }; continue }
+  }
+
+  if (attPct !== null && cgpa !== null) {
+    return { attPct, present, absent, attStatus: attStatus || 'STABLE', cgpa, semesters, bestSubject, weakestSubject }
+  }
+  return null
+}
+
+function OverallPerformanceCard({ data }) {
+  const { attPct, present, absent, attStatus, cgpa, semesters, bestSubject, weakestSubject } = data
+  const total = (present || 0) + (absent || 0)
+  const attCls = attStatus.toLowerCase()
+  const attColor = attCls === 'stable' ? '#10b981' : attCls === 'warning' ? '#f59e0b' : '#ef4444'
+  const cgpaColor = cgpa >= 8.5 ? '#10b981' : cgpa >= 7 ? '#f59e0b' : '#ef4444'
+
+  return (
+    <div className="cb2-overall-perf-card">
+      {/* Header */}
+      <div className="cb2-overall-perf-header">
+        <span className="cb2-overall-perf-title">📊 Academic Performance</span>
+        <span className={`cb2-overall-status ${attCls}`} style={{ background: attColor + '22', color: attColor }}>
+          {attStatus}
+        </span>
+      </div>
+
+      {/* Top row: Attendance ring + CGPA score */}
+      <div className="cb2-overall-perf-top">
+        {/* Attendance Radial */}
+        <div className="cb2-overall-perf-att">
+          <div className={`cb2-overall-radial ${attCls}`}>
+            <svg className="cb2-overall-radial-svg" viewBox="0 0 100 100">
+              <circle className="cb2-overall-radial-bg" cx="50" cy="50" r="42" />
+              <motion.circle
+                className="cb2-overall-radial-progress"
+                cx="50" cy="50" r="42"
+                stroke={attColor}
+                strokeDasharray={2 * Math.PI * 42}
+                initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+                animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - attPct / 100) }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+            </svg>
+            <div className="cb2-overall-pct-text">
+              <span>{attPct}%</span>
+              <span className="cb2-overall-pct-sub">ATTEND</span>
+            </div>
+          </div>
+          <div className="cb2-overall-perf-att-stats">
+            <span><span className="cb2-overall-stat-dot present" /> {present} present</span>
+            <span><span className="cb2-overall-stat-dot absent" /> {absent} absent</span>
+            <span><span className="cb2-overall-stat-dot total" /> {total} total</span>
+          </div>
+        </div>
+
+        {/* CGPA Section */}
+        <div className="cb2-overall-perf-gpa">
+          <div className="cb2-overall-perf-gpa-score" style={{ color: cgpaColor }}>
+            {cgpa}
+            <span className="cb2-overall-perf-gpa-label">CGPA</span>
+          </div>
+          <div className="cb2-overall-perf-sems">
+            {semesters.map((s, i) => (
+              <div key={i} className="cb2-overall-perf-sem-row">
+                <span className="cb2-overall-perf-sem-label">Sem {s.semester}</span>
+                <span className="cb2-overall-perf-sem-val">{s.sgpa}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Best / Weakest subjects */}
+      {(bestSubject || weakestSubject) && (
+        <div className="cb2-overall-perf-subjects">
+          {bestSubject && (
+            <div className="cb2-overall-perf-subj best">
+              <CheckCircle2 size={12} />
+              <span className="cb2-overall-perf-subj-label">Best</span>
+              <span className="cb2-overall-perf-subj-name">{bestSubject.name}</span>
+              <span className="cb2-overall-perf-subj-pct">{bestSubject.pct}%</span>
+            </div>
+          )}
+          {weakestSubject && (
+            <div className="cb2-overall-perf-subj weak">
+              <AlertTriangle size={12} />
+              <span className="cb2-overall-perf-subj-label">Weakest</span>
+              <span className="cb2-overall-perf-subj-name">{weakestSubject.name}</span>
+              <span className="cb2-overall-perf-subj-pct">{weakestSubject.pct}%</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function parseGPASummary(text) {
   const lines = text.split(/\n/g).map(l => l.trim()).filter(Boolean)
   let cgpa = null
@@ -769,7 +902,13 @@ function UncoveredAbsencesCard({ absences }) {
 function BotMessage({ text }) {
   if (!text) return <p className="cb2-para">No response received.</p>
 
-  // Try parsing overall attendance summary first
+  // Try combined Overall Performance card FIRST (attendance + CGPA together)
+  if (hasOverallPerformance(text)) {
+    const data = parseOverallPerformance(text)
+    if (data) return <OverallPerformanceCard data={data} />
+  }
+
+  // Try parsing overall attendance summary
   if (hasOverallAttendance(text)) {
     const data = parseOverallAttendance(text)
     if (data) return <OverallAttendanceCard data={data} />
@@ -1008,45 +1147,59 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
 
   async function loadInitialChats() {
     setLoadingHistory(true)
+    const hour = new Date().getHours()
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
     try {
-      const [history, welcome] = await Promise.all([
-        fetchChatHistory(),
-        fetchChatWelcome().catch(() => null),
-      ])
+      // ── Step 1: Load chat history FAST — clears the spinner immediately ──
+      const history = await fetchChatHistory().catch(() => [])
       const formatted = []
       history.slice().reverse().slice(-10).forEach((item) => {
         formatted.push({ id: `h-u-${Math.random()}`, sender: 'user', text: item.query, timestamp: new Date(item.date) })
         formatted.push({ id: `h-b-${Math.random()}`, sender: 'bot',  text: item.response, timestamp: new Date(item.date) })
       })
-      setWelcomeData(welcome)
-      const hour = new Date().getHours()
-      const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-      if (formatted.length === 0 && welcome) {
-        const isFaculty = welcome.message?.toLowerCase().includes('professor') || welcome.message?.toLowerCase().includes('faculty')
+
+      if (formatted.length > 0) {
+        // Has history: show it right away, no welcome needed
+        setMessages(formatted)
+      } else {
+        // No history: show a fast static placeholder while AI welcome loads
         setMessages([{
+          id: `welcome-placeholder-${Date.now()}`,
+          sender: 'bot',
+          text: `✨ **${greeting}!** I'm **Studvisor AI**, your premium ERP assistant.\n\nType **help** to see everything I can do for you!`,
+          timestamp: new Date(),
+        }])
+      }
+    } catch {
+      setMessages([{ id: 'err', sender: 'bot', text: 'Unable to load previous chat history.', timestamp: new Date() }])
+    } finally {
+      // ── Spinner off: user sees the chat immediately ──
+      setLoadingHistory(false)
+    }
+
+    // ── Step 2: Fetch AI welcome in the background (non-blocking) ──
+    try {
+      const welcome = await fetchChatWelcome()
+      if (!welcome) return
+      setWelcomeData(welcome)
+      const isFaculty = welcome.message?.toLowerCase().includes('professor') || welcome.message?.toLowerCase().includes('faculty')
+
+      // Only replace the placeholder welcome message, not real chat history
+      setMessages(prev => {
+        const hasHistory = prev.some(m => m.id?.startsWith('h-'))
+        if (hasHistory) return prev  // Don't overwrite real history
+        return [{
           id: `welcome-${Date.now()}`,
           sender: 'bot',
           text: `✨ **${greeting}!** ${welcome.message}`,
           actions: welcome.actions,
           protocol: isFaculty ? 'Staff AI Ensemble' : 'Studvisor AI',
           timestamp: new Date(),
-        }])
-      } else {
-        setMessages(
-          formatted.length
-            ? formatted
-            : [{
-                id: `welcome-${Date.now()}`,
-                sender: 'bot',
-                text: `✨ **${greeting}!** I'm **Studvisor AI**, your premium ERP assistant. I can help you analyze your ${welcome?.role === 'student' ? 'attendance, marks & eligibility' : 'class performance and schedules'}.\n\nType **help** to see everything I can do for you!`,
-                timestamp: new Date(),
-              }]
-        )
-      }
+        }]
+      })
     } catch {
-      setMessages([{ id: 'err', sender: 'bot', text: 'Unable to load previous chat history.', timestamp: new Date() }])
-    } finally {
-      setLoadingHistory(false)
+      // Welcome fetch failed silently — placeholder message stays
     }
   }
 

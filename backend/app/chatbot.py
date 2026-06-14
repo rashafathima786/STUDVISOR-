@@ -34,6 +34,7 @@ INTENT_PATTERNS = {
     "bunk_check": r"\b(how many.*(miss|bunk|skip)|can i (miss|bunk|skip)|safe to bunk|bunk safety)\b",
     "reach_75": r"\b(reach 75|get to 75|need.*attend.*75|recover attendance|classes needed|reach target|how many.*classes.*attend.*eligible|how (many|mnay).*(more|shud|attend).*eligible)\b",
     "attendance_overall": r"\b(attendance|overall attendance|total attendance|my attendance|attendance percentage|attendance summary)\b",
+    "overall_performance": r"\b(overall performance|my performance|how am i doing|academic performance|academic summary|my academic|performance summary|how (is|are) my (studies|academics|results|performance))\b",
     "cgpa": r"\b(cgpa|cumulative|overall gpa|my gpa|total gpa)\b",
     "sgpa": r"\b(sgpa|semester gpa|this semester gpa|current gpa)\b",
     "best_subject": r"\b(best subject|strongest|highest marks|top subject|favorite subject)\b",
@@ -93,13 +94,71 @@ def detect_intent(message: str) -> str:
 
 
 def is_subject_mentioned(db: Session, message: str) -> bool:
+    return len(get_mentioned_subject_ids(db, message)) > 0
+
+
+def get_mentioned_subject_ids(db: Session, message: str) -> List[int]:
     normalized = normalize_text(message)
+    # Tokenize the message into words
+    message_words = set(re.findall(r'\b\w+\b', normalized))
+    
     subjects = db.query(Subject).all()
+    matched_ids = []
+    
+    # Common short names/aliases mapping
+    aliases = {
+        "math": ["mathematics", "maths"],
+        "maths": ["mathematics", "math"],
+        "phy": ["physics"],
+        "chem": ["chemistry"],
+        "cn": ["computer networks", "network", "networks"],
+        "se": ["software engineering"],
+        "dsa": ["data structures", "data structures and algorithms", "algorithms"],
+        "dbms": ["database", "database management", "database management systems"],
+        "os": ["operating systems", "operating system"],
+    }
+    
     for subj in subjects:
         subj_name = normalize_text(subj.name)
-        if subj_name in normalized or (subj.code and subj.code.lower() in normalized):
-            return True
-    return False
+        subj_code = subj.code.lower() if subj.code else ""
+        
+        # 1. Exact or Substring match of the full subject name in the message
+        if subj_name in normalized:
+            matched_ids.append(subj.id)
+            continue
+            
+        # 2. Match subject code
+        if subj_code and (subj_code in normalized or subj_code in message_words):
+            matched_ids.append(subj.id)
+            continue
+            
+        # 3. Handle common abbreviations/aliases
+        matched_by_alias = False
+        for alias, targets in aliases.items():
+            if alias in message_words:
+                if any(t in subj_name for t in targets):
+                    matched_ids.append(subj.id)
+                    matched_by_alias = True
+                    break
+        if matched_by_alias:
+            continue
+            
+        # 4. Token overlap matching for multi-word subjects (e.g. "Python Programming" matched by "python")
+        # Ignore common stop words
+        stop_words = {"and", "of", "in", "for", "the", "to", "with", "a", "an", "on", "subject", "attendance", "marks", "grade", "gpa", "bunk", "class", "classes"}
+        subj_tokens = [w for w in re.findall(r'\b\w+\b', subj_name) if w not in stop_words]
+        
+        # If the student typed a word that uniquely matches a significant word in the subject name
+        # E.g. "python" matching "python programming" or "networks" matching "computer networks"
+        # We require tokens to be at least 3 characters to avoid short word collision (like "it", "go")
+        significant_tokens = [t for t in subj_tokens if len(t) >= 3]
+        if significant_tokens:
+            if any(token in message_words for token in significant_tokens):
+                matched_ids.append(subj.id)
+                continue
+                
+    return matched_ids
+
 
 
 # ─── EMOTION DETECTION ───────────────────────────────────────────────────────
@@ -161,8 +220,16 @@ def handle_help() -> dict:
 
 What would you like to check first?""",
         "actions": [
-            {"label": "📝 Exam Schedule", "query": "show exams", "category": "academic"},
-            {"label": "📈 CGPA Check", "query": "what is my cgpa", "category": "academic"}
+            {"label": "📊 Attendance Summary", "query": "show my attendance summary", "category": "attendance"},
+            {"label": "📚 Subject Attendance", "query": "show my subject wise attendance", "category": "attendance"},
+            {"label": "🛏️ Bunk Safety Check", "query": "how many classes can i bunk", "category": "attendance"},
+            {"label": "📈 CGPA/SGPA Summary", "query": "what is my cgpa", "category": "academic"},
+            {"label": "📝 Subjectwise Marks", "query": "show my marks", "category": "academic"},
+            {"label": "📅 Exam Schedule", "query": "show exams", "category": "academic"},
+            {"label": "🌴 Next Holiday", "query": "when is next holiday", "category": "calendar"},
+            {"label": "🩹 Uncovered Absences (OD)", "query": "show uncovered absences", "category": "compliance"},
+            {"label": "📬 Recent Leaves", "query": "show my leave status", "category": "compliance"},
+            {"label": "📋 Exam Eligibility", "query": "am i eligible for exams", "category": "academic"}
         ]
     }
 
@@ -207,7 +274,39 @@ def handle_missed_today(db: Session, student: Student) -> str:
     
     return "Absent sessions today:\n" + "\n".join(missed)
 
-def handle_attendance_subject(db: Session, student: Student) -> str:
+def get_subject_names_str(db: Session, subject_ids: Optional[List[int]]) -> str:
+    if not subject_ids:
+        return "the specified subject(s)"
+    names = []
+    for sid in subject_ids:
+        subj = db.query(Subject).filter(Subject.id == sid).first()
+        if subj:
+            names.append(subj.name)
+    if not names:
+        return "the specified subject(s)"
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+def get_no_records_reason(db: Session, student: Student, subject_ids: Optional[List[int]], query_type: str) -> str:
+    if not subject_ids:
+        return f"No {query_type} records found for the specified subject(s)."
+    non_enrolled_names = []
+    no_records_names = []
+    for sid in subject_ids:
+        subj = db.query(Subject).filter(Subject.id == sid).first()
+        if subj:
+            if query_type != "marks" and subj.semester != student.semester:
+                non_enrolled_names.append(subj.name)
+            else:
+                no_records_names.append(subj.name)
+    if non_enrolled_names:
+        return f"You are not enrolled in {', '.join(non_enrolled_names)} in your current semester (Semester {student.semester})."
+    if no_records_names:
+        return f"No {query_type} records found for {', '.join(no_records_names)}."
+    return f"No {query_type} records found for the specified subject(s)."
+
+def handle_attendance_subject(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     if not records:
         return "- **ATTENDANCE**: No records found."
@@ -221,16 +320,20 @@ def handle_attendance_subject(db: Session, student: Student) -> str:
     min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
+        if subject_ids is not None and sid not in subject_ids:
+            continue
         subj = db.query(Subject).filter(Subject.id == sid).first()
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 0
         target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
         status = "OK" if pct >= target else "LOW"
         lines.append(f"• **{subj.name if subj else '?'}**: {pct}% ({status})")
 
+    if not lines:
+        return get_no_records_reason(db, student, subject_ids, "attendance")
     return "Subject-wise Attendance:\n" + "\n".join(lines)
 
 
-def handle_bunk_check(db: Session, student: Student) -> str:
+def handle_bunk_check(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     if not records:
         return "- **BUNK CHECK**: Insufficient Data."
@@ -244,6 +347,8 @@ def handle_bunk_check(db: Session, student: Student) -> str:
     min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
+        if subject_ids is not None and sid not in subject_ids:
+            continue
         subj = db.query(Subject).filter(Subject.id == sid).first()
         p, t = d["present"], d["total"]
         target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
@@ -254,10 +359,12 @@ def handle_bunk_check(db: Session, student: Student) -> str:
         status = "SAFE" if buffer >= 3 else "WARN" if buffer > 0 else "CRIT"
         lines.append(f"• **{subj.name if subj else '?'}**: {buffer} classes ({status})")
 
+    if not lines:
+        return get_no_records_reason(db, student, subject_ids, "bunk check")
     return "\n".join(lines)
 
 
-def handle_reach_75(db: Session, student: Student) -> str:
+def handle_reach_75(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     if not records:
         return "- **RECOVERY**: Insufficient Data."
@@ -271,6 +378,8 @@ def handle_reach_75(db: Session, student: Student) -> str:
     min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
+        if subject_ids is not None and sid not in subject_ids:
+            continue
         subj = db.query(Subject).filter(Subject.id == sid).first()
         p, t = d["present"], d["total"]
         pct = round(p / t * 100, 1) if t > 0 else 100
@@ -284,7 +393,11 @@ def handle_reach_75(db: Session, student: Student) -> str:
         else:
             lines.append(f"• **{subj.name if subj else '?'}**: {pct}% (Safe)")
 
+    if not lines:
+        return get_no_records_reason(db, student, subject_ids, "recovery")
     return "\n".join(lines)
+
+
 
 
 def handle_od_help(db: Session, student: Student) -> str:
@@ -310,28 +423,36 @@ def handle_od_help(db: Session, student: Student) -> str:
     return "\n".join(lines)
 
 
-def handle_marks(db: Session, student: Student) -> str:
+def handle_marks(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     marks = db.query(Mark).filter(Mark.student_id == student.id).all()
     if not marks:
         return "- **MARKS**: Data Unavailable."
 
     lines = []
     for m in marks:
+        if subject_ids is not None and m.subject_id not in subject_ids:
+            continue
         subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
         pct = round(m.marks_obtained / m.max_marks * 100, 1) if m.max_marks > 0 else 0
         grade = percentage_to_grade(pct)
         lines.append(f"• **{subj.name if subj else '?'}** ({m.assessment_type}): {m.marks_obtained}/{m.max_marks} ({pct}%) -> {grade['letter']}")
 
+    if not lines:
+        return get_no_records_reason(db, student, subject_ids, "marks")
     return "Academic Marks:\n" + "\n".join(lines)
 
 
-def handle_low_marks(db: Session, student: Student) -> str:
+
+
+def handle_low_marks(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     marks = db.query(Mark).filter(Mark.student_id == student.id).all()
     if not marks:
         return "- **LOW MARKS**: No data available."
     pass_pct = float(get_policy(db, "passing_marks", "40"))
     lines = []
     for m in marks:
+        if subject_ids is not None and m.subject_id not in subject_ids:
+            continue
         subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
         threshold = subj.passing_marks if subj and subj.passing_marks else pass_pct
         pct = m.marks_obtained / m.max_marks * 100 if m.max_marks > 0 else 0
@@ -339,6 +460,8 @@ def handle_low_marks(db: Session, student: Student) -> str:
             lines.append(f"• **{subj.name if subj else '?'}**: {m.marks_obtained}/{m.max_marks} ({round(pct,1)}%) in {m.assessment_type}")
 
     if not lines:
+        if subject_ids is not None:
+            return f"Great news! You have no marks below the passing threshold in the specified subject(s). 🌟"
         return f"Great news! You have no subjects with less than {pass_pct}% marks in the current record. 🌟"
     
     return "Here are the subjects where you have lower marks:\n" + "\n".join(lines)
@@ -413,6 +536,70 @@ def handle_cgpa(db: Session, student: Student) -> str:
     return "\n".join(lines)
 
 
+def handle_overall_performance(db: Session, student: Student) -> dict:
+    """Comprehensive academic performance summary: attendance + CGPA + best/weakest subject."""
+    lines = []
+
+    # ── Attendance ──────────────────────────────────────────
+    records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
+    if records:
+        total = len(records)
+        present = sum(1 for r in records if r.status == "P")
+        absent = total - present
+        pct = round(present / total * 100, 1)
+        min_pct = float(get_policy(db, "min_attendance", "75"))
+        att_status = "STABLE" if pct >= (min_pct + 10) else "WARNING" if pct >= min_pct else "CRITICAL"
+        lines.append(f"Overall Attendance: {pct}%")
+        lines.append(f"Present: {present}")
+        lines.append(f"Absent: {absent}")
+        lines.append(f"Status: {att_status}")
+    else:
+        lines.append("Overall Attendance: N/A")
+        lines.append("Present: 0")
+        lines.append("Absent: 0")
+        lines.append("Status: NO DATA")
+
+    # ── CGPA ────────────────────────────────────────────────
+    result = gpa_service.get_cgpa(db, student.id)
+    if result["semesters"]:
+        lines.append(f"Current CGPA: {result['cgpa']}")
+        for s in result["semesters"]:
+            lines.append(f"Sem {s['semester']} SGPA: {s['sgpa']}")
+    else:
+        lines.append("Current CGPA: N/A")
+
+    # ── Best & Weakest Subject ───────────────────────────────
+    marks = db.query(Mark).filter(Mark.student_id == student.id).all()
+    if marks:
+        subj_avg = defaultdict(list)
+        for m in marks:
+            pct = m.marks_obtained / m.max_marks * 100 if m.max_marks > 0 else 0
+            subj_avg[m.subject_id].append(pct)
+
+        best_id = max(subj_avg, key=lambda x: sum(subj_avg[x]) / len(subj_avg[x]))
+        worst_id = min(subj_avg, key=lambda x: sum(subj_avg[x]) / len(subj_avg[x]))
+
+        best_subj = db.query(Subject).filter(Subject.id == best_id).first()
+        worst_subj = db.query(Subject).filter(Subject.id == worst_id).first()
+        best_avg = round(sum(subj_avg[best_id]) / len(subj_avg[best_id]), 1)
+        worst_avg = round(sum(subj_avg[worst_id]) / len(subj_avg[worst_id]), 1)
+
+        lines.append(f"Best Subject: {best_subj.name if best_subj else '?'} ({best_avg}%)")
+        lines.append(f"Weakest Subject: {worst_subj.name if worst_subj else '?'} ({worst_avg}%)")
+
+    actions = [
+        {"label": "📊 Full Attendance", "query": "show subject wise attendance", "category": "attendance"},
+        {"label": "📈 CGPA Details", "query": "what is my cgpa", "category": "academic"},
+        {"label": "📋 Exam Eligibility", "query": "am i eligible for exams", "category": "academic"},
+        {"label": "📝 My Marks", "query": "show my marks", "category": "academic"},
+    ]
+
+    return {
+        "reply": "\n".join(lines),
+        "actions": actions
+    }
+
+
 def handle_best_subject(db: Session, student: Student) -> str:
     marks = db.query(Mark).filter(Mark.student_id == student.id).all()
     if not marks:
@@ -441,7 +628,7 @@ def handle_weakest_subject(db: Session, student: Student) -> str:
     return f"- **WEAKEST SUBJECT**: {subj.name if subj else '?'}({avg}%)."
 
 
-def handle_eligibility(db: Session, student: Student) -> str:
+def handle_eligibility(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
     data = defaultdict(lambda: {"total": 0, "present": 0})
     for r in records:
@@ -452,13 +639,19 @@ def handle_eligibility(db: Session, student: Student) -> str:
     min_pct = float(get_policy(db, "min_attendance", "75"))
     lines = []
     for sid, d in data.items():
+        if subject_ids is not None and sid not in subject_ids:
+            continue
         subj = db.query(Subject).filter(Subject.id == sid).first()
         pct = round(d["present"] / d["total"] * 100, 1) if d["total"] > 0 else 100
         target = subj.min_attendance_override if subj and subj.min_attendance_override else min_pct
         status = "ELIGIBLE" if pct >= target else "INELIGIBLE"
         lines.append(f"• **{subj.name if subj else '?'}**: {status} ({pct}%)")
 
+    if not lines:
+        return get_no_records_reason(db, student, subject_ids, "eligibility")
     return "Exam Eligibility:\n" + "\n".join(lines)
+
+
 
 
 def handle_profile(student: Student) -> str:
@@ -480,17 +673,23 @@ def handle_leave_status(db: Session, student: Student) -> str:
     return "\n".join(lines)
 
 
-def handle_exam_schedule(db: Session, student: Student) -> str:
+def handle_exam_schedule(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     from datetime import datetime
     today = datetime.now().strftime("%Y-%m-%d")
     exams = db.query(ExamSchedule).filter(ExamSchedule.exam_date >= today).order_by(ExamSchedule.exam_date).limit(10).all()
     if not exams:
         return "- **EXAMS**: None Scheduled."
-    lines = ["Upcoming Exams:"]
+    lines = []
     for e in exams:
+        if subject_ids is not None and e.subject_id not in subject_ids:
+            continue
         subj = db.query(Subject).filter(Subject.id == e.subject_id).first()
         lines.append(f"• **{e.exam_date}**: {subj.name if subj else '?'} ({e.exam_type}) @ {e.venue or 'TBA'}")
-    return "\n".join(lines)
+    if not lines:
+        return get_no_records_reason(db, student, subject_ids, "exams scheduled")
+    return "Upcoming Exams:\n" + "\n".join(lines)
+
+
 
 
 def handle_holiday(db: Session) -> str:
@@ -548,11 +747,11 @@ async def process_chat(db: Session, user, message: str) -> dict:
     intent = detect_intent(message)
     is_student = getattr(user, "user_role", "student") == "student"
 
-    if is_student and is_subject_mentioned(db, message) and intent in [
-        "attendance_overall", "attendance_subject", "marks", "eligibility", 
-        "bunk_check", "reach_75", "attendance_recovery", "low_marks"
-    ]:
-        intent = "unknown"
+    subject_ids = None
+    if is_student and is_subject_mentioned(db, message):
+        subject_ids = get_mentioned_subject_ids(db, message)
+        if intent == "attendance_overall":
+            intent = "attendance_subject"
 
     # Emotion override
     if emotion == "distressed":
@@ -562,16 +761,39 @@ async def process_chat(db: Session, user, message: str) -> dict:
         res = handle_frustrated(user)
         return {"reply": res, "actions": [{"label": "Talk to Counselor", "query": "connect me to counselor"}], "protocol": "Safety"}
 
-    # Unified handlers (Only for Faculty/Staff/Admin)
-    handlers = {}
-    if not is_student:
-        handlers = {
-            "greeting": lambda: handle_greeting(user),
-            "help": lambda: handle_help(),
-            "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
-            "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
-            "thank": lambda: {"reply": handle_thank(user), "actions": []},
-        }
+    # Unified handlers for all roles
+    handlers = {
+        "greeting": lambda: handle_greeting(user),
+        "help": lambda: handle_help(),
+        "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
+        "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
+        "thank": lambda: {"reply": handle_thank(user), "actions": []},
+    }
+
+    # Student-only deterministic handlers
+    if is_student:
+        handlers.update({
+            "attendance_overall": lambda: handle_attendance_overall(db, user),
+            "attendance_subject": lambda: {"reply": handle_attendance_subject(db, user, subject_ids=subject_ids), "actions": []},
+            "bunk_check": lambda: {"reply": handle_bunk_check(db, user, subject_ids=subject_ids), "actions": []},
+            "reach_75": lambda: {"reply": handle_reach_75(db, user, subject_ids=subject_ids), "actions": []},
+            "attendance_recovery": lambda: {"reply": handle_reach_75(db, user, subject_ids=subject_ids), "actions": []},
+            "cgpa": lambda: {"reply": handle_cgpa(db, user), "actions": [{"label": "📊 Semester Breakdown", "query": "show my sgpa", "category": "academic"}]},
+            "sgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
+            "marks": lambda: {"reply": handle_marks(db, user, subject_ids=subject_ids), "actions": []},
+            "low_marks": lambda: {"reply": handle_low_marks(db, user, subject_ids=subject_ids), "actions": []},
+            "best_subject": lambda: {"reply": handle_best_subject(db, user), "actions": []},
+            "weakest_subject": lambda: {"reply": handle_weakest_subject(db, user), "actions": []},
+            "eligibility": lambda: {"reply": handle_eligibility(db, user, subject_ids=subject_ids), "actions": []},
+            "profile": lambda: {"reply": handle_profile(user), "actions": []},
+            "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": []},
+            "od_help": lambda: {"reply": handle_od_help(db, user), "actions": []},
+            "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user, subject_ids=subject_ids), "actions": []},
+            "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
+            "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},
+            "academic_comparison": lambda: {"reply": handle_academic_comparison(db, user), "actions": []},
+            "overall_performance": lambda: handle_overall_performance(db, user),
+        })
 
     if intent in handlers:
         result = handlers[intent]()
@@ -602,11 +824,11 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
     intent = detect_intent(message)
     is_student = getattr(user, "user_role", "student") == "student"
 
-    if is_student and is_subject_mentioned(db, message) and intent in [
-        "attendance_overall", "attendance_subject", "marks", "eligibility", 
-        "bunk_check", "reach_75", "attendance_recovery", "low_marks"
-    ]:
-        intent = "unknown"
+    subject_ids = None
+    if is_student and is_subject_mentioned(db, message):
+        subject_ids = get_mentioned_subject_ids(db, message)
+        if intent == "attendance_overall":
+            intent = "attendance_subject"
 
     # Emotion override
     if emotion == "distressed":
@@ -615,16 +837,39 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
         yield {"type": "chunk", "token": res.get("reply", res)}
         return
 
-    # Unified handlers (Only for Faculty/Staff/Admin)
-    handlers = {}
-    if not is_student:
-        handlers = {
-            "greeting": lambda: handle_greeting(user),
-            "help": lambda: handle_help(),
-            "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
-            "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
-            "thank": lambda: {"reply": handle_thank(user), "actions": []},
-        }
+    # Unified handlers for all roles
+    handlers = {
+        "greeting": lambda: handle_greeting(user),
+        "help": lambda: handle_help(),
+        "holiday": lambda: {"reply": handle_holiday(db), "actions": []},
+        "upcoming_event": lambda: {"reply": handle_upcoming_event(db), "actions": [{"label": "Campus Events", "action": "navigate", "payload": "/events"}]},
+        "thank": lambda: {"reply": handle_thank(user), "actions": []},
+    }
+
+    # Student-only deterministic handlers
+    if is_student:
+        handlers.update({
+            "attendance_overall": lambda: handle_attendance_overall(db, user),
+            "attendance_subject": lambda: {"reply": handle_attendance_subject(db, user, subject_ids=subject_ids), "actions": []},
+            "bunk_check": lambda: {"reply": handle_bunk_check(db, user, subject_ids=subject_ids), "actions": []},
+            "reach_75": lambda: {"reply": handle_reach_75(db, user, subject_ids=subject_ids), "actions": []},
+            "attendance_recovery": lambda: {"reply": handle_reach_75(db, user, subject_ids=subject_ids), "actions": []},
+            "cgpa": lambda: {"reply": handle_cgpa(db, user), "actions": [{"label": "📊 Semester Breakdown", "query": "show my sgpa", "category": "academic"}]},
+            "sgpa": lambda: {"reply": handle_cgpa(db, user), "actions": []},
+            "marks": lambda: {"reply": handle_marks(db, user, subject_ids=subject_ids), "actions": []},
+            "low_marks": lambda: {"reply": handle_low_marks(db, user, subject_ids=subject_ids), "actions": []},
+            "best_subject": lambda: {"reply": handle_best_subject(db, user), "actions": []},
+            "weakest_subject": lambda: {"reply": handle_weakest_subject(db, user), "actions": []},
+            "eligibility": lambda: {"reply": handle_eligibility(db, user, subject_ids=subject_ids), "actions": []},
+            "profile": lambda: {"reply": handle_profile(user), "actions": []},
+            "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": []},
+            "od_help": lambda: {"reply": handle_od_help(db, user), "actions": []},
+            "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user, subject_ids=subject_ids), "actions": []},
+            "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
+            "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},
+            "academic_comparison": lambda: {"reply": handle_academic_comparison(db, user), "actions": []},
+            "overall_performance": lambda: handle_overall_performance(db, user),
+        })
 
     if intent in handlers:
         result = handlers[intent]()

@@ -13,12 +13,12 @@ class AIService:
         # User-Prioritized Model Fleet\                                                                             e
         # User-Prioritized Model Fleet
         self.performance_fleet = [
-            "gemini-3.1-pro-preview",     # Gemini 3.1 Pro (2026 Preview)
-            "gemini-3-flash-preview",      # Gemini 3 Flash (2026 Preview)
-            "gemini-3.1-flash-lite",      # Gemini 3.1 Flash Lite (Stable)
-            "gemini-2.5-pro",             # Gemini 2.5 Pro (Production Stable)
-            "gemini-2.5-flash",            # Gemini 2.5 Flash
-            "gemini-2.5-flash-lite"        # Gemini 2.5 Flash Lite
+            "gemini-2.5-flash",            # Production Stable Flash (extremely fast)
+            "gemini-2.5-flash-lite",       # Production Stable Lite
+            "gemini-2.5-pro",              # Production Stable Pro
+            "gemini-3.1-pro-preview",      # Previews at the end
+            "gemini-3-flash-preview",
+            "gemini-3.1-flash-lite"
         ]
 
 
@@ -72,16 +72,20 @@ class AIService:
                             contents=prompt
                         )
                     else:
-                        response = await client.aio.models.generate_content(
-                            model=model,
-                            contents=prompt
+                        response = await asyncio.wait_for(
+                            client.aio.models.generate_content(
+                                model=model,
+                                contents=prompt
+                            ),
+                            timeout=3.5
                         )
                         if response and response.text:
                             return response.text
-
-                
                 except Exception as e:
                     err_msg = str(e)
+                    if isinstance(e, asyncio.TimeoutError):
+                        print(f"[AI TIMEOUT] Key #{key_index} | Model {model} timed out. Cycling...")
+                        continue
                     if "429" in err_msg or "Resource exhausted" in err_msg:
                         print(f"[AI FALLBACK] Key #{key_index} | Model {model} hit rate limit. Cycling...")
                         continue
@@ -111,6 +115,8 @@ class AIService:
             
             actions = [
                 {"label": "📊 Attendance Summary", "query": "show my attendance summary", "category": "attendance"},
+                {"label": "📈 CGPA Summary", "query": "what is my cgpa", "category": "academic"},
+                {"label": "📝 Exam Schedule", "query": "show exams", "category": "academic"},
                 {"label": "📅 Next Holiday", "query": "when is the next holiday", "category": "calendar"},
             ]
             if att_pct < 75:
@@ -330,7 +336,8 @@ class AIService:
                 "     • <YYYY-MM-DD>: <Subject Name> (Hour <hour>)\n"
                 "3. TONE: When writing conversational text, sound human, warm, and natural. Use contractions (I'm, it's, don't). But keep it to an absolute minimum (1 sentence preamble) when visual cards are triggered.\n"
                 "4. ANONYMITY: NEVER mention names, IDs, or identifiable details. Treat the student with friendly respect as an anonymous 'Student' or peer.\n"
-                "5. ACCURACY: Use exact stats from context if provided. If data is [REDACTED], do not guess it."
+                "5. ACCURACY: Use exact stats from context if provided. If data is [REDACTED], do not guess it.\n"
+                "6. SPECIFICITY: If the student query asks about a specific subject or topic, ONLY show the information/data line for that specific subject in the card. Do NOT list or include other subjects."
             )
 
             groq_headers = {
@@ -486,7 +493,8 @@ class AIService:
                 "   - UNCOVERED ABSENCES (OD) card: (Trigger this whenever the student asks about 'OD', 'missing OD', 'absences needing OD', or 'uncovered absences')\n"
                 "     Uncovered Absences:\n"
                 "     • <YYYY-MM-DD>: <Subject Name> (Hour <hour>)\n"
-                "3. TONE: Keep conversational text (maximum 1 sentence preamble) natural and friendly. Use contractions (like I'm, it's, don't)."
+                "3. TONE: Keep conversational text (maximum 1 sentence preamble) natural and friendly. Use contractions (like I'm, it's, don't).\n"
+                "4. SPECIFICITY: If the student query asks about a specific subject or topic, ONLY show the information/data line for that specific subject in the card. Do NOT list or include other subjects."
             )
             data = {
                 "model": self.groq_model,
