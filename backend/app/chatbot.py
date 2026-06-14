@@ -48,7 +48,8 @@ INTENT_PATTERNS = {
     "upcoming_event": r"\b(upcoming|next).*(event|program|function|cultural|sports)\b",
     "profile": r"\b(profile|my profile|who am i|my details|about me|my info|personal info)\b",
     "leave_status": r"\b(leave status|my leaves|pending leave|leave request|od status)\b",
-    "od_help": r"\b(od assistance|missing od|classes missed without od|od leave check|uncovered absence|applied od yet|apply.*od|days.*taken off.*havent applied od)\b",
+    "od_help": r"\b(od assistance|missing od|classes missed without od|od leave check|uncovered absence|applied od yet|days.*taken off.*havent applied od)\b",
+    "apply_od": r"\b(can i apply for od|how (to|do i) apply for od|apply for od|apply od|od eligibility|eligibility for od|od guidelines|od requirements)\b",
     "exam_schedule": r"\b(exam schedule|upcoming exam|next exam|when.*exam|exam dates)\b",
     "help": r"\b(help|what can you do|capabilities|commands|what do you do)\b",
     "thank": r"\b(thank|thanks|thx|appreciate|great job|good bot)\b",
@@ -443,6 +444,26 @@ def handle_od_help(db: Session, student: Student) -> str:
     return "\n".join(lines)
 
 
+def handle_apply_od() -> dict:
+    return {
+        "reply": (
+            "Yes, you can apply for On Duty (OD) if you are eligible under your institution's guidelines. OD is generally granted for activities such as:\n\n"
+            "Participating in technical events, workshops, or hackathons.\n"
+            "Representing the college in sports or cultural events.\n"
+            "Attending internships, placement activities, or official academic programs.\n\n"
+            "To apply for OD:\n\n"
+            "Open the OD Application section in the portal.\n"
+            "Select the date(s) and reason for the request.\n"
+            "Upload any supporting documents, if required.\n"
+            "Submit the request for faculty/HOD approval.\n\n"
+            "If you tell me the reason for your OD request, I can help determine whether you're likely eligible."
+        ),
+        "actions": [
+            {"label": "📝 Apply for OD", "action": "navigate", "payload": "/leave"}
+        ]
+    }
+
+
 def handle_marks(db: Session, student: Student, subject_ids: Optional[List[int]] = None) -> str:
     marks = db.query(Mark).filter(Mark.student_id == student.id).all()
     if not marks:
@@ -809,6 +830,7 @@ async def process_chat(db: Session, user, message: str) -> dict:
             "profile": lambda: {"reply": handle_profile(user), "actions": []},
             "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": []},
             "od_help": lambda: {"reply": handle_od_help(db, user), "actions": []},
+            "apply_od": lambda: handle_apply_od(),
             "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user, subject_ids=subject_ids), "actions": []},
             "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
             "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},
@@ -886,6 +908,7 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
             "profile": lambda: {"reply": handle_profile(user), "actions": []},
             "leave_status": lambda: {"reply": handle_leave_status(db, user), "actions": []},
             "od_help": lambda: {"reply": handle_od_help(db, user), "actions": []},
+            "apply_od": lambda: handle_apply_od(),
             "exam_schedule": lambda: {"reply": handle_exam_schedule(db, user, subject_ids=subject_ids), "actions": []},
             "missed_today": lambda: {"reply": handle_missed_today(db, user), "actions": []},
             "simulation": lambda: {"reply": handle_simulation(db, user, message), "actions": []},

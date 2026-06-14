@@ -5,11 +5,13 @@ import remarkGfm from 'remark-gfm'
 import {
   SendHorizonal, User, ArrowRight, ExternalLink, Mic,
   Sparkles, AlertTriangle, CheckCircle2, Zap, ChevronRight,
-  Clock, Copy, Check
+  Clock, Copy, Check, LayoutDashboard, Activity, GraduationCap,
+  ShieldCheck, MessageSquare, Settings, Users, Cpu, FileText
 } from 'lucide-react'
 import ChatbotLogo from './ui/ChatbotLogo'
 import { fetchChatHistory, sendChatMessage, streamChatMessage, fetchChatWelcome } from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import useAuthStore from '../stores/authStore'
 
 // ── Animation Variants ─────────────────────────────────────────────
 const botVariants = {
@@ -1108,8 +1110,80 @@ function DateDivider({ label }) {
   )
 }
 
+// ── Get Related Actions Based on Message Text & User Role ──────────
+function getRelatedActions(msg, role = 'student') {
+  const actions = [...(msg.actions || [])]
+  if (!msg.text) return actions
+  const textUpper = msg.text.toUpperCase()
+  
+  const hasAction = (label) => actions.some(a => a.label.toLowerCase().includes(label.toLowerCase()))
+  
+  if (role === 'student') {
+    if (textUpper.includes("ATTENDANCE") || textUpper.includes("BUNK") || textUpper.includes("PRESENT") || textUpper.includes("ABSENT")) {
+      if (!hasAction("Attendance")) {
+        actions.push({ label: "View Attendance", action: "navigate", payload: "/attendance" })
+      }
+    }
+    if (textUpper.includes("EXAM") || textUpper.includes("SCHEDULE") || textUpper.includes("TEST")) {
+      if (!hasAction("Exam")) {
+        actions.push({ label: "Check Exams", action: "navigate", payload: "/exams" })
+      }
+    }
+    if (textUpper.includes("LEAVE") || textUpper.includes("OD") || textUpper.includes("ON DUTY") || textUpper.includes("ON-DUTY")) {
+      if (!hasAction("OD") && !hasAction("Leave")) {
+        actions.push({ label: "Apply for OD", action: "navigate", payload: "/leave" })
+      }
+    }
+    if (textUpper.includes("CGPA") || textUpper.includes("GPA") || textUpper.includes("MARKS") || textUpper.includes("RESULTS")) {
+      if (!hasAction("Performance") && !hasAction("Marks") && !hasAction("CGPA") && !hasAction("GPA")) {
+        actions.push({ label: "Check Performance", action: "navigate", payload: "/performance" })
+      }
+    }
+  } else if (role === 'faculty' || role === 'hod') {
+    if (textUpper.includes("ATTENDANCE") || textUpper.includes("ROSTER") || textUpper.includes("STUDENT")) {
+      if (!hasAction("Attendance") && !hasAction("Roster")) {
+        actions.push({ label: "Roster", action: "navigate", payload: "/faculty/attendance" })
+      }
+    }
+    if (textUpper.includes("MARK") || textUpper.includes("GRADE") || textUpper.includes("ACADEMIA")) {
+      if (!hasAction("Academia") && !hasAction("Marks")) {
+        actions.push({ label: "Academia Marks", action: "navigate", payload: "/faculty/marks" })
+      }
+    }
+    if (textUpper.includes("LOG") || textUpper.includes("DIARY") || textUpper.includes("LECTURE")) {
+      if (!hasAction("Diary") && !hasAction("Log")) {
+        actions.push({ label: "Lecture Diary", action: "navigate", payload: "/faculty/lecture-logs" })
+      }
+    }
+    if (textUpper.includes("LEAVE") || textUpper.includes("REQUEST") || textUpper.includes("OD")) {
+      if (!hasAction("Request") && !hasAction("Leave")) {
+        actions.push({ label: "Requests", action: "navigate", payload: "/faculty/leaves" })
+      }
+    }
+  } else if (role === 'admin') {
+    if (textUpper.includes("STUDENT")) {
+      if (!hasAction("Student")) {
+        actions.push({ label: "Manage Students", action: "navigate", payload: "/admin/students" })
+      }
+    }
+    if (textUpper.includes("FACULTY") || textUpper.includes("TEACHER")) {
+      if (!hasAction("Faculty")) {
+        actions.push({ label: "Manage Faculty", action: "navigate", payload: "/admin/faculty" })
+      }
+    }
+    if (textUpper.includes("ANALYTICS") || textUpper.includes("INTEL") || textUpper.includes("PERFORMANCE")) {
+      if (!hasAction("Intel") && !hasAction("Analytics")) {
+        actions.push({ label: "Intel Analytics", action: "navigate", payload: "/admin/analytics" })
+      }
+    }
+  }
+  
+  return actions
+}
+
 // ── Main ChatBox ───────────────────────────────────────────────────
 export default function ChatBox({ onNewChat, resetToken = 0, className = '', contextPage = 'dashboard', compact = false }) {
+  const role = useAuthStore(state => state.role) || 'student'
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -1503,7 +1577,7 @@ export default function ChatBox({ onNewChat, resetToken = 0, className = '', con
                         <>
                           <BotMessage text={msg.text} />
                           {msg.streaming && <StreamCursor />}
-                          <ActionButtons actions={msg.actions} onAction={handleAction} />
+                          <ActionButtons actions={getRelatedActions(msg, role)} onAction={handleAction} />
                           <div className="cb2-bubble-footer">
                             <ProviderBadge meta={msg.meta} />
                             {!msg.streaming && <CopyBtn text={msg.text} />}

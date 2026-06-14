@@ -186,6 +186,9 @@ def test_chatbot_intent_detection():
     assert detect_intent("Help me") == "help"
     assert detect_intent("what is my overall performance") == "overall_performance"
     assert detect_intent("how am i doing academically") == "overall_performance"
+    assert detect_intent("Can I apply for OD?") == "apply_od"
+    assert detect_intent("how to apply for OD") == "apply_od"
+    assert detect_intent("eligibility for OD") == "apply_od"
 
 def test_chatbot_emotion_detection():
     """Emotion detection should classify correctly."""
@@ -218,6 +221,32 @@ async def test_chatbot_student_greeting():
         assert "Hello Greeting" in res["reply"]
         assert res["protocol"] == "Deterministic"
         assert len(res["actions"]) > 0
+    finally:
+        db.close()
+
+@pytest.mark.asyncio
+async def test_chatbot_apply_od():
+    """Chatbot should route OD application queries to the deterministic handle_apply_od."""
+    from backend.app.chatbot import process_chat
+    from backend.app.database import SessionLocal
+    from backend.app.models import Student
+    
+    db = SessionLocal()
+    try:
+        student = Student(
+            username="test_od_student",
+            full_name="OD Student",
+            hashed_password="hashed",
+            merit_points=0
+        )
+        student.user_role = "student"
+        
+        res = await process_chat(db, student, "Can I apply for OD?")
+        assert "Yes, you can apply for On Duty (OD)" in res["reply"]
+        assert "To apply for OD:" in res["reply"]
+        assert res["protocol"] == "Deterministic"
+        assert len(res["actions"]) == 1
+        assert res["actions"][0]["payload"] == "/leave"
     finally:
         db.close()
 

@@ -1770,6 +1770,85 @@ html, body {
   .cb2-compact .cb2-input-wrap { padding: 10px 14px 12px; }
   .cb2-compact .cb2-bubble { font-size: 0.78rem; padding: 9px 12px; }
 
+  /* ── Quick Navigation Page Buttons ────────────────────────── */
+  .cb2-quick-nav-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.015);
+    flex-shrink: 0;
+  }
+  
+  .cb2-quick-nav-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  
+  .cb2-quick-nav-list {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+    padding: 2px 0;
+  }
+  
+  .cb2-quick-nav-list::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .cb2-quick-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  .cb2-quick-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--btn-accent, rgba(255, 255, 255, 0.25));
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .cb2-quick-nav-icon {
+    color: var(--btn-accent, rgba(255, 255, 255, 0.6));
+    opacity: 0.8;
+    transition: transform 0.2s ease;
+  }
+  
+  .cb2-quick-nav-btn:hover .cb2-quick-nav-icon {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+
+  /* Compact Mode adjustments */
+  .cb2-compact .cb2-quick-nav-container {
+    padding: 6px 12px;
+    gap: 6px;
+  }
+  
+  .cb2-compact .cb2-quick-nav-btn {
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    border-radius: 6px;
+  }
+
   /* ═══════════════════════════════════════════════════════════════
      CB2 Attendance / Subject Cards  — parsed from backend text
   ════════════════════════════════════════════════════════════════ */
