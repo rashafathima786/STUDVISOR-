@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 import json, asyncio
+from fastapi.concurrency import run_in_threadpool
 
 from backend.core.security import get_current_student, get_current_faculty, get_current_user_any, require_role
 from backend.app.database import get_db
@@ -36,7 +37,7 @@ async def student_chat(req: ChatRequest, student=Depends(get_current_student), d
     """Context-aware AI chat for students using the premium Intelligence Ensemble."""
     from backend.services.ai_service import ai_service
     # We use the detailed context builder
-    context = build_student_context(db, student.id)
+    context = await run_in_threadpool(build_student_context, db, student.id)
     # Use ensemble chat which uses both Gemini and Groq
     ai_result = await ai_service.ensemble_chat(req.query, context)
     
@@ -58,10 +59,10 @@ async def any_welcome(user=Depends(get_current_user_any), db: Session = Depends(
     is_student = getattr(user, "user_role", "student") == "student"
     
     if is_student:
-        context = build_student_context(db, user.id)
+        context = await run_in_threadpool(build_student_context, db, user.id)
         name = user.full_name
     else:
-        context = build_faculty_context(db, user.id)
+        context = await run_in_threadpool(build_faculty_context, db, user.id)
         name = user.name
         
     package = await ai_service.get_welcome_package(context, name)
@@ -78,7 +79,7 @@ async def student_welcome(student=Depends(get_current_student), db: Session = De
 async def student_chat_stream(req: ChatRequest, student=Depends(get_current_student), db: Session = Depends(get_db)):
     """SSE streaming AI chat with context injection."""
     from backend.services.ai_service import ai_service
-    system_prompt = build_student_context(db, student.id)
+    system_prompt = await run_in_threadpool(build_student_context, db, student.id)
     
     async def generate():
         async for delta in ai_service.chat_stream(system_prompt, req.query):
@@ -219,7 +220,7 @@ def my_risk_score(student=Depends(get_current_student), db: Session = Depends(ge
 async def faculty_chat(req: ChatRequest, faculty=Depends(get_current_faculty), db: Session = Depends(get_db)):
     """Context-aware AI chat for faculty using the Intelligence Ensemble."""
     from backend.services.ai_service import ai_service
-    context = build_faculty_context(db, faculty.id)
+    context = await run_in_threadpool(build_faculty_context, db, faculty.id)
     ai_result = await ai_service.ensemble_chat(req.query, context)
     
     return {
@@ -444,11 +445,15 @@ def get_student_pathway(student=Depends(get_current_student), db: Session = Depe
 @router.post("/student/placement-match/")
 async def placement_match(student=Depends(get_current_student), db: Session = Depends(get_db)):
     """AI matches student profile with open placement drives."""
-    from backend.app.models import PlacementDrive, Mark, Subject
+    from backend.app.models import PlacementDrive, Mark
     from backend.services.ai_service import ai_service
     
-    drives = db.query(PlacementDrive).filter(PlacementDrive.status == "Open").all()
-    marks = db.query(Mark).filter(Mark.student_id == student.id).all()
+    def fetch_drives_and_marks(db_session, student_id):
+        drives_list = db_session.query(PlacementDrive).filter(PlacementDrive.status == "Open").all()
+        marks_list = db_session.query(Mark).filter(Mark.student_id == student_id).all()
+        return drives_list, marks_list
+
+    drives, marks = await run_in_threadpool(fetch_drives_and_marks, db, student.id)
     
     # Simple heuristic + AI for the best match
     profile_summary = f"Student in {student.department}, CGPA logic, marks in {len(marks)} subjects."

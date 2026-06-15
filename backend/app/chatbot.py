@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from collections import defaultdict
 import re
 from typing import AsyncGenerator, Dict, List, Optional
+from fastapi.concurrency import run_in_threadpool
 
 from backend.app.models import (
     Student, Attendance, Mark, Subject, LeaveRequest, ExamSchedule,
@@ -29,6 +30,7 @@ def get_current_term(db: Session) -> AcademicTerm:
 
 INTENT_PATTERNS = {
     "greeting": r"\b(hi|hello|hey|good morning|good evening|greetings)\b",
+    "simulation": r"\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s*days?\b|\b(taking|take|if i take|miss|bunk|absent|leave|off).*(day|days)\b",
     "attendance_subject": r"\b(subject.?wise|per subject|each subject|individual subject|attendance in each)\b",
     "attendance_recovery": r"\b(low attendance|how many classes to attend|lowest attendance|attendance recovery|less attendance|poor attendance|lowest)\b|which subject.*(low|less).*attendance",
     "bunk_check": r"\b(how many.*(miss|bunk|skip)|can i (miss|bunk|skip)|safe to bunk|bunk safety)\b",
@@ -41,7 +43,6 @@ INTENT_PATTERNS = {
     "weakest_subject": r"\b(weakest|worst subject|lowest marks|struggling|hardest subject)\b",
     "low_marks": r"\b(less|low|poor|failing|bad).*(marks|score|results)\b",
     "academic_comparison": r"\b(better|worse|improvement|compared to previous|compare.*semesters).*(acadamic|performance|semester|sem)\b",
-    "simulation": r"\b(taking|take|if i take).*(day|days).*(off|bunk|miss|absent)\b",
     "marks": r"\b(marks|my marks|show marks|what are my marks|internal marks|cia marks|my results|show results)\b",
     "eligibility": r"(eligib|can i write exam|allowed to write|exam eligibility|hall ticket)",
     "holiday": r"\b(holiday|calendar|vacation|off day|working day)\b",
@@ -501,9 +502,38 @@ def handle_low_marks(db: Session, student: Student, subject_ids: Optional[List[i
             lines.append(f"• **{subj.name if subj else '?'}**: {m.marks_obtained}/{m.max_marks} ({round(pct,1)}%) in {m.assessment_type}")
 
     if not lines:
+        # If there are no subjects below passing marks, let's find the 3 subjects with the lowest marks
+        subject_scores = []
+        for m in marks:
+            if subject_ids is not None and m.subject_id not in subject_ids:
+                continue
+            subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
+            pct = m.marks_obtained / m.max_marks * 100 if m.max_marks > 0 else 0
+            subject_scores.append((subj, m, pct))
+        
+        # Sort by percentage ascending (lowest first)
+        subject_scores.sort(key=lambda x: x[2])
+        
+        # Deduplicate to show unique subjects, keeping the lowest mark for each
+        seen_subjects = set()
+        lowest_marks = []
+        for subj, m, pct in subject_scores:
+            if not subj:
+                continue
+            if subj.id not in seen_subjects:
+                seen_subjects.add(subj.id)
+                lowest_marks.append(f"• **{subj.name}**: {m.marks_obtained}/{m.max_marks} ({round(pct, 1)}%) in {m.assessment_type}")
+                if len(lowest_marks) >= 3:
+                    break
+        
         if subject_ids is not None:
-            return f"Great news! You have no marks below the passing threshold in the specified subject(s). 🌟"
-        return f"Great news! You have no subjects with less than {pass_pct}% marks in the current record. 🌟"
+            header = f"Great news! You have no marks below the passing threshold in the specified subject(s). 🌟"
+        else:
+            header = f"Great news! You have no subjects with less than {pass_pct}% marks in the current record. 🌟"
+            
+        if lowest_marks:
+            header += "\n\nHere are your lowest-scoring subjects:\n" + "\n".join(lowest_marks)
+        return header
     
     return "Here are the subjects where you have lower marks:\n" + "\n".join(lines)
 
@@ -526,44 +556,148 @@ def handle_academic_comparison(db: Session, student: Student) -> str:
         return f"Your academic performance is consistent. You maintained an SGPA of **{latest['sgpa']}** across both Sem {previous['semester']} and Sem {latest['semester']}."
 
 
-def handle_simulation(db: Session, student: Student, message: str) -> str:
-    # Extract number of days from message
-    match = re.search(r"(\d+)\s*day", message.lower())
-    days = int(match.group(1)) if match else 1
+def parse_attendance_details(message: str) -> Optional[dict]:
+    message_lower = message.lower()
     
+    # 1. Look for total classes attended and conducted:
+    # "attended 80 and conducted 100", "80/100", "80 out of 100"
+    # Match "X/Y" where X and Y are numbers
+    slash_match = re.search(r"\b(\d+)\s*/\s*(\d+)\b", message_lower)
+    if slash_match:
+        attended = int(slash_match.group(1))
+        conducted = int(slash_match.group(2))
+        if conducted > 0 and attended <= conducted:
+            return {"attended": attended, "conducted": conducted}
+            
+    # Match "X out of Y"
+    out_of_match = re.search(r"\b(\d+)\s+out\s+of\s+(\d+)\b", message_lower)
+    if out_of_match:
+        attended = int(out_of_match.group(1))
+        conducted = int(out_of_match.group(2))
+        if conducted > 0 and attended <= conducted:
+            return {"attended": attended, "conducted": conducted}
+
+    # Match "attended X" and "conducted Y" or "total Y"
+    attended_match = re.search(r"\b(?:attended|present)\s*(?:is|of|for)?\s*(\d+)\b", message_lower)
+    conducted_match = re.search(r"\b(?:conducted|total|classes)\s*(?:is|of)?\s*(\d+)\b", message_lower)
+    if attended_match and conducted_match:
+        attended = int(attended_match.group(1))
+        conducted = int(conducted_match.group(1))
+        if conducted > 0 and attended <= conducted:
+            return {"attended": attended, "conducted": conducted}
+
+    # 2. Look for percentage and classes per day:
+    # "current attendance of 81.5% and 6 classes per day"
+    # Find any float/int followed by % or percent or "attendance of X"
+    pct_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:%|percent)", message_lower)
+    if not pct_match:
+        pct_match = re.search(r"\battendance\s*(?:is|of)?\s*(\d+(?:\.\d+)?)\b", message_lower)
+        
+    classes_match = re.search(r"(\d+)\s*(?:class|classes|session|sessions|period|periods|hour|hours)\b", message_lower)
+    if not classes_match:
+        classes_match = re.search(r"(\d+)\s*per\s*day\b", message_lower)
+        
+    res = {}
+    if pct_match:
+        res["current_pct"] = float(pct_match.group(1))
+    if classes_match:
+        res["classes_per_day"] = int(classes_match.group(1))
+    
+    if res:
+        return res
+        
+    return None
+
+
+def handle_simulation(db: Session, student: Student, message: str) -> str:
+    from backend.app.models import TimetableSlot
+    
+    # Extract number of days from message (handling both digits and common words)
+    cleaned_msg = message.lower()
+    word_to_num = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"}
+    for word, num in word_to_num.items():
+        cleaned_msg = re.sub(rf"\b{word}\b", num, cleaned_msg)
+        
+    match = re.search(r"(\d+)\s*day", cleaned_msg)
+    days = int(match.group(1)) if match else 1
+
+    # Calculate classes_per_day from timetable first if available
+    slots_query = db.query(TimetableSlot).filter(TimetableSlot.semester == student.semester)
+    if student.section:
+        slots_query = slots_query.filter(TimetableSlot.section == student.section)
+    slots = slots_query.all()
+    if slots:
+        unique_days = len(set(s.day for s in slots))
+        days_count = unique_days if unique_days > 0 else 5
+        timetable_classes_per_day = round(len(slots) / days_count)
+    else:
+        timetable_classes_per_day = int(get_policy(db, "classes_per_day", "6"))
+
+    # Parse message for manually provided details
+    parsed = parse_attendance_details(message)
+    
+    # DB records check
     records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
-    if not records:
-        return "I don't have enough attendance data to run a simulation for you yet."
+    
+    if not records and not parsed:
+        # Scenario 2: Student Data Not Available
+        return (
+            "I can help you calculate that. Could you please provide your current attendance details or sync your attendance records first?\n\n"
+            "Please share either:\n"
+            "• Your current attendance percentage and the number of classes you have per day, or\n"
+            "• The total classes you've attended and the total classes conducted so far.\n\n"
+            f"Once I have those details, I'll tell you exactly what your attendance percentage will be after taking {days} day{'s' if days > 1 else ''} off."
+        )
 
-    total = len(records)
-    present = sum(1 for r in records if r.status == "P")
-    current_pct = round(present / total * 100, 1)
+    # We have either DB records or parsed details.
+    # Let's resolve the numbers.
+    if parsed and "attended" in parsed and "conducted" in parsed:
+        total = parsed["conducted"]
+        present = parsed["attended"]
+        current_pct = round(present / total * 100, 1)
+        classes_per_day = parsed.get("classes_per_day") or timetable_classes_per_day or 6
+    elif parsed and "current_pct" in parsed:
+        current_pct = parsed["current_pct"]
+        classes_per_day = parsed.get("classes_per_day") or timetable_classes_per_day or 6
+        # If DB records exist, use DB's total conducted classes as the baseline, otherwise assume a standard 100 classes
+        total = len(records) if records else 100
+        present = (current_pct / 100.0) * total
+    else:
+        # Use DB records
+        total = len(records)
+        present = sum(1 for r in records if r.status == "P")
+        current_pct = round(present / total * 100, 1)
+        classes_per_day = timetable_classes_per_day or 6
 
-    # Use policy for classes per day or default to 6
-    classes_per_day = int(get_policy(db, "classes_per_day", "6"))
-    min_pct = float(get_policy(db, "min_attendance", "75"))
-
+    # Perform calculation
     simulated_absences = days * classes_per_day
     new_total = total + simulated_absences
-    new_pct = round(present / new_total * 100, 1)
-    drop = round(current_pct - new_pct, 1)
-
-    status = "SAFE" if new_pct >= min_pct else "RISKY"
-    emoji = "✅" if status == "SAFE" else "⚠️"
-
-    reply = (
-        f"**Attendance Simulation ({days} Day{'s' if days > 1 else ''} Off)**:\n"
-        f"• Current: **{current_pct}%**\n"
-        f"• Simulated: **{new_pct}%** (Drop of {drop}%)\n"
-        f"• Status: {emoji} **{status}**\n\n"
+    new_pct = round((present / new_total) * 100, 1)
+    min_pct = float(get_policy(db, "min_attendance", "75"))
+    
+    # Build response matching Scenario 1 & 3 conversational style
+    # Determine query type (conversational "Can I..." or statement "I am taking...")
+    is_conversational = any(phrase in message.lower() for phrase in ["can i", "is it safe", "should i", "could i", "am i allowed"])
+    
+    prefix = ""
+    if is_conversational:
+        prefix = f"Let me check your attendance. If you miss classes for the next {days} day{'s' if days > 1 else ''}, I'll calculate whether you'll remain above the minimum attendance requirement and show your updated percentage.\n\n"
+    
+    status_phrase = "still be above" if new_pct >= min_pct else "drop below"
+    
+    main_body = (
+        f"Based on your current attendance of {current_pct}% and your timetable of {classes_per_day} class{'es' if classes_per_day > 1 else ''} per day, "
+        f"missing {days} day{'s' if days > 1 else ''} ({simulated_absences} class{'es' if simulated_absences > 1 else ''}) will reduce your attendance to {new_pct}%. "
+        f"You will {status_phrase} the {min_pct}% requirement."
     )
     
-    if new_pct < min_pct:
-        reply += f"Warning: This will push your attendance below the mandatory {min_pct}% threshold. I recommend attending all current sessions instead."
+    conclusion = ""
+    if new_pct >= min_pct:
+        conclusion = f"Good news! If you take {days} day{'s' if days > 1 else ''} off, your attendance will become {new_pct}%, so you're still safe. You can miss these classes and remain above the {min_pct}% requirement."
     else:
-        reply += f"You will still be above the {min_pct}% eligibility criteria even after taking {days} day{'s' if days > 1 else ''} off."
-    
-    return reply
+        conclusion = f"Warning: If you take {days} day{'s' if days > 1 else ''} off, your attendance will become {new_pct}%, dropping you below the mandatory {min_pct}% threshold. It is not recommended to miss these classes."
+        
+    return f"{prefix}{main_body}\n\n{conclusion}"
 
 def handle_cgpa(db: Session, student: Student) -> str:
     result = gpa_service.get_cgpa(db, student.id)
@@ -839,16 +973,16 @@ async def process_chat(db: Session, user, message: str) -> dict:
         })
 
     if intent in handlers:
-        result = handlers[intent]()
+        result = await run_in_threadpool(handlers[intent])
         if "protocol" not in result:
             result["protocol"] = "Deterministic"
         return result
 
     # Fallback to AI Ensemble
     if is_student:
-        context = build_student_context(db, user.id)
+        context = await run_in_threadpool(build_student_context, db, user.id)
     else:
-        context = build_faculty_context(db, user.id)
+        context = await run_in_threadpool(build_faculty_context, db, user.id)
         
     ensemble_result = await ai_service.ensemble_chat(message, context)
     return {
@@ -917,7 +1051,7 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
         })
 
     if intent in handlers:
-        result = handlers[intent]()
+        result = await run_in_threadpool(handlers[intent])
         yield {"type": "meta", "actions": result.get("actions", []), "protocol": "Deterministic"}
         yield {"type": "chunk", "token": result["reply"]}
         return
@@ -936,7 +1070,7 @@ async def process_chat_stream(db: Session, user, message: str) -> AsyncGenerator
             stream_actions.append({"label": "Edit Profile", "action": "navigate", "payload": "/profile"})
 
     yield {"type": "meta", "actions": stream_actions, "protocol": "Ensemble Stream"}
-    context = build_student_context(db, user.id) if is_student else build_faculty_context(db, user.id)
+    context = await run_in_threadpool(build_student_context, db, user.id) if is_student else await run_in_threadpool(build_faculty_context, db, user.id)
     async for token in ai_service.ensemble_chat_stream(message, context):
         yield {"type": "chunk", "token": token}
 

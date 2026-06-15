@@ -447,3 +447,159 @@ def test_response_headers():
     assert "x-content-type-options" in r.headers
     assert "x-frame-options" in r.headers
 
+
+@pytest.mark.asyncio
+async def test_chatbot_simulation_scenarios():
+    """Test chatbot attendance simulation under Scenario 1, 2, 3 and manual entry."""
+    from backend.app.chatbot import process_chat
+    from backend.app.database import SessionLocal
+    from backend.app.models import Student, Subject, Attendance, TimetableSlot
+    
+    db = SessionLocal()
+    student = None
+    sub = None
+    try:
+        # 1. Setup student
+        student = Student(
+            username="test_sim_student",
+            full_name="Sim Student",
+            hashed_password="hashed",
+            merit_points=0,
+            semester=6,
+            section="A"
+        )
+        student.user_role = "student"
+        db.add(student)
+        db.commit()
+        db.refresh(student)
+
+        # 2. Test Scenario 2: Data not available
+        res = await process_chat(db, student, "I'm taking 2 days off. What will be my attendance percentage?")
+        assert "I can help you calculate that. Could you please provide your current attendance details" in res["reply"]
+        assert "Once I have those details, I'll tell you exactly" in res["reply"]
+
+        # 3. Test Manual Entry (Scenario 2 fallback with user details in query)
+        res = await process_chat(db, student, "I'm taking 2 days off. My current attendance is 90% and I have 5 classes per day")
+        # 90% of 100 total is 90 present. 2 days off at 5 classes/day = 10 missed. New pct = 90 / 110 = 81.8%
+        assert "Based on your current attendance of 90.0%" in res["reply"]
+        assert "timetable of 5 classes per day" in res["reply"]
+        assert "reduce your attendance to 81.8%" in res["reply"]
+        assert "Good news! If you take 2 days off" in res["reply"]
+        assert "still safe" in res["reply"]
+
+        # 4. Test Scenario 1: Data available in DB
+        # Add a subject
+        sub = Subject(name="Database Systems", code="DBS101", credits=4, semester=6)
+        db.add(sub)
+        db.commit()
+        db.refresh(sub)
+
+        # Add timetable slots (6 slots total on Monday/Tuesday = 3 classes/day on average)
+        db.add(TimetableSlot(subject_id=sub.id, day="Monday", hour=1, section="A", semester=6))
+        db.add(TimetableSlot(subject_id=sub.id, day="Monday", hour=2, section="A", semester=6))
+        db.add(TimetableSlot(subject_id=sub.id, day="Monday", hour=3, section="A", semester=6))
+        db.add(TimetableSlot(subject_id=sub.id, day="Tuesday", hour=1, section="A", semester=6))
+        db.add(TimetableSlot(subject_id=sub.id, day="Tuesday", hour=2, section="A", semester=6))
+        db.add(TimetableSlot(subject_id=sub.id, day="Tuesday", hour=3, section="A", semester=6))
+        db.commit()
+
+        # Add attendance records (90 present, 10 absent = 90%)
+        for _ in range(90):
+            db.add(Attendance(student_id=student.id, subject_id=sub.id, status="P", date="2026-06-01", hour=1))
+        for _ in range(10):
+            db.add(Attendance(student_id=student.id, subject_id=sub.id, status="A", date="2026-06-02", hour=1))
+        db.commit()
+
+        # Run process_chat for Scenario 1
+        res = await process_chat(db, student, "I'm taking 2 days off. What will be my attendance percentage?")
+        # 90% current. Timetable has 6 slots across 2 days, so 3 classes per day.
+        # 2 days off = 6 classes missed. New total = 100 + 6 = 106. New present = 90.
+        # New percentage = 90 / 106 = 84.9%
+        assert "Based on your current attendance of 90.0%" in res["reply"]
+        assert "timetable of 3 classes per day" in res["reply"]
+        assert "reduce your attendance to 84.9%" in res["reply"]
+        assert "Good news!" in res["reply"]
+
+        # 5. Test Scenario 3: Conversational query "Can I take 2 days off?"
+        res = await process_chat(db, student, "Can I take 2 days off?")
+        assert "Let me check your attendance. If you miss classes for the next 2 days" in res["reply"]
+        assert "reduce your attendance to 84.9%" in res["reply"]
+
+    finally:
+        if student and student.id:
+            db.query(Attendance).filter(Attendance.student_id == student.id).delete()
+            db.query(TimetableSlot).filter(TimetableSlot.semester == student.semester, TimetableSlot.section == student.section).delete()
+            db.query(Student).filter(Student.id == student.id).delete()
+        if sub and sub.id:
+            db.query(Subject).filter(Subject.id == sub.id).delete()
+        db.commit()
+        db.close()
+
+
+@pytest.mark.asyncio
+async def test_chatbot_low_marks_fallback():
+    """Test chatbot low marks handler fallback shows at least 3 subjects when none are below 40%."""
+    from backend.app.chatbot import process_chat
+    from backend.app.database import SessionLocal
+    from backend.app.models import Student, Subject, Mark
+    
+    db = SessionLocal()
+    student = None
+    sub1, sub2, sub3 = None, None, None
+    try:
+        # 1. Setup student
+        student = Student(
+            username="test_low_marks_stud",
+            full_name="Low Marks Student",
+            hashed_password="hashed",
+            merit_points=0,
+            semester=6
+        )
+        student.user_role = "student"
+        db.add(student)
+        db.commit()
+        db.refresh(student)
+
+        # 2. Add subjects
+        sub1 = Subject(name="Maths", code="MTH99", credits=4, semester=6)
+        sub2 = Subject(name="Physics", code="PHY99", credits=4, semester=6)
+        sub3 = Subject(name="Chemistry", code="CHM99", credits=4, semester=6)
+        db.add_all([sub1, sub2, sub3])
+        db.commit()
+        db.refresh(sub1)
+        db.refresh(sub2)
+        db.refresh(sub3)
+
+        # 3. Add marks above 40.0% (90%, 80%, 70%)
+        db.add(Mark(student_id=student.id, subject_id=sub1.id, marks_obtained=90, max_marks=100, assessment_type="CIA1", semester=6))
+        db.add(Mark(student_id=student.id, subject_id=sub2.id, marks_obtained=80, max_marks=100, assessment_type="CIA1", semester=6))
+        db.add(Mark(student_id=student.id, subject_id=sub3.id, marks_obtained=70, max_marks=100, assessment_type="CIA1", semester=6))
+        db.commit()
+
+        # 4. Run low marks query
+        res = await process_chat(db, student, "which all subjects i have less marks?")
+        reply = res["reply"]
+        assert "Great news!" in reply
+        assert "no subjects with less than 40" in reply
+        assert "lowest-scoring subjects:" in reply
+        
+        # Verify it lists all 3 subjects and in ascending order (Chemistry first, Maths last)
+        assert "Chemistry" in reply
+        assert "Physics" in reply
+        assert "Maths" in reply
+        
+        chem_index = reply.index("Chemistry")
+        phys_index = reply.index("Physics")
+        math_index = reply.index("Maths")
+        assert chem_index < phys_index < math_index
+
+    finally:
+        if student and student.id:
+            db.query(Mark).filter(Mark.student_id == student.id).delete()
+            db.query(Student).filter(Student.id == student.id).delete()
+        for s in (sub1, sub2, sub3):
+            if s and s.id:
+                db.query(Subject).filter(Subject.id == s.id).delete()
+        db.commit()
+        db.close()
+

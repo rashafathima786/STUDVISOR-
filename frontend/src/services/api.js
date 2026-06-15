@@ -716,6 +716,16 @@ export async function createStudent(data) {
   return response.data;
 }
 
+export async function awardMeritToAll(data) {
+  const response = await api.post("/admin/students/award-merit/", data);
+  return response.data;
+}
+
+export async function calculateWeightedMerit() {
+  const response = await api.post("/admin/students/calculate-merit-weighted/");
+  return response.data;
+}
+
 export async function fetchAllFaculty() {
   const response = await api.get("/admin/faculty/");
   return response.data;

@@ -148,3 +148,117 @@ def mood_analytics(batch_year: Optional[int] = None, section: Optional[str] = No
             } for r in results
         ]
     }
+
+class AwardAllMerit(BaseModel):
+    points: int
+    reason: str
+
+@router.post("/students/award-merit/")
+def award_merit_to_all(data: AwardAllMerit, _=Depends(require_role("admin")), db: Session = Depends(get_db)):
+    """Award merit points to all active students at once."""
+    from backend.app.models import Student, MeritLog
+    from backend.services.merit_service import TIER_THRESHOLDS
+    
+    if data.points <= 0:
+        raise HTTPException(status_code=400, detail="Points must be greater than 0")
+        
+    students = db.query(Student).filter(Student.is_active == True).all()
+    if not students:
+        raise HTTPException(status_code=404, detail="No active students found")
+        
+    for student in students:
+        student.merit_points += data.points
+        # Recalculate tier
+        for threshold, tier in TIER_THRESHOLDS:
+            if student.merit_points >= threshold:
+                student.merit_tier = tier
+                break
+        
+        # Log the merit award
+        db.add(MeritLog(
+            student_id=student.id,
+            points=data.points,
+            reason=data.reason,
+            institution_id=student.institution_id
+        ))
+        
+    db.commit()
+    return {"message": f"Successfully awarded {data.points} points to {len(students)} students"}
+
+@router.post("/students/calculate-merit-weighted/")
+def calculate_merit_weighted(db: Session = Depends(get_db), _=Depends(require_role("admin"))):
+    """Calculate and update weighted merit points for all active students in the database."""
+    from backend.app.models import Student, Attendance, Mark, GPARecord, MeritLog
+    from backend.services.merit_service import TIER_THRESHOLDS
+    
+    students = db.query(Student).filter(Student.is_active == True).all()
+    if not students:
+        raise HTTPException(status_code=404, detail="No active students found")
+        
+    for student in students:
+        # 1. Attendance Percentage (10% weight)
+        att_records = db.query(Attendance).filter(Attendance.student_id == student.id).all()
+        total_att = len(att_records)
+        present_att = sum(1 for r in att_records if r.status == "P")
+        attendance_pct = (present_att / total_att * 100) if total_att > 0 else 85.0
+        
+        # 2. Internal Assessment Percentage (20% weight)
+        internal_types = ["Internal", "Assignment", "Lab", "Quiz", "Project", "CIA1", "CIA2", "Model"]
+        internal_marks = db.query(Mark).filter(
+            Mark.student_id == student.id,
+            Mark.assessment_type.in_(internal_types)
+        ).all()
+        if internal_marks:
+            total_int_obtained = sum(m.marks_obtained for m in internal_marks)
+            total_int_max = sum(m.max_marks for m in internal_marks)
+            internal_pct = (total_int_obtained / total_int_max * 100) if total_int_max > 0 else 80.0
+        else:
+            internal_pct = 80.0
+            
+        # 3. Semester Examination Percentage (70% weight)
+        univ_marks = db.query(Mark).filter(Mark.student_id == student.id, Mark.assessment_type == "University").all()
+        if univ_marks:
+            total_univ_obtained = sum(m.marks_obtained for m in univ_marks)
+            total_univ_max = sum(m.max_marks for m in univ_marks)
+            exam_pct = (total_univ_obtained / total_univ_max * 100) if total_univ_max > 0 else 75.0
+        else:
+            # Fallback to CGPA
+            latest_gpa = db.query(GPARecord).filter(GPARecord.student_id == student.id).order_by(GPARecord.semester.desc()).first()
+            if latest_gpa:
+                exam_pct = latest_gpa.cgpa * 10.0
+            else:
+                # Fallback to general marks average
+                all_marks = db.query(Mark).filter(Mark.student_id == student.id).all()
+                if all_marks:
+                    total_obtained = sum(m.marks_obtained for m in all_marks)
+                    total_max = sum(m.max_marks for m in all_marks)
+                    exam_pct = (total_obtained / total_max * 100) if total_max > 0 else 75.0
+                else:
+                    exam_pct = 75.0
+                    
+        # Compute final weighted score (0-100)
+        weighted_score = (exam_pct * 0.70) + (internal_pct * 0.20) + (attendance_pct * 0.10)
+        
+        # Scale to 0-1000
+        final_points = int(weighted_score * 10)
+        
+        # Update student record
+        student.merit_points = final_points
+        for threshold, tier in TIER_THRESHOLDS:
+            if student.merit_points >= threshold:
+                student.merit_tier = tier
+                break
+                
+        # Log the merit recalculation
+        reason = f"Weighted Recalculation: Exam {exam_pct:.1f}% (70%), Internal {internal_pct:.1f}% (20%), Attendance {attendance_pct:.1f}% (10%)"
+        db.add(MeritLog(
+            student_id=student.id,
+            points=final_points,
+            reason=reason,
+            institution_id=student.institution_id
+        ))
+        
+    db.commit()
+    return {"message": f"Successfully calculated and updated weighted merit points for {len(students)} students"}
+
+

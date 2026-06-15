@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { fetchAllStudents, createStudent } from '../../services/api'
+import { fetchAllStudents, createStudent, awardMeritToAll, calculateWeightedMerit } from '../../services/api'
 import ErpLayout from '../../components/ErpLayout'
 import SkeletonLoader from '../../components/SkeletonLoader'
 import EmptyState from '../../components/EmptyState'
 import { useToast } from '../../stores/toastStore'
-import { Users, Search, Plus, Filter, MoreHorizontal, Download, UserPlus, X, Hash, GraduationCap, Mail, Shield } from 'lucide-react'
+import { Users, Search, Plus, Filter, MoreHorizontal, Download, UserPlus, X, Hash, GraduationCap, Mail, Shield, Award, Calculator } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function AdminStudents() {
@@ -15,6 +15,10 @@ export default function AdminStudents() {
   const [showCreate, setShowCreate] = useState(false)
   const [newStudent, setNewStudent] = useState({ username: '', email: '', password: '', full_name: '', department: '', semester: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [showAwardAll, setShowAwardAll] = useState(false)
+  const [awardData, setAwardData] = useState({ points: '', reason: '' })
+  const [awarding, setAwarding] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const toast = useToast()
 
   const load = () => {
@@ -56,6 +60,49 @@ export default function AdminStudents() {
     }
   }
 
+  const handleAwardAll = async (e) => {
+    e.preventDefault()
+    if (!awardData.points || !awardData.reason) {
+      toast.error("Please fill in all fields")
+      return
+    }
+    const pointsNum = parseInt(awardData.points, 10)
+    if (isNaN(pointsNum) || pointsNum <= 0) {
+      toast.error("Points must be a positive number")
+      return
+    }
+    setAwarding(true)
+    try {
+      await awardMeritToAll({
+        points: pointsNum,
+        reason: awardData.reason
+      })
+      toast.success(`Successfully awarded ${pointsNum} merit points to all active students`)
+      setShowAwardAll(false)
+      setAwardData({ points: '', reason: '' })
+      load()
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Awarding points failed")
+    } finally {
+      setAwarding(false)
+    }
+  }
+
+  const handleRecalculateWeighted = async () => {
+    if (window.confirm("Are you sure you want to recalculate and overwrite all students' merit points based on the Weighted Merit System (Method 3)?")) {
+      setCalculating(true)
+      try {
+        await calculateWeightedMerit()
+        toast.success("Successfully calculated and updated merit points for all active students!")
+        load()
+      } catch (err) {
+        toast.error(err?.response?.data?.detail || "Recalculation failed")
+      } finally {
+        setCalculating(false)
+      }
+    }
+  }
+
   return (
     <ErpLayout title="Entity Management" subtitle="System-wide student registry and identity provisioning">
       
@@ -81,6 +128,21 @@ export default function AdminStudents() {
                 onChange={e => setSearch(e.target.value)}
                />
             </div>
+            <button 
+              onClick={handleRecalculateWeighted}
+              disabled={calculating}
+              className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 p-2.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+              title="Recalculate Weighted Merit Points (Method 3) for All Students"
+            >
+               <Calculator size={20} className={calculating ? "animate-spin" : ""} />
+            </button>
+            <button 
+              onClick={() => setShowAwardAll(true)}
+              className="bg-[#d97706]/20 border border-[#d97706]/30 text-[#f59e0b] p-2.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-500/20"
+              title="Award Merit Points to All Students"
+            >
+               <Award size={20} />
+            </button>
             <button 
               onClick={() => setShowCreate(true)}
               className="bg-primary text-white p-2.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
@@ -249,20 +311,97 @@ export default function AdminStudents() {
                       </div>
                    </div>
 
+                    <div className="flex justify-end gap-4 pt-6">
+                       <button 
+                         type="button" 
+                         onClick={() => setShowCreate(false)}
+                         className="px-8 py-3.5 rounded-2xl bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                       >
+                         Abort
+                       </button>
+                       <button 
+                         type="submit" 
+                         disabled={submitting}
+                         className="px-12 py-3.5 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
+                       >
+                         {submitting ? 'Provisioning...' : 'Confirm Provision'}
+                       </button>
+                    </div>
+                 </form>
+              </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Award Merit Points Modal ─────────────────────────────────── */}
+      <AnimatePresence>
+        {showAwardAll && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#0a0a0e]/80 backdrop-blur-xl">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9 }}
+               animate={{ opacity: 1, scale: 1 }}
+               exit={{ opacity: 0, scale: 0.9 }}
+               className="w-full max-w-2xl glass-panel rounded-[2rem] border-[#d97706]/20 bg-[#12121a] overflow-hidden shadow-2xl"
+             >
+                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-[#d97706]/[0.03]">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-[#d97706]/10 flex items-center justify-center text-[#f59e0b]">
+                         <Award size={24} />
+                      </div>
+                      <div>
+                         <h3 className="text-xl font-bold text-white">Award Merit Points</h3>
+                         <p className="text-xs text-white/40">Distribute merit points to every active student profile</p>
+                      </div>
+                   </div>
+                   <button 
+                    onClick={() => setShowAwardAll(false)}
+                    className="p-2 rounded-xl bg-white/5 text-white/40 hover:bg-error/10 hover:text-error transition-all"
+                   >
+                      <X size={20} />
+                   </button>
+                </div>
+
+                <form onSubmit={handleAwardAll} className="p-8 space-y-6">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2 md:col-span-1">
+                         <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-1 flex items-center gap-2"><Hash size={12}/> Points</label>
+                         <input 
+                          type="number" 
+                          min="1"
+                          className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-3.5 text-white text-sm focus:border-amber-500/50 outline-none transition-all"
+                          placeholder="e.g. 50"
+                          value={awardData.points}
+                          onChange={e => setAwardData({...awardData, points: e.target.value})}
+                          required
+                         />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                         <label className="text-[10px] font-black text-white/30 uppercase tracking-widest px-1 flex items-center gap-2"><GraduationCap size={12}/> Reason / Occasion</label>
+                         <input 
+                          type="text" 
+                          className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-3.5 text-white text-sm focus:border-amber-500/50 outline-none transition-all"
+                          placeholder="e.g. Hackathon winner or perfect attendance reward"
+                          value={awardData.reason}
+                          onChange={e => setAwardData({...awardData, reason: e.target.value})}
+                          required
+                         />
+                      </div>
+                   </div>
+
                    <div className="flex justify-end gap-4 pt-6">
                       <button 
                         type="button" 
-                        onClick={() => setShowCreate(false)}
+                        onClick={() => setShowAwardAll(false)}
                         className="px-8 py-3.5 rounded-2xl bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
                       >
                         Abort
                       </button>
                       <button 
                         type="submit" 
-                        disabled={submitting}
-                        className="px-12 py-3.5 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
+                        disabled={awarding}
+                        className="px-12 py-3.5 rounded-2xl bg-[#d97706] text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-amber-500/20"
                       >
-                        {submitting ? 'Provisioning...' : 'Confirm Provision'}
+                        {awarding ? 'Awarding...' : 'Confirm Award'}
                       </button>
                    </div>
                 </form>

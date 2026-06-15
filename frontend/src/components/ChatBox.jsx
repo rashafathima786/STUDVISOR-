@@ -92,10 +92,10 @@ function EmotionStrip({ emotion }) {
 //   • Subject (CIA1): 45/50 (90.0%) -> A+
 //   • Subject Name: 15/50 (30.0%) in CIA1
 const ATT_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}:\s*(\d+(?:\.\d+)?)%\s*\(([^)]+)\)/
-const MARKS_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}\s*\(([^)]+)\):\s*(\d+)\/(\d+)\s*\((\d+(?:\.\d+)?)%\)\s*->\s*(.+)/
+const MARKS_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}\s*\(([^)]+)\):\s*(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\s*\((\d+(?:\.\d+)?)%\)\s*->\s*(.+)/
 const ELIGIBILITY_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?):\s*(ELIGIBLE|INELIGIBLE)\s*\((\d+(?:\.\d+)?)%\)/i
 const BUNK_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}:\s*(\d+)\s+classes?\s*\((SAFE|WARN|CRIT)\)/i
-const LOW_MARKS_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}:\s*(\d+)\/(\d+)\s*\((\d+(?:\.\d+)?)%\)\s+in\s+(.+)/i
+const LOW_MARKS_LINE_RE = /^[•\-*]?\s*\*{0,2}(.+?)\*{0,2}:\s*(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\s*\((\d+(?:\.\d+)?)%\)\s+in\s+(.+)/i
 
 function parseAttendanceLines(text) {
   const lines = text.split(/\n|(?=•)/g).map(l => l.trim()).filter(Boolean)
@@ -301,6 +301,7 @@ function parseOverallAttendance(text) {
   let present = null
   let absent = null
   let status = null
+  const preambleLines = []
 
   for (const line of lines) {
     const clean = line.replace(/\*/g, '').trim() // clean markdown asterisks
@@ -324,16 +325,24 @@ function parseOverallAttendance(text) {
       status = mStat[1].toUpperCase()
       continue
     }
+    preambleLines.push(clean)
   }
 
   if (pct !== null && present !== null && absent !== null) {
-    return { pct, present, absent, status: status || 'STABLE' }
+    let preamble = preambleLines.join(' ').replace(/^[•\-*]/, '').trim()
+    preamble = preamble
+      .replace(/,?\s*\b(?:but\s+)?here(?:'s|\s+is)\s+(?:your\s+)?(?:current\s+)?attendance\s+(?:summary|details):?/i, '')
+      .replace(/,?\s*\bhere\s+is\s+your\s+attendance:?/i, '')
+      .replace(/,?\s*\bhere\s+is\s+the\s+summary:?/i, '')
+      .replace(/:$/, '')
+      .trim()
+    return { pct, present, absent, status: status || 'STABLE', preamble: preamble || null }
   }
   return null
 }
 
 function OverallAttendanceCard({ data }) {
-  const { pct, present, absent, status } = data
+  const { pct, present, absent, status, preamble } = data
   const total = present + absent
   const statusCls = status.toLowerCase()
 
@@ -352,6 +361,23 @@ function OverallAttendanceCard({ data }) {
           {status}
         </span>
       </div>
+
+      {preamble && (
+        <motion.div 
+          className="cb2-overall-preamble"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="cb2-overall-preamble-icon-wrap">
+            <AlertTriangle size={13} />
+          </div>
+          <div className="cb2-overall-preamble-content">
+            <span className="cb2-overall-preamble-label">Important Note</span>
+            <p className="cb2-overall-preamble-text">{preamble}</p>
+          </div>
+        </motion.div>
+      )}
       <div className="cb2-overall-content">
         <div className={`cb2-overall-radial ${statusCls}`}>
           <svg className="cb2-overall-radial-svg" viewBox="0 0 100 100">
@@ -439,6 +465,7 @@ function parseOverallPerformance(text) {
   let cgpa = null
   const semesters = []
   let bestSubject = null, weakestSubject = null
+  const preambleLines = []
 
   for (const line of lines) {
     const clean = line.replace(/\*/g, '').trim()
@@ -458,16 +485,24 @@ function parseOverallPerformance(text) {
     if (mBest) { bestSubject = { name: mBest[1].trim(), pct: parseFloat(mBest[2]) }; continue }
     const mWeak = /weakest\s+subject\s*:\s*(.+?)\s*\((\d+(?:\.\d+)?)%\)/i.exec(clean)
     if (mWeak) { weakestSubject = { name: mWeak[1].trim(), pct: parseFloat(mWeak[2]) }; continue }
+    preambleLines.push(clean)
   }
 
   if (attPct !== null && cgpa !== null) {
-    return { attPct, present, absent, attStatus: attStatus || 'STABLE', cgpa, semesters, bestSubject, weakestSubject }
+    let preamble = preambleLines.join(' ').replace(/^[•\-*]/, '').trim()
+    preamble = preamble
+      .replace(/,?\s*\b(?:but\s+)?here(?:'s|\s+is)\s+(?:your\s+)?(?:current\s+)?academic\s+performance:?/i, '')
+      .replace(/,?\s*\bhere\s+is\s+your\s+current\s+performance:?/i, '')
+      .replace(/,?\s*\bhere\s+is\s+the\s+summary:?/i, '')
+      .replace(/:$/, '')
+      .trim()
+    return { attPct, present, absent, attStatus: attStatus || 'STABLE', cgpa, semesters, bestSubject, weakestSubject, preamble: preamble || null }
   }
   return null
 }
 
 function OverallPerformanceCard({ data }) {
-  const { attPct, present, absent, attStatus, cgpa, semesters, bestSubject, weakestSubject } = data
+  const { attPct, present, absent, attStatus, cgpa, semesters, bestSubject, weakestSubject, preamble } = data
   const total = (present || 0) + (absent || 0)
   const attCls = attStatus.toLowerCase()
   const attColor = attCls === 'stable' ? '#10b981' : attCls === 'warning' ? '#f59e0b' : '#ef4444'
@@ -482,6 +517,23 @@ function OverallPerformanceCard({ data }) {
           {attStatus}
         </span>
       </div>
+
+      {preamble && (
+        <motion.div 
+          className="cb2-overall-preamble"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="cb2-overall-preamble-icon-wrap">
+            <AlertTriangle size={13} />
+          </div>
+          <div className="cb2-overall-preamble-content">
+            <span className="cb2-overall-preamble-label">Important Note</span>
+            <p className="cb2-overall-preamble-text">{preamble}</p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Top row: Attendance ring + CGPA score */}
       <div className="cb2-overall-perf-top">
@@ -558,6 +610,7 @@ function parseGPASummary(text) {
   const lines = text.split(/\n/g).map(l => l.trim()).filter(Boolean)
   let cgpa = null
   const semesters = []
+  const preambleLines = []
 
   for (const line of lines) {
     const clean = line.replace(/\*/g, '').trim()
@@ -569,17 +622,26 @@ function parseGPASummary(text) {
     const mSem = /sem\s*(\d+)\s+sgpa\s*:\s*(\d+(?:\.\d+)?)/i.exec(clean)
     if (mSem) {
       semesters.push({ semester: parseInt(mSem[1], 10), sgpa: parseFloat(mSem[2]) })
+      continue
     }
+    preambleLines.push(clean)
   }
 
   if (cgpa !== null || semesters.length > 0) {
-    return { cgpa, semesters }
+    let preamble = preambleLines.join(' ').replace(/^[•\-*]/, '').trim()
+    preamble = preamble
+      .replace(/,?\s*\b(?:but\s+)?here(?:'s|\s+is)\s+(?:your\s+)?(?:current\s+)?academic\s+performance:?/i, '')
+      .replace(/,?\s*\bhere\s+is\s+your\s+current\s+performance:?/i, '')
+      .replace(/,?\s*\bhere\s+is\s+the\s+summary:?/i, '')
+      .replace(/:$/, '')
+      .trim()
+    return { cgpa, semesters, preamble: preamble || null }
   }
   return null
 }
 
 function GPASummaryCard({ data }) {
-  const { cgpa, semesters } = data
+  const { cgpa, semesters, preamble } = data
 
   return (
     <div className="cb2-gpa-card">
@@ -592,6 +654,23 @@ function GPASummaryCard({ data }) {
           </span>
         )}
       </div>
+
+      {preamble && (
+        <motion.div 
+          className="cb2-gpa-preamble"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="cb2-gpa-preamble-icon-wrap">
+            <AlertTriangle size={13} />
+          </div>
+          <div className="cb2-gpa-preamble-content">
+            <span className="cb2-gpa-preamble-label">Important Note</span>
+            <p className="cb2-gpa-preamble-text">{preamble}</p>
+          </div>
+        </motion.div>
+      )}
       <div className="cb2-gpa-content">
         {cgpa !== null && (
           <div className="cb2-gpa-radial-wrap">
@@ -900,6 +979,94 @@ function UncoveredAbsencesCard({ absences }) {
   )
 }
 
+// ── Attendance Simulation data parser & component ────────────────
+function hasSimulation(text) {
+  if (!text) return false
+  const lower = text.toLowerCase()
+  return lower.includes('attendance of') && lower.includes('reduce your attendance to') && lower.includes('classes per day')
+}
+
+function parseSimulation(text) {
+  const currentPctMatch = /current\s+attendance\s+of\s+(\d+(?:\.\d+)?)/i.exec(text)
+  const classesPerDayMatch = /timetable\s+of\s+(\d+)\s+class/i.exec(text)
+  const daysMatch = /missing\s+(\d+)\s+day/i.exec(text)
+  const classesMatch = /missing\s+\d+\s+day(?:s)?\s*\((\d+)\s+class/i.exec(text)
+  const newPctMatch = /reduce\s+your\s+attendance\s+to\s+(\d+(?:\.\d+)?)/i.exec(text)
+  const reqMatch = /above\s+the\s+(\d+(?:\.\d+)?)/i.exec(text) || /below\s+the\s+(\d+(?:\.\d+)?)/i.exec(text) || /requirement\s+of\s+(\d+(?:\.\d+)?)/i.exec(text) || /(\d+(?:\.\d+)?)\s*%\s*requirement/i.exec(text)
+
+  const currentPct = currentPctMatch ? parseFloat(currentPctMatch[1]) : 86.5
+  const classesPerDay = classesPerDayMatch ? parseInt(classesPerDayMatch[1]) : 2
+  const days = daysMatch ? parseInt(daysMatch[1]) : 2
+  const classes = classesMatch ? parseInt(classesMatch[1]) : 4
+  const newPct = newPctMatch ? parseFloat(newPctMatch[1]) : 86.1
+  const reqPct = reqMatch ? parseFloat(reqMatch[1]) : 75.0
+  const isSafe = newPct >= reqPct
+
+  const paragraphs = text.split('\n\n').map(p => p.trim()).filter(Boolean)
+  const preamble = paragraphs[0]
+  const conclusion = paragraphs[1] || ''
+
+  return { currentPct, classesPerDay, days, classes, newPct, reqPct, isSafe, preamble, conclusion }
+}
+
+function SimulationCard({ data }) {
+  const { currentPct, classesPerDay, days, classes, newPct, reqPct, isSafe, conclusion } = data
+  const statusCls = isSafe ? 'safe' : 'risky'
+
+  return (
+    <motion.div 
+      className={`cb2-simulation-card ${statusCls}`}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+    >
+      <div className="cb2-sim-header">
+        <div className="cb2-sim-icon-wrap">
+          {isSafe ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+        </div>
+        <div className="cb2-sim-title-group">
+          <span className="cb2-sim-title">Attendance Leave Simulation</span>
+          <span className="cb2-sim-subtitle">Simulating {days} days off ({classes} classes)</span>
+        </div>
+      </div>
+
+      <div className="cb2-sim-grid">
+        <div className="cb2-sim-grid-item">
+          <span className="cb2-sim-grid-label">Current</span>
+          <span className="cb2-sim-grid-val">{currentPct}%</span>
+        </div>
+        <div className="cb2-sim-grid-item projected">
+          <span className="cb2-sim-grid-label">Projected</span>
+          <span className="cb2-sim-grid-val">{newPct}%</span>
+        </div>
+      </div>
+
+      <div className="cb2-sim-slider-wrap">
+        <div className="cb2-sim-slider-labels">
+          <span>Min Required: {reqPct}%</span>
+          <span style={{ color: isSafe ? '#10b981' : '#ef4444' }}>Projected: {newPct}%</span>
+        </div>
+        <div className="cb2-sim-slider-bar">
+          <div className="cb2-sim-slider-threshold" style={{ left: `${reqPct}%` }} title={`Required minimum: ${reqPct}%`} />
+          <div className="cb2-sim-slider-current-marker" style={{ left: `${currentPct}%` }} title={`Current: ${currentPct}%`} />
+          <motion.div 
+            className="cb2-sim-slider-fill"
+            initial={{ width: 0 }}
+            animate={{ width: `${newPct}%` }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          />
+        </div>
+      </div>
+
+      {conclusion && (
+        <div className="cb2-sim-conclusion">
+          {conclusion}
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 // ── Smart BotMessage — detects structured data and renders cards ────
 function BotMessage({ text }) {
   if (!text) return <p className="cb2-para">No response received.</p>
@@ -908,6 +1075,12 @@ function BotMessage({ text }) {
   if (hasOverallPerformance(text)) {
     const data = parseOverallPerformance(text)
     if (data) return <OverallPerformanceCard data={data} />
+  }
+
+  // Try parsing attendance simulation
+  if (hasSimulation(text)) {
+    const data = parseSimulation(text)
+    if (data) return <SimulationCard data={data} />
   }
 
   // Try parsing overall attendance summary

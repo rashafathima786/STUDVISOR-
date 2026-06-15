@@ -77,7 +77,7 @@ class AIService:
                                 model=model,
                                 contents=prompt
                             ),
-                            timeout=3.5
+                            timeout=10.0
                         )
                         if response and response.text:
                             return response.text
