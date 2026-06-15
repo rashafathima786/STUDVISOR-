@@ -15,12 +15,18 @@ from backend.app.models import (
 
 class PredictiveService:
 
-    def compute_dropout_risk(self, db: Session, student_id: int) -> dict:
+    def compute_dropout_risk(self, db: Session, student_id: int, 
+                             attendance_records: list = None,
+                             submissions: list = None,
+                             total_assignments: int = None,
+                             overdue_fees: list = None,
+                             student = None) -> dict:
         """
         Dropout Risk = weighted(attendance_slope, missed_deadlines, fee_arrears, login_gap)
         Score 0.0 (safe) → 1.0 (critical)
         """
-        student = db.query(Student).filter(Student.id == student_id).first()
+        if student is None:
+            student = db.query(Student).filter(Student.id == student_id).first()
         if not student:
             return {"score": 0, "signals": []}
 
@@ -28,7 +34,7 @@ class PredictiveService:
         score = 0.0
 
         # 1. Attendance slope (weight: 0.35)
-        records = db.query(Attendance).filter(Attendance.student_id == student_id).all()
+        records = attendance_records if attendance_records is not None else db.query(Attendance).filter(Attendance.student_id == student_id).all()
         if len(records) >= 20:
             first_half = records[:len(records)//2]
             second_half = records[len(records)//2:]
@@ -44,10 +50,13 @@ class PredictiveService:
                 signals.append(f"Attendance declining: {pct1:.0f}% → {pct2:.0f}%")
 
         # 2. Missed assignment deadlines (weight: 0.25)
-        submissions = db.query(AssignmentSubmission).filter(
-            AssignmentSubmission.student_id == student_id
-        ).all()
-        total_assignments = db.query(Assignment).count()
+        if submissions is None:
+            submissions = db.query(AssignmentSubmission).filter(
+                AssignmentSubmission.student_id == student_id
+            ).all()
+        if total_assignments is None:
+            total_assignments = db.query(Assignment).count()
+            
         if total_assignments > 0:
             submission_rate = len(submissions) / total_assignments
             if submission_rate < 0.3:
@@ -58,10 +67,13 @@ class PredictiveService:
                 signals.append(f"Assignment submission rate: {submission_rate:.0%}")
 
         # 3. Fee arrears (weight: 0.25)
-        overdue = db.query(StudentFee).filter(
-            StudentFee.student_id == student_id,
-            StudentFee.status.in_(["Overdue", "Pending"])
-        ).all()
+        if overdue_fees is None:
+            overdue = db.query(StudentFee).filter(
+                StudentFee.student_id == student_id,
+                StudentFee.status.in_(["Overdue", "Pending"])
+            ).all()
+        else:
+            overdue = overdue_fees
         overdue_amount = sum(f.amount_due - f.amount_paid for f in overdue)
         if overdue_amount > 50000:
             score += 0.25
@@ -86,7 +98,10 @@ class PredictiveService:
             "signals": signals,
         }
 
-    def compute_academic_risk(self, db: Session, student_id: int) -> dict:
+    def compute_academic_risk(self, db: Session, student_id: int, 
+                              attendance_records: list = None,
+                              marks: list = None,
+                              subjects_map: dict = None) -> dict:
         """
         Academic Failure Risk = weighted(cia_trend, subject_attendance, submission_rate)
         """
@@ -94,7 +109,9 @@ class PredictiveService:
         score = 0.0
 
         # CIA marks trend
-        marks = db.query(Mark).filter(Mark.student_id == student_id).order_by(Mark.date_published).all()
+        if marks is None:
+            marks = db.query(Mark).filter(Mark.student_id == student_id).order_by(Mark.date_published).all()
+            
         if len(marks) >= 4:
             first_half = marks[:len(marks)//2]
             second_half = marks[len(marks)//2:]
@@ -114,12 +131,18 @@ class PredictiveService:
             subject_marks[m.subject_id].append(pct)
 
         failing = 0
-        for sid, pcts in subject_marks.items():
-            avg = sum(pcts) / len(pcts)
-            if avg < 40:
-                failing += 1
-                subj = db.query(Subject).filter(Subject.id == sid).first()
-                signals.append(f"Failing in {subj.name if subj else 'Unknown'}: avg {avg:.0f}%")
+        failing_subject_ids = [sid for sid, pcts in subject_marks.items() if (sum(pcts) / len(pcts)) < 40]
+        
+        if subjects_map is not None:
+            subjects = subjects_map
+        else:
+            subjects = {s.id: s for s in db.query(Subject).filter(Subject.id.in_(failing_subject_ids)).all()} if failing_subject_ids else {}
+
+        for sid in failing_subject_ids:
+            failing += 1
+            subj = subjects.get(sid)
+            avg = sum(subject_marks[sid]) / len(subject_marks[sid])
+            signals.append(f"Failing in {subj.name if subj else 'Unknown'}: avg {avg:.0f}%")
 
         if failing >= 3:
             score += 0.4
@@ -127,7 +150,7 @@ class PredictiveService:
             score += 0.2
 
         # Subject-specific attendance
-        records = db.query(Attendance).filter(Attendance.student_id == student_id).all()
+        records = attendance_records if attendance_records is not None else db.query(Attendance).filter(Attendance.student_id == student_id).all()
         subj_att = defaultdict(lambda: {"t": 0, "p": 0})
         for r in records:
             subj_att[r.subject_id]["t"] += 1
@@ -150,9 +173,26 @@ class PredictiveService:
             "signals": signals,
         }
 
-    def compute_all_risks(self, db: Session, student_id: int) -> dict:
-        dropout = self.compute_dropout_risk(db, student_id)
-        academic = self.compute_academic_risk(db, student_id)
+    def compute_all_risks(self, db: Session, student_id: int, 
+                          attendance_records: list = None,
+                          submissions: list = None,
+                          total_assignments: int = None,
+                          overdue_fees: list = None,
+                          marks: list = None,
+                          subjects_map: dict = None,
+                          student = None) -> dict:
+        if attendance_records is None:
+            attendance_records = db.query(Attendance).filter(Attendance.student_id == student_id).all()
+        dropout = self.compute_dropout_risk(db, student_id, 
+                                            attendance_records=attendance_records,
+                                            submissions=submissions,
+                                            total_assignments=total_assignments,
+                                            overdue_fees=overdue_fees,
+                                            student=student)
+        academic = self.compute_academic_risk(db, student_id, 
+                                              attendance_records=attendance_records,
+                                              marks=marks,
+                                              subjects_map=subjects_map)
 
         # Combined risk
         combined = round((dropout["score"] * 0.5 + academic["score"] * 0.5), 2)
@@ -176,9 +216,53 @@ class PredictiveService:
     def batch_risk_assessment(self, db: Session) -> list:
         """Run risk assessment for ALL students. Nightly batch job."""
         students = db.query(Student).all()
+        
+        # 1. Fetch total assignments once
+        total_assignments = db.query(Assignment).count()
+        
+        # 2. Fetch all subjects
+        subjects = db.query(Subject).all()
+        subjects_map = {s.id: s for s in subjects}
+        
+        # 3. Group attendance records by student
+        attendance_by_student = defaultdict(list)
+        for r in db.query(Attendance).all():
+            attendance_by_student[r.student_id].append(r)
+            
+        # 4. Group submissions by student
+        submissions_by_student = defaultdict(list)
+        for s in db.query(AssignmentSubmission).all():
+            submissions_by_student[s.student_id].append(s)
+            
+        # 5. Group overdue fees by student
+        fees_by_student = defaultdict(list)
+        for f in db.query(StudentFee).filter(StudentFee.status.in_(["Overdue", "Pending"])).all():
+            fees_by_student[f.student_id].append(f)
+            
+        # 6. Group marks by student
+        marks_by_student = defaultdict(list)
+        for m in db.query(Mark).order_by(Mark.date_published).all():
+            marks_by_student[m.student_id].append(m)
+            
         results = []
         for s in students:
-            risk = self.compute_all_risks(db, s.id)
+            # Get pre-fetched lists or default to empty list/None
+            att_records = attendance_by_student.get(s.id, [])
+            subs = submissions_by_student.get(s.id, [])
+            fees = fees_by_student.get(s.id, [])
+            mks = marks_by_student.get(s.id, [])
+            
+            risk = self.compute_all_risks(
+                db, 
+                s.id,
+                attendance_records=att_records,
+                submissions=subs,
+                total_assignments=total_assignments,
+                overdue_fees=fees,
+                marks=mks,
+                subjects_map=subjects_map,
+                student=s
+            )
             if risk["combined_score"] >= 0.3:  # Only return at-risk students
                 risk["student_name"] = s.full_name
                 risk["department"] = s.department

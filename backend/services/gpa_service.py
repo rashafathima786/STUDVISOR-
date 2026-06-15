@@ -13,9 +13,14 @@ def percentage_to_grade(pct):
 class GPAService:
     def get_cgpa(self, db: Session, student_id: int) -> dict:
         marks = db.query(Mark).filter(Mark.student_id == student_id).all()
+        
+        # Pre-fetch all subjects for the student's marks in one query
+        subject_ids = list({m.subject_id for m in marks})
+        subjects = {s.id: s for s in db.query(Subject).filter(Subject.id.in_(subject_ids)).all()} if subject_ids else {}
+        
         sem_data = defaultdict(lambda: {"tc": 0, "wp": 0})
         for m in marks:
-            subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
+            subj = subjects.get(m.subject_id)
             if not subj: continue
             pct = m.marks_obtained / m.max_marks * 100 if m.max_marks > 0 else 0
             grade = percentage_to_grade(pct)

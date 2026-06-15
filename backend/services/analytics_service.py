@@ -64,10 +64,15 @@ class AnalyticsService:
         # 4. Subjects Mastery (Current Semester)
         current_sem = student.semester
         marks = db.query(Mark).filter(Mark.student_id == student_id, Mark.semester == str(current_sem)).all()
+        
+        # Pre-fetch all subjects in one query
+        subject_ids = list({m.subject_id for m in marks})
+        subjects_map = {s.id: s for s in db.query(Subject).filter(Subject.id.in_(subject_ids)).all()} if subject_ids else {}
+        
         subj_stats = defaultdict(lambda: {"obtained": 0.0, "max": 0.0, "name": ""})
         
         for m in marks:
-            subj = db.query(Subject).filter(Subject.id == m.subject_id).first()
+            subj = subjects_map.get(m.subject_id)
             if not subj: continue
             subj_stats[m.subject_id]["obtained"] += m.marks_obtained
             subj_stats[m.subject_id]["max"] += m.max_marks

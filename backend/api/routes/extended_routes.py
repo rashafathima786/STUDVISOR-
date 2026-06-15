@@ -30,9 +30,11 @@ def apply(drive_id: int, student=Depends(get_current_student), db: Session = Dep
 @placement_router.get("/my-applications/")
 def my_apps(student=Depends(get_current_student), db: Session = Depends(get_db)):
     apps = db.query(PlacementApplication).filter(PlacementApplication.student_id == student.id).all()
+    drive_ids = list({a.drive_id for a in apps})
+    drives = {d.id: d for d in db.query(PlacementDrive).filter(PlacementDrive.id.in_(drive_ids)).all()} if drive_ids else {}
     result = []
     for a in apps:
-        d = db.query(PlacementDrive).filter(PlacementDrive.id == a.drive_id).first()
+        d = drives.get(a.drive_id)
         result.append({"company": d.company_name if d else "?", "role": d.role_title if d else "?", "status": a.status})
     return {"applications": result}
 
